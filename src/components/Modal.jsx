@@ -31,17 +31,17 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' })
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12 sm:pt-24 bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-16 sm:pt-24 bg-black/30 backdrop-blur-sm"
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
     >
-      <div className={`w-full ${sizes[size]} bg-surface rounded-xl shadow-xl border border-border animate-in`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h3 className="text-lg font-semibold text-text">{title}</h3>
-          <button onClick={onClose} className="p-1 text-text-secondary hover:text-text rounded-lg hover:bg-bg transition-colors">
-            <HiOutlineXMark size={20} />
+      <div className={`w-full ${sizes[size]} bg-white rounded-2xl luxury-shadow-xl border border-stone-200 animate-scaleIn`}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100">
+          <h3 className="text-base font-semibold text-stone-900">{title}</h3>
+          <button onClick={onClose} className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg hover:bg-stone-50 transition-all">
+            <HiOutlineXMark size={18} />
           </button>
         </div>
-        <div className="px-6 py-4 max-h-[70vh] overflow-y-auto">{children}</div>
+        <div className="px-6 py-5 max-h-[70vh] overflow-y-auto">{children}</div>
       </div>
     </div>
   );

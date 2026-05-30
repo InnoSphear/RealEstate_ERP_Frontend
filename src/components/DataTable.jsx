@@ -53,26 +53,26 @@ export default function DataTable({
 
   if (loading) {
     return (
-      <div className="bg-surface rounded-xl border border-border shadow-sm p-8 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent" />
+      <div className="bg-white rounded-2xl border border-stone-200 luxury-shadow p-10 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-7 w-7 border-2 border-stone-900 border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="bg-surface rounded-xl border border-border shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-stone-200 luxury-shadow overflow-hidden">
       {(title || searchable) && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border-b border-border">
-          {title && <h3 className="text-lg font-semibold text-text">{title}</h3>}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 border-b border-stone-100">
+          {title && <h3 className="text-base font-semibold text-stone-900">{title}</h3>}
           {searchable && (
             <div className="relative w-full sm:w-64">
-              <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={18} />
+              <HiOutlineMagnifyingGlass className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" size={17} />
               <input
                 type="text"
                 placeholder="Search..."
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-                className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors pl-10"
+                className="w-full px-3.5 py-2 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors pl-10"
               />
             </div>
           )}
@@ -82,52 +82,61 @@ export default function DataTable({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-bg/50">
+            <tr className="border-b border-stone-100 bg-stone-50/50">
               {columns.map((col) => (
                 <th
                   key={col.accessor || col.header}
-                  className={`px-4 py-3 text-left font-medium text-text-secondary ${col.sortable !== false ? 'cursor-pointer select-none' : ''}`}
+                  className={`px-5 py-3.5 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider ${col.sortable !== false ? 'cursor-pointer select-none' : ''}`}
                   onClick={() => col.sortable !== false && handleSort(col.accessor)}
                 >
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     {col.header}
                     {col.sortable !== false && col.accessor && (
-                      <HiOutlineChevronUpDown size={14} className={`transition-colors ${sortField === col.accessor ? 'text-primary' : 'text-text-secondary'}`} />
+                      <HiOutlineChevronUpDown size={13} className={`transition-colors ${sortField === col.accessor ? 'text-stone-900' : 'text-stone-300'}`} />
                     )}
                   </div>
                 </th>
               ))}
               {(onEdit || onDelete || onView) && (
-                <th className="px-4 py-3 text-right font-medium text-text-secondary">Actions</th>
+                <th className="px-5 py-3.5 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Actions</th>
               )}
             </tr>
           </thead>
           <tbody>
             {paged.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + (onEdit || onDelete || onView ? 1 : 0)} className="px-4 py-12 text-center text-text-secondary">
-                  No data found
+                <td colSpan={columns.length + (onEdit || onDelete || onView ? 1 : 0)} className="px-5 py-14 text-center text-stone-400">
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-2xl">—</span>
+                    <span className="text-sm">No data found</span>
+                  </div>
                 </td>
               </tr>
             ) : (
               paged.map((row, i) => (
-                <tr key={row._id || i} className="border-b border-border hover:bg-bg/30 transition-colors">
+                <tr key={row._id || i} className="border-b border-stone-100 hover:bg-stone-50/50 transition-colors">
                   {columns.map((col) => (
-                    <td key={col.accessor || col.header} className="px-4 py-3">
+                    <td key={col.accessor || col.header} className="px-5 py-3.5 text-stone-700">
                       {col.render ? col.render(row) : row[col.accessor] ?? '-'}
                     </td>
                   ))}
                   {(onEdit || onDelete || onView) && (
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-5 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
                         {onView && (
-                          <button onClick={() => onView(row)} className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-transparent text-text-secondary hover:bg-border border border-border p-1.5 text-xs" title="View">👁</button>
+                          <button onClick={() => onView(row)} className="p-2 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all" title="View">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                          </button>
                         )}
                         {onEdit && (
-                          <button onClick={() => onEdit(row)} className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-transparent text-text-secondary hover:bg-border border border-border p-1.5 text-xs text-primary" title="Edit">✎</button>
+                          <button onClick={() => onEdit(row)} className="p-2 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all" title="Edit">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                          </button>
                         )}
                         {onDelete && (
-                          <button onClick={() => onDelete(row)} className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-transparent text-text-secondary hover:bg-border border border-border p-1.5 text-xs text-danger" title="Delete">✕</button>
+                          <button onClick={() => onDelete(row)} className="p-2 rounded-lg text-stone-400 hover:text-red-500 hover:bg-red-50 transition-all" title="Delete">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                          </button>
                         )}
                       </div>
                     </td>
@@ -140,23 +149,23 @@ export default function DataTable({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-          <p className="text-sm text-text-secondary">
+        <div className="flex items-center justify-between px-5 py-3.5 border-t border-stone-100">
+          <p className="text-xs text-stone-500">
             Showing {page * pageSize + 1} to {Math.min((page + 1) * pageSize, sorted.length)} of {sorted.length}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-transparent text-text-secondary hover:bg-border border border-border p-1.5"
+              className="p-2 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              <HiOutlineChevronLeft size={16} />
+              <HiOutlineChevronLeft size={15} />
             </button>
             {Array.from({ length: totalPages }, (_, i) => (
               <button
                 key={i}
                 onClick={() => setPage(i)}
-                className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${i === page ? 'bg-primary text-white' : 'text-text-secondary hover:bg-border'}`}
+                className={`w-8 h-8 rounded-lg text-xs font-medium transition-all ${i === page ? 'bg-stone-900 text-white' : 'text-stone-500 hover:bg-stone-50'}`}
               >
                 {i + 1}
               </button>
@@ -164,9 +173,9 @@ export default function DataTable({
             <button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page === totalPages - 1}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-transparent text-text-secondary hover:bg-border border border-border p-1.5"
+              className="p-2 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              <HiOutlineChevronRight size={16} />
+              <HiOutlineChevronRight size={15} />
             </button>
           </div>
         </div>

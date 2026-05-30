@@ -14,8 +14,12 @@ export function AuthProvider({ children }) {
       setUser(JSON.parse(stored));
       API.get('/auth/me')
         .then((res) => {
-          setUser(res.data);
-          localStorage.setItem('user', JSON.stringify(res.data));
+          const userData = {
+            ...res.data,
+            branch: res.data.branch_id || res.data.branch,
+          };
+          setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
         })
         .catch(() => {
           localStorage.removeItem('token');
@@ -30,9 +34,17 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const { data } = await API.post('/auth/login', { email, password });
+    const userData = {
+      _id: data._id,
+      full_name: data.full_name,
+      email: data.email,
+      role: data.role,
+      branch: data.branch,
+      token: data.token,
+    };
     localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data));
-    setUser(data);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
     return data;
   };
 

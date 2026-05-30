@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlineEye, HiOutlineEyeSlash } from 'react-icons/hi2';
-
+import logo from '../../assets/logo.jpeg'
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,61 +27,58 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-50 p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20">
-            <svg className="text-white" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
+    <div className="min-h-screen flex items-center justify-center bg-[#fafaf9] p-4">
+      <div className="w-full max-w-md animate-fadeIn">
+        <div className="text-center mb-10">
+          <div className="w-20 h-20 bg-stone-900 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-stone-900/10">
+           <img src={logo} alt="" />
           </div>
-          <h1 className="text-2xl font-bold text-text">RealEstate ERP</h1>
-          <p className="text-text-secondary mt-1">Sign in to your account</p>
+          <h1 className="text-3xl font-bold text-stone-900 tracking-tight">Shivam International</h1>
+          <p className="text-stone-500 mt-2 text-sm">Sign in to your management system</p>
         </div>
 
-        <div className="bg-surface rounded-xl border border-border shadow-sm p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="bg-white rounded-2xl border border-stone-200 luxury-shadow-xl p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-danger">
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
                 {error}
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1">Email</label>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+                className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-all"
                 placeholder="you@example.com"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text-secondary mb-1">Password</label>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Password</label>
               <div className="relative">
                 <input
                   type={showPw ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors pr-10"
+                  className="w-full px-4 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-all pr-11"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors"
                 >
                   {showPw ? <HiOutlineEyeSlash size={18} /> : <HiOutlineEye size={18} />}
                 </button>
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-0 bg-primary text-white hover:bg-primary-dark w-full py-2.5">
+            <button type="submit" disabled={loading} className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">
               {loading ? (
                 <div className="flex items-center gap-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />

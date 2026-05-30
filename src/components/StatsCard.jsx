@@ -1,21 +1,21 @@
 export default function StatsCard({ title, value, icon: Icon, color = 'primary', subtitle }) {
   const colors = {
-    primary: 'bg-blue-50 text-blue-600',
-    success: 'bg-green-50 text-green-600',
-    warning: 'bg-yellow-50 text-yellow-600',
-    danger: 'bg-red-50 text-red-600',
-    info: 'bg-purple-50 text-purple-600',
+    primary: 'bg-stone-50 text-stone-700',
+    success: 'bg-emerald-50 text-emerald-700',
+    warning: 'bg-amber-50 text-amber-700',
+    danger: 'bg-red-50 text-red-700',
+    info: 'bg-blue-50 text-blue-700',
   };
 
   return (
-    <div className="bg-surface rounded-xl border border-border shadow-sm p-5 flex items-start gap-4">
+    <div className="bg-white rounded-2xl border border-stone-200 luxury-shadow p-5 flex items-start gap-4 hover:luxury-shadow-md transition-all duration-300">
       <div className={`p-3 rounded-xl ${colors[color]}`}>
-        <Icon size={24} />
+        <Icon size={22} />
       </div>
-      <div>
-        <p className="text-xs font-medium text-text-secondary uppercase tracking-wider">{title}</p>
-        <p className="text-2xl font-bold text-text mt-1">{value ?? '-'}</p>
-        {subtitle && <p className="text-xs text-text-secondary mt-0.5">{subtitle}</p>}
+      <div className="min-w-0">
+        <p className="text-xs font-semibold text-stone-400 uppercase tracking-widest">{title}</p>
+        <p className="text-2xl font-bold text-stone-900 mt-1 truncate">{value ?? '-'}</p>
+        {subtitle && <p className="text-xs text-stone-500 mt-0.5">{subtitle}</p>}
       </div>
     </div>
   );

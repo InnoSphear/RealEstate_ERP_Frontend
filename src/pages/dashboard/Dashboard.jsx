@@ -21,7 +21,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent" />
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-stone-900 border-t-transparent" />
       </div>
     );
   }
@@ -40,8 +40,8 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-text">Dashboard</h1>
-        <p className="text-text-secondary">Overview of your real estate & interior business</p>
+        <h1 className="text-3xl font-bold text-stone-900 tracking-tight">Dashboard</h1>
+        <p className="text-stone-500 mt-1">Overview of your real estate & interior business</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -50,44 +50,44 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-surface rounded-xl border border-border shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-text mb-4">Recent Sales</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="bg-white rounded-2xl border border-stone-200 luxury-shadow p-6">
+          <h3 className="text-base font-semibold text-stone-900 mb-5">Recent Sales</h3>
           {stats?.recentSales?.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-1">
               {stats.recentSales.map((sale) => (
-                <div key={sale._id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                <div key={sale._id} className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-stone-50 transition-colors -mx-3">
                   <div>
-                    <p className="text-sm font-medium text-text">{sale.sale_code || 'N/A'}</p>
-                    <p className="text-xs text-text-secondary">₹{(sale.sale_price || 0).toLocaleString()}</p>
+                    <p className="text-sm font-medium text-stone-800">{sale.sale_code || 'N/A'}</p>
+                    <p className="text-xs text-stone-500 mt-0.5">₹{(sale.sale_price || 0).toLocaleString()}</p>
                   </div>
-                  <span className="bg-blue-100 text-blue-800 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">{sale.status?.replace('_', ' ')}</span>
+                  <span className="bg-stone-100 text-stone-700 ring-1 ring-stone-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize">{sale.status?.replace(/_/g, ' ')}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-text-secondary">No recent sales</p>
+            <p className="text-sm text-stone-400 text-center py-8">No recent sales</p>
           )}
         </div>
 
-        <div className="bg-surface rounded-xl border border-border shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-text mb-4">Recent Invoices</h3>
+        <div className="bg-white rounded-2xl border border-stone-200 luxury-shadow p-6">
+          <h3 className="text-base font-semibold text-stone-900 mb-5">Recent Invoices</h3>
           {stats?.recentInvoices?.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-1">
               {stats.recentInvoices.map((inv) => (
-                <div key={inv._id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                <div key={inv._id} className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-stone-50 transition-colors -mx-3">
                   <div>
-                    <p className="text-sm font-medium text-text">{inv.invoice_number || 'N/A'}</p>
-                    <p className="text-xs text-text-secondary">₹{(inv.total_amount || 0).toLocaleString()}</p>
+                    <p className="text-sm font-medium text-stone-800">{inv.invoice_number || 'N/A'}</p>
+                    <p className="text-xs text-stone-500 mt-0.5">₹{(inv.total_amount || 0).toLocaleString()}</p>
                   </div>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${inv.status === 'paid' ? 'bg-green-100 text-green-800' : inv.status === 'overdue' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${inv.status === 'paid' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : inv.status === 'overdue' ? 'bg-red-50 text-red-700 ring-1 ring-red-200' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'}`}>
                     {inv.status}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-text-secondary">No recent invoices</p>
+            <p className="text-sm text-stone-400 text-center py-8">No recent invoices</p>
           )}
         </div>
       </div>

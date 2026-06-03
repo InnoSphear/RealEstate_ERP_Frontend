@@ -81,7 +81,7 @@ export default function App() {
               <Route path="admin/tenants/:id" element={<ProtectedRoute roles={['super_admin']}><TenantDetail /></ProtectedRoute>} />
               <Route path="admin/users" element={<ProtectedRoute roles={['super_admin', 'admin', 'manager']}><Users /></ProtectedRoute>} />
               <Route path="admin/roles" element={<ProtectedRoute roles={['super_admin', 'admin']}><Roles /></ProtectedRoute>} />
-              <Route path="admin/branches" element={<Branches />} />
+              <Route path="admin/branches" element={<ProtectedRoute roles={['super_admin', 'admin']}><Branches /></ProtectedRoute>} />
 
               <Route path="employees" element={<ProtectedRoute roles={['super_admin', 'admin', 'manager']}><EmployeeList /></ProtectedRoute>} />
               <Route path="employees/:id" element={<ProtectedRoute roles={['super_admin', 'admin', 'manager']}><EmployeeDetail /></ProtectedRoute>} />

@@ -21,7 +21,7 @@ import Branches from './pages/admin/Branches';
 import EmployeeList from './pages/employees/EmployeeList';
 import EmployeeDetail from './pages/employees/EmployeeDetail';
 import Attendance from './pages/employees/Attendance';
-import LeaveManagement from './pages/employees/Leaves/LeaveManagement';
+import LeaveManagement from './pages/employees/leaves/LeaveManagement';
 
 import ClientList from './pages/clients/ClientList';
 import ClientDetail from './pages/clients/ClientDetail';

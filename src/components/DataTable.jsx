@@ -114,7 +114,10 @@ export default function DataTable({
               </tr>
             ) : (
               paged.map((row, i) => (
-                <tr key={row._id || i} className="border-b border-stone-100 hover:bg-stone-50/50 transition-colors">
+                <tr
+                  key={row._id || i}
+                  onClick={() => onView?.(row)}
+                  className={`border-b border-stone-100 hover:bg-stone-50/50 transition-colors ${onView ? 'cursor-pointer' : ''}`}>
                   {columns.map((col) => (
                     <td key={col.accessor || col.header} className="px-5 py-3.5 text-stone-700">
                       {col.render ? col.render(row) : row[col.accessor] ?? '-'}

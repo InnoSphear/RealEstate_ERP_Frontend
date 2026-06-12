@@ -275,9 +275,9 @@ export default function Settings() {
               </button>
             </form>
 
-            <hr className="border-stone-100" />
+            {isSuperAdmin && (<hr className="border-stone-100" />)}
 
-            <form onSubmit={handleChangePassword} className="space-y-5">
+            {isSuperAdmin && (<form onSubmit={handleChangePassword} className="space-y-5">
               <h3 className="text-lg font-semibold text-stone-900">Change Password</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {['current', 'new', 'confirm'].map((field) => (
@@ -308,7 +308,7 @@ export default function Settings() {
               <button type="submit" disabled={saving} className={saveBtnClass}>
                 {saving ? 'Updating...' : 'Change Password'}
               </button>
-            </form>
+            </form>)}
           </div>
         )}
 

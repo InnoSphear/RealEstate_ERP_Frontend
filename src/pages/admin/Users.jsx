@@ -14,7 +14,7 @@ export default function Users() {
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selected, setSelected] = useState(null);
-  const [form, setForm] = useState({ full_name: '', email: '', phone: '', role: '', branch_id: '', password: '', is_active: true });
+  const [form, setForm] = useState({ full_name: '', email: '', phone: '', role: '', role_slug: '', branch_id: '', password: '', is_active: true });
 
   const fetchData = async () => {
     setLoading(true);
@@ -38,7 +38,7 @@ export default function Users() {
 
   const openCreate = () => {
     setSelected(null);
-    setForm({ full_name: '', email: '', phone: '', role: '', branch_id: '', password: '', is_active: true });
+    setForm({ full_name: '', email: '', phone: '', role: '', role_slug: '', branch_id: '', password: '', is_active: true });
     setModalOpen(true);
   };
 
@@ -48,7 +48,8 @@ export default function Users() {
       full_name: user.full_name,
       email: user.email,
       phone: user.phone || '',
-      role: user.role_slug || user.role || '',
+      role: user.role?._id || '',
+      role_slug: user.role_slug || user.role?.slug || '',
       branch_id: user.branch_id?._id || user.branch_id || '',
       password: '',
       is_active: user.is_active,
@@ -111,10 +112,10 @@ export default function Users() {
     {
       header: 'Role',
       render: (row) => {
-        const slug = row.role_slug || row.role;
+        const slug = row.role_slug || row.role?.slug || (typeof row.role === 'string' ? row.role : '');
         return (
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${roleStyles[slug] || 'bg-stone-50 text-stone-600 ring-1 ring-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:ring-stone-700'}`}>
-            {slug?.replace(/_/g, ' ')}
+            {slug?.replace(/_/g, ' ') || row.role?.name || 'Unknown'}
           </span>
         );
       },
@@ -190,10 +191,14 @@ export default function Users() {
             </div>
             <div>
               <label className="block text-sm font-semibold text-stone-700 mb-1.5 dark:text-stone-300">Role *</label>
-              <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} required
+              <select value={form.role} onChange={(e) => {
+                const val = e.target.value;
+                const selected = roles.find((r) => r._id === val);
+                setForm({ ...form, role: val, role_slug: selected?.slug || '' });
+              }} required
                 className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer dark:bg-stone-800 dark:border-stone-700 dark:text-stone-200 dark:focus:ring-stone-400/20 dark:focus:border-stone-400">
                 <option value="">Select role</option>
-                {roles.map((r) => <option key={r._id || r.slug} value={r.slug || r.name}>{r.name}</option>)}
+                {roles.map((r) => <option key={r._id} value={r._id}>{r.name}</option>)}
               </select>
             </div>
             <div>

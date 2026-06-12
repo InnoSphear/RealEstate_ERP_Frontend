@@ -36,19 +36,36 @@ export default function LeaveManagement() {
 
   const openApply = () => { setSelected(null); setForm(initialForm); setApplyModal(true); };
 
+  const openEdit = (row) => {
+    setSelected(row);
+    setForm({
+      employee_id: row.employee?._id || '',
+      leave_type: row.leave_type || 'sick',
+      from_date: row.from_date?.split('T')[0] || '',
+      to_date: row.to_date?.split('T')[0] || '',
+      reason: row.reason || '',
+    });
+    setApplyModal(true);
+  };
+
   const handleApply = async (e) => {
     e.preventDefault();
     try {
-      await API.post('/leaves', form);
-      toast('Leave applied');
+      if (selected) {
+        await API.put(`/leaves/${selected._id}`, form);
+        toast('Leave updated');
+      } else {
+        await API.post('/leaves', form);
+        toast('Leave applied');
+      }
       setApplyModal(false);
       fetchData();
-    } catch (err) { toast(err.response?.data?.message || 'Error applying leave', 'error'); }
+    } catch (err) { toast(err.response?.data?.message || 'Error saving leave', 'error'); }
   };
 
   const handleApprove = async (row) => {
     try {
-      await API.put(`/leaves/${row._id}`, { status: 'approved' });
+      await API.put(`/leaves/${row._id}/approve`);
       toast('Leave approved');
       fetchData();
     } catch (err) { toast('Error approving leave', 'error'); }
@@ -56,7 +73,7 @@ export default function LeaveManagement() {
 
   const handleReject = async () => {
     try {
-      await API.put(`/leaves/${selected._id}`, { status: 'rejected', reason: rejectReason });
+      await API.put(`/leaves/${selected._id}/reject`, { rejection_reason: rejectReason });
       toast('Leave rejected');
       setRejectModal(false);
       setRejectReason('');
@@ -69,7 +86,7 @@ export default function LeaveManagement() {
   const rejected = data.filter((l) => l.status === 'rejected').length;
 
   const columns = [
-    { header: 'Employee', render: (r) => r.employee_id?.full_name || r.employee_id?.name || '-' },
+    { header: 'Employee', render: (r) => r.employee?.full_name || r.employee?.name || '-' },
     { header: 'Leave Type', accessor: 'leave_type' },
     { header: 'From', render: (r) => r.from_date ? new Date(r.from_date).toLocaleDateString() : '-' },
     { header: 'To', render: (r) => r.to_date ? new Date(r.to_date).toLocaleDateString() : '-' },
@@ -110,6 +127,7 @@ export default function LeaveManagement() {
         columns={columns}
         data={data}
         loading={loading}
+        onEdit={(row) => row.status === 'pending' ? openEdit(row) : null}
       />
 
       {data.filter((r) => activeTab === 'all' || r.status === activeTab).map((row) => (
@@ -125,7 +143,7 @@ export default function LeaveManagement() {
             {data.filter((r) => r.status === 'pending').map((row) => (
               <div key={row._id} className="flex items-center justify-between p-3 rounded-xl bg-amber-50/50">
                 <div className="text-sm text-stone-700">
-                  <span className="font-medium">{row.employee_id?.full_name || row.employee_id?.name || 'Unknown'}</span> &mdash; {row.leave_type} ({new Date(row.from_date).toLocaleDateString()} - {new Date(row.to_date).toLocaleDateString()})
+                  <span className="font-medium">{row.employee?.full_name || row.employee?.name || 'Unknown'}</span> &mdash; {row.leave_type} ({new Date(row.from_date).toLocaleDateString()} - {new Date(row.to_date).toLocaleDateString()})
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => handleApprove(row)} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border-0 cursor-pointer">Approve</button>

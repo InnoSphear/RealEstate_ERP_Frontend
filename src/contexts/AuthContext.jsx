@@ -48,9 +48,11 @@ export function AuthProvider({ children }) {
       _id: data._id,
       full_name: data.full_name,
       email: data.email,
+      phone: data.phone,
       role: data.role,
       role_slug: data.role_slug,
       tenant: data.tenant,
+      profile_photo: data.profile_photo,
       branch: data.branch,
       token: data.token,
     };
@@ -83,8 +85,21 @@ export function AuthProvider({ children }) {
     return roles.includes(user.role_slug);
   };
 
+  const hasPermission = (module, action = 'read') => {
+    if (!user) return false;
+    const perms = user.role?.permissions;
+    if (!perms || perms.length === 0) return false;
+    if (typeof perms[0] === 'string') return true;
+    return perms.some(p => p?.module === module && p?.action === action);
+  };
+
+  const hasAnyPermission = (module, actions = []) => {
+    if (!user) return false;
+    return actions.some(action => hasPermission(module, action));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, hasRole }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, hasRole, hasPermission, hasAnyPermission }}>
       {children}
     </AuthContext.Provider>
   );

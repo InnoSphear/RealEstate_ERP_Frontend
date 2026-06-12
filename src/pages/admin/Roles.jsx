@@ -6,32 +6,9 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
 import { HiPlus, HiPencil, HiTrash } from 'react-icons/hi2';
 
-const defaultPermissions = {
-  properties: { create: false, read: false, update: false, delete: false },
-  tenants: { create: false, read: false, update: false, delete: false },
-  users: { create: false, read: false, update: false, delete: false },
-  roles: { create: false, read: false, update: false, delete: false },
-  branches: { create: false, read: false, update: false, delete: false },
-  leads: { create: false, read: false, update: false, delete: false },
-  deals: { create: false, read: false, update: false, delete: false },
-  reports: { read: false, export: false },
-  settings: { read: false, update: false },
-};
-
-const permissionModules = [
-  { key: 'properties', label: 'Properties', actions: ['create', 'read', 'update', 'delete'] },
-  { key: 'tenants', label: 'Tenants', actions: ['create', 'read', 'update', 'delete'] },
-  { key: 'users', label: 'Users', actions: ['create', 'read', 'update', 'delete'] },
-  { key: 'roles', label: 'Roles', actions: ['create', 'read', 'update', 'delete'] },
-  { key: 'branches', label: 'Branches', actions: ['create', 'read', 'update', 'delete'] },
-  { key: 'leads', label: 'Leads', actions: ['create', 'read', 'update', 'delete'] },
-  { key: 'deals', label: 'Deals', actions: ['create', 'read', 'update', 'delete'] },
-  { key: 'reports', label: 'Reports', actions: ['read', 'export'] },
-  { key: 'settings', label: 'Settings', actions: ['read', 'update'] },
-];
-
 export default function Roles() {
   const [roles, setRoles] = useState([]);
+  const [permissionsByModule, setPermissionsByModule] = useState({});
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -41,8 +18,12 @@ export default function Roles() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await API.get('/roles');
-      setRoles(res.data);
+      const [rRes, pRes] = await Promise.all([
+        API.get('/roles'),
+        API.get('/permissions/by-module'),
+      ]);
+      setRoles(rRes.data);
+      setPermissionsByModule(pRes.data);
     } catch (err) {
       toast(err.response?.data?.message || 'Failed to load roles', 'error');
     } finally {
@@ -52,21 +33,38 @@ export default function Roles() {
 
   useEffect(() => { fetchData(); }, []);
 
+  const buildPermissionMap = () => {
+    const map = {};
+    Object.entries(permissionsByModule).forEach(([module, perms]) => {
+      map[module] = {};
+      perms.forEach((p) => { map[module][p.action] = false; });
+    });
+    return map;
+  };
+
   const generateSlug = (name) => name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 
   const openCreate = () => {
     setSelected(null);
-    setForm({ name: '', slug: '', description: '', permissions: JSON.parse(JSON.stringify(defaultPermissions)), is_active: true });
+    setForm({ name: '', slug: '', description: '', permissions: buildPermissionMap(), is_active: true });
     setModalOpen(true);
   };
 
   const openEdit = (role) => {
     setSelected(role);
+    const permMap = buildPermissionMap();
+    if (role.permissions && role.permissions.length > 0) {
+      role.permissions.forEach((p) => {
+        if (permMap[p.module] && p.action in permMap[p.module]) {
+          permMap[p.module][p.action] = true;
+        }
+      });
+    }
     setForm({
       name: role.name,
       slug: role.slug,
       description: role.description || '',
-      permissions: role.permissions || JSON.parse(JSON.stringify(defaultPermissions)),
+      permissions: permMap,
       is_active: role.is_active,
     });
     setModalOpen(true);
@@ -75,11 +73,12 @@ export default function Roles() {
   const handleSave = async (e) => {
     e.preventDefault();
     try {
+      const payload = { ...form };
       if (selected) {
-        await API.put(`/roles/${selected._id}`, form);
+        await API.put(`/roles/${selected._id}`, payload);
         toast('Role updated');
       } else {
-        await API.post('/roles', form);
+        await API.post('/roles', payload);
         toast('Role created');
       }
       setModalOpen(false);
@@ -110,10 +109,34 @@ export default function Roles() {
     }));
   };
 
+  const toggleAll = (module, value) => {
+    setForm((prev) => {
+      const updated = { ...prev.permissions[module] };
+      Object.keys(updated).forEach((action) => { updated[action] = value; });
+      return { ...prev, permissions: { ...prev.permissions, [module]: updated } };
+    });
+  };
+
+  const selectAll = () => {
+    const all = {};
+    Object.entries(permissionsByModule).forEach(([module, perms]) => {
+      all[module] = {};
+      perms.forEach((p) => { all[module][p.action] = true; });
+    });
+    setForm((prev) => ({ ...prev, permissions: all }));
+  };
+
+  const deselectAll = () => {
+    setForm((prev) => ({ ...prev, permissions: buildPermissionMap() }));
+  };
+
   const countPermissions = (perms) => {
     if (!perms) return 0;
+    if (Array.isArray(perms)) return perms.length;
     return Object.values(perms).reduce((sum, mod) => sum + Object.values(mod).filter(Boolean).length, 0);
   };
+
+  const moduleKeys = Object.keys(permissionsByModule).sort();
 
   const columns = [
     { header: 'Name', accessor: 'name' },
@@ -162,12 +185,16 @@ export default function Roles() {
     },
   ];
 
+  const allActions = [...new Set(
+    Object.values(permissionsByModule).flatMap((perms) => perms.map((p) => p.action))
+  )];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-stone-900 tracking-tight dark:text-stone-100">Roles</h1>
-          <p className="text-stone-500 mt-1 dark:text-stone-400">Manage user roles and permissions</p>
+          <p className="text-stone-500 mt-1 dark:text-stone-400">Manage user roles and granular permissions</p>
         </div>
         <button onClick={openCreate}
           className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10 dark:bg-stone-700 dark:hover:bg-stone-600 dark:shadow-none">
@@ -177,7 +204,7 @@ export default function Roles() {
 
       <DataTable columns={columns} data={roles} loading={loading} />
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={selected ? 'Edit Role' : 'Create Role'} size="lg">
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={selected ? 'Edit Role' : 'Create Role'} size="xl">
         <form onSubmit={handleSave} className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -201,26 +228,40 @@ export default function Roles() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-stone-700 mb-3 dark:text-stone-300">Permissions</h3>
-            <div className="border border-stone-200 rounded-xl overflow-hidden dark:border-stone-700">
-              <div className="grid grid-cols-12 gap-0 bg-stone-50 px-4 py-2.5 border-b border-stone-200 text-xs font-semibold text-stone-500 dark:bg-stone-800 dark:border-stone-700 dark:text-stone-400">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-stone-700 dark:text-stone-300">Permissions</h3>
+              <div className="flex gap-2">
+                <button type="button" onClick={selectAll}
+                  className="text-xs px-3 py-1 rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 transition-colors dark:bg-stone-800 dark:text-stone-400 dark:hover:bg-stone-700 border-0 cursor-pointer">Select All</button>
+                <button type="button" onClick={deselectAll}
+                  className="text-xs px-3 py-1 rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 transition-colors dark:bg-stone-800 dark:text-stone-400 dark:hover:bg-stone-700 border-0 cursor-pointer">Deselect All</button>
+              </div>
+            </div>
+            <div className="border border-stone-200 rounded-xl overflow-hidden dark:border-stone-700 max-h-[500px] overflow-y-auto">
+              <div className="grid grid-cols-12 gap-0 bg-stone-50 px-4 py-2.5 border-b border-stone-200 text-xs font-semibold text-stone-500 sticky top-0 dark:bg-stone-800 dark:border-stone-700 dark:text-stone-400">
                 <div className="col-span-3">Module</div>
-                <div className="col-span-9 flex gap-4">
-                  <span className="w-16 text-center">Create</span>
-                  <span className="w-16 text-center">Read</span>
-                  <span className="w-16 text-center">Update</span>
-                  <span className="w-16 text-center">Delete</span>
+                <div className={`col-span-9 grid gap-2`} style={{ gridTemplateColumns: `repeat(${Math.max(allActions.length, 1)}, minmax(64px, 1fr))` }}>
+                  {allActions.map((action) => (
+                    <span key={action} className="text-center capitalize">{action}</span>
+                  ))}
                 </div>
               </div>
-              {permissionModules.map((mod) => {
-                const perm = form.permissions[mod.key] || {};
+              {moduleKeys.map((module) => {
+                const perm = form.permissions[module] || {};
                 return (
-                  <div key={mod.key} className="grid grid-cols-12 gap-0 px-4 py-2.5 border-b border-stone-100 last:border-0 items-center dark:border-stone-800">
-                    <div className="col-span-3 text-sm font-medium text-stone-700 dark:text-stone-300">{mod.label}</div>
-                    <div className="col-span-9 flex gap-4">
-                      {mod.actions.map((action) => (
-                        <label key={action} className="w-16 flex items-center justify-center cursor-pointer">
-                          <input type="checkbox" checked={!!perm[action]} onChange={(e) => updatePermission(mod.key, action, e.target.checked)}
+                  <div key={module} className="grid grid-cols-12 gap-0 px-4 py-2.5 border-b border-stone-100 last:border-0 items-center hover:bg-stone-50/50 dark:border-stone-800 dark:hover:bg-stone-800/30">
+                    <div className="col-span-3 text-sm font-medium text-stone-700 capitalize flex items-center gap-2 dark:text-stone-300">
+                      {module.replace(/_/g, ' ')}
+                      <button type="button" onClick={() => toggleAll(module, true)}
+                        className="text-[10px] text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 border-0 bg-transparent cursor-pointer">all</button>
+                      <button type="button" onClick={() => toggleAll(module, false)}
+                        className="text-[10px] text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 border-0 bg-transparent cursor-pointer">none</button>
+                    </div>
+                    <div className={`col-span-9 grid gap-2`} style={{ gridTemplateColumns: `repeat(${Math.max(allActions.length, 1)}, minmax(64px, 1fr))` }}>
+                      {allActions.map((action) => (
+                        <label key={action} className="flex items-center justify-center cursor-pointer">
+                          <input type="checkbox" checked={!!perm[action]}
+                            onChange={(e) => updatePermission(module, action, e.target.checked)}
                             className="w-4 h-4 rounded border-stone-300 text-stone-900 focus:ring-stone-900/20 dark:border-stone-600 dark:text-stone-300 dark:focus:ring-stone-400/20" />
                         </label>
                       ))}

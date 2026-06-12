@@ -4,7 +4,9 @@ import Modal from '../../components/Modal';
 import {
   HiOutlineChartBarSquare, HiOutlineUserGroup, HiOutlineCurrencyDollar,
   HiOutlineReceiptPercent, HiOutlineHome, HiOutlineBanknotes,
-  HiOutlineArrowDownTray, HiOutlineDocumentArrowDown,
+  HiOutlineArrowDownTray, HiOutlineDocumentArrowDown, HiOutlineClock,
+  HiOutlineBuildingOffice2, HiOutlineWrenchScrewdriver, HiOutlineChartBar,
+  HiOutlineUser, HiOutlineArchiveBox,
 } from 'react-icons/hi2';
 
 const reportTypes = [
@@ -61,6 +63,60 @@ const reportTypes = [
     endpoint: '/reports/commissions',
     color: 'bg-teal-50 text-teal-700',
     filters: ['status', 'agent'],
+  },
+  {
+    key: 'attendance',
+    title: 'Attendance Reports',
+    description: 'Employee attendance records, working hours, and overtime',
+    icon: HiOutlineClock,
+    endpoint: '/reports/attendance',
+    color: 'bg-violet-50 text-violet-700',
+    filters: ['status', 'employee'],
+  },
+  {
+    key: 'rent',
+    title: 'Rent Reports',
+    description: 'Rental properties, tenant info, and lease status',
+    icon: HiOutlineBuildingOffice2,
+    endpoint: '/reports/rent',
+    color: 'bg-orange-50 text-orange-700',
+    filters: ['status', 'furnishing'],
+  },
+  {
+    key: 'interior-projects',
+    title: 'Interior Project Reports',
+    description: 'Interior project progress, budgets, and timelines',
+    icon: HiOutlineWrenchScrewdriver,
+    endpoint: '/reports/interior-projects',
+    color: 'bg-cyan-50 text-cyan-700',
+    filters: ['status', 'project_type'],
+  },
+  {
+    key: 'lead-conversion',
+    title: 'Lead Conversion Reports',
+    description: 'Conversion rates, trends, and source effectiveness',
+    icon: HiOutlineChartBar,
+    endpoint: '/reports/lead-conversion',
+    color: 'bg-pink-50 text-pink-700',
+    filters: [],
+  },
+  {
+    key: 'employee-performance',
+    title: 'Employee Performance',
+    description: 'Agent leads, conversions, commission earnings',
+    icon: HiOutlineUser,
+    endpoint: '/reports/employee-performance',
+    color: 'bg-lime-50 text-lime-700',
+    filters: ['department'],
+  },
+  {
+    key: 'inventory',
+    title: 'Inventory Reports',
+    description: 'Material stock levels, orders, and reorder status',
+    icon: HiOutlineArchiveBox,
+    endpoint: '/reports/inventory',
+    color: 'bg-slate-50 text-slate-700',
+    filters: [],
   },
 ];
 
@@ -125,6 +181,14 @@ export default function Reports() {
       window.URL.revokeObjectURL(url);
 
       setModalOpen(false);
+
+      API.post('/reports/history', {
+        report_type: selectedReport.key,
+        format: form.format.toLowerCase(),
+        filters: { ...form.filters, from: form.from, to: form.to },
+        rows_generated: response.headers['x-rows-count'] || 0,
+        file_size: filename,
+      }).catch(() => {});
 
       API.get('/reports/history')
         .then((res) => setHistory(res.data || []))

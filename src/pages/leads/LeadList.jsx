@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API from '../../api/axios';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
+import { useAuth } from '../../contexts/AuthContext';
+import { HiOutlineArrowDownTray } from 'react-icons/hi2';
 
 const statusColors = {
   new: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
@@ -46,6 +49,9 @@ function getScoreTextColor(score) {
 }
 
 export default function LeadList() {
+  const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole('admin', 'manager');
   const [data, setData] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -166,6 +172,12 @@ export default function LeadList() {
     setTransferModalOpen(true);
   };
 
+  const handleExport = () => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
+    window.open(`/api/leads/export?${params.toString()}`, '_blank');
+  };
+
   const handleLocationToggle = (loc) => {
     const cur = form.preferred_locations || [];
     setForm({
@@ -210,6 +222,9 @@ export default function LeadList() {
           <p className="text-stone-500 mt-1">Manage your leads and prospects</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={handleExport} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">
+            <HiOutlineArrowDownTray size={15} /> Export
+          </button>
           <button onClick={() => setImportModalOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">
             Bulk Import
           </button>
@@ -247,8 +262,9 @@ export default function LeadList() {
         columns={columns}
         data={data}
         loading={loading}
-        onEdit={openEdit}
-        onDelete={(r) => { setSelected(r); setConfirmOpen(true); }}
+        onView={(r) => navigate(`/leads/${r._id}`)}
+        onEdit={isAdmin ? openEdit : null}
+        onDelete={isAdmin ? (r) => { setSelected(r); setConfirmOpen(true); } : null}
       />
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={selected ? 'Edit Lead' : 'Create Lead'} size="xl">
@@ -328,7 +344,7 @@ export default function LeadList() {
           </div>
           <div className="flex justify-between items-center pt-2">
             <div>
-              {selected && (
+              {selected && isAdmin && (
                 <button type="button" onClick={() => openTransfer(selected)} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200">
                   Transfer to Sales
                 </button>

@@ -27,9 +27,9 @@ API.interceptors.response.use(
             `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/refresh-token`,
             { refreshToken }
           );
-          localStorage.setItem('token', data.token);
+          localStorage.setItem('token', data.accessToken || data.token);
           localStorage.setItem('refreshToken', data.refreshToken);
-          err.config.headers.Authorization = `Bearer ${data.token}`;
+          err.config.headers.Authorization = `Bearer ${data.accessToken || data.token}`;
           return API(err.config);
         } catch {
           localStorage.removeItem('token');

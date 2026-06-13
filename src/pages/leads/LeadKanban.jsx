@@ -35,7 +35,11 @@ export default function LeadStages() {
         });
         setGroups(grouped);
       })
-      .catch(() => toast('Failed to load leads', 'error'))
+      .catch((err) => {
+        const status = err.response?.status;
+        if (status === 403) toast('Access denied: Your role does not have permission to view leads', 'error');
+        else toast('Failed to load leads', 'error');
+      })
       .finally(() => setLoading(false));
   }, []);
 

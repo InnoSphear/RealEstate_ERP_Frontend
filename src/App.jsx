@@ -102,12 +102,12 @@ export default function App() {
               <Route path="my-attendance" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent']}><MyAttendance /></ProtectedRoute>} />
               <Route path="employees/leaves" element={<ProtectedRoute roles={['admin', 'manager']}><LeaveManagement /></ProtectedRoute>} />
 
-              <Route path="leads" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'receptionist']}><LeadList /></ProtectedRoute>} />
+              <Route path="leads" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist']}><LeadList /></ProtectedRoute>} />
               <Route path="leads/:id" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist']}><LeadDetail /></ProtectedRoute>} />
               <Route path="leads/kanban" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive']}><LeadKanban /></ProtectedRoute>} />
 
               <Route path="clients" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist']}><ClientList /></ProtectedRoute>} />
-              <Route path="clients/:id" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive']}><ClientDetail /></ProtectedRoute>} />
+              <Route path="clients/:id" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist']}><ClientDetail /></ProtectedRoute>} />
 
               <Route path="follow-ups" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive']}><FollowUpList /></ProtectedRoute>} />
 

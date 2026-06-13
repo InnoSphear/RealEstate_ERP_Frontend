@@ -75,7 +75,11 @@ export default function LeadList() {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
     const qs = params.toString();
-    API.get(`/leads${qs ? `?${qs}` : ''}`).then((res) => setData(res.data)).catch(() => toast('Failed to load leads', 'error')).finally(() => setLoading(false));
+    API.get(`/leads${qs ? `?${qs}` : ''}`).then((res) => setData(res.data)).catch((err) => {
+      const status = err.response?.status;
+      if (status === 403) toast('Access denied: Your role does not have permission to view leads', 'error');
+      else toast('Failed to load leads', 'error');
+    }).finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchData(); }, [filters]);
@@ -124,7 +128,16 @@ export default function LeadList() {
       setModalOpen(false);
       fetchData();
     } catch (err) {
-      toast(err.response?.data?.message || 'Error', 'error');
+      const status = err.response?.status;
+      const msg = err.response?.data?.message || 'Error';
+      if (status === 409) {
+        const dup = err.response?.data?.duplicate;
+        toast(msg + (dup ? ` (${dup.full_name} - ${dup.lead_id})` : ''), 'error');
+      } else if (status === 403) {
+        toast('You do not have permission to perform this action', 'error');
+      } else {
+        toast(msg, 'error');
+      }
     }
   };
 

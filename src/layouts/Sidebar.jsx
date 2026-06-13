@@ -45,7 +45,7 @@ const menuGroups = [
   {
     label: 'CRM',
     items: [
-      { path: '/leads', label: 'Leads', icon: HiOutlinePhone, roles: ['admin', 'manager', 'telecaller', 'receptionist'], permission: 'leads' },
+      { path: '/leads', label: 'Leads', icon: HiOutlinePhone, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist'], permission: 'leads' },
       { path: '/leads/kanban', label: 'Lead Stages', icon: HiOutlinePresentationChartBar, roles: ['admin', 'manager', 'telecaller', 'sales_executive'], permission: 'leads' },
       { path: '/clients', label: 'Clients', icon: HiOutlineUserGroup, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist'], permission: 'clients' },
       { path: '/follow-ups', label: 'Follow Ups', icon: HiOutlineCalendar, roles: ['admin', 'manager', 'telecaller', 'sales_executive'], permission: 'follow_ups' },

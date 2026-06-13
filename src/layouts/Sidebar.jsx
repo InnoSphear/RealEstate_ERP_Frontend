@@ -101,6 +101,8 @@ const menuGroups = [
   {
     label: 'My',
     items: [
+      { path: '/my-attendance', label: 'My Attendance', icon: HiOutlineCalendar, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent'] },
+      { path: '/my-leaves', label: 'My Leaves', icon: HiOutlineArrowRightOnRectangle, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent'] },
       { path: '/my-commissions', label: 'My Commissions', icon: HiOutlineTag, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent'], permission: 'commissions' },
     ],
   },

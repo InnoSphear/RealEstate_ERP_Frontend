@@ -23,6 +23,7 @@ import EmployeeList from './pages/employees/EmployeeList';
 import EmployeeDetail from './pages/employees/EmployeeDetail';
 import Attendance from './pages/employees/Attendance';
 import MyAttendance from './pages/employees/MyAttendance';
+import MyLeaves from './pages/employees/MyLeaves';
 import LeaveManagement from './pages/employees/leaves/LeaveManagement';
 
 import ClientList from './pages/clients/ClientList';
@@ -100,6 +101,7 @@ export default function App() {
               <Route path="employees/:id" element={<ProtectedRoute roles={['admin', 'manager']}><EmployeeDetail /></ProtectedRoute>} />
               <Route path="employees/attendance" element={<ProtectedRoute roles={['admin', 'manager']}><Attendance /></ProtectedRoute>} />
               <Route path="my-attendance" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent']}><MyAttendance /></ProtectedRoute>} />
+              <Route path="my-leaves" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent']}><MyLeaves /></ProtectedRoute>} />
               <Route path="employees/leaves" element={<ProtectedRoute roles={['admin', 'manager']}><LeaveManagement /></ProtectedRoute>} />
 
               <Route path="leads" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist']}><LeadList /></ProtectedRoute>} />

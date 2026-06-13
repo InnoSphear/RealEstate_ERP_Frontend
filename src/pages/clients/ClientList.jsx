@@ -5,6 +5,7 @@ import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
+import { useAuth } from '../../contexts/AuthContext';
 
 const statusColors = {
   active: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
@@ -18,6 +19,8 @@ const statuses = ['active', 'inactive', 'blocked'];
 
 export default function ClientList() {
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole('admin', 'manager');
   const [data, setData] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -152,10 +155,12 @@ export default function ClientList() {
           <option value="">All Sources</option>
           {sources.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
         </select>
-        <select value={filters.assigned_to} onChange={(e) => setFilters({ ...filters, assigned_to: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
-          <option value="">All Assignees</option>
-          {users.map((u) => <option key={u._id} value={u._id}>{u.name || u.full_name}</option>)}
-        </select>
+        {isAdmin && (
+          <select value={filters.assigned_to} onChange={(e) => setFilters({ ...filters, assigned_to: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
+            <option value="">All Assignees</option>
+            {users.map((u) => <option key={u._id} value={u._id}>{u.name || u.full_name}</option>)}
+          </select>
+        )}
         <select value={filters.requirement_type} onChange={(e) => setFilters({ ...filters, requirement_type: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
           <option value="">All Requirements</option>
           {requirementTypes.map((r) => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}
@@ -167,8 +172,8 @@ export default function ClientList() {
         data={data}
         loading={loading}
         onView={(r) => navigate(`/clients/${r._id}`)}
-        onEdit={openEdit}
-        onDelete={(r) => { setSelected(r); setConfirmOpen(true); }}
+        onEdit={isAdmin ? openEdit : undefined}
+        onDelete={isAdmin ? (r) => { setSelected(r); setConfirmOpen(true); } : undefined}
       />
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={selected ? 'Edit Client' : 'Create Client'} size="xl">

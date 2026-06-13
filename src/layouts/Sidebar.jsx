@@ -54,10 +54,10 @@ const menuGroups = [
   {
     label: 'Property',
     items: [
-      { path: '/properties', label: 'Properties', icon: HiOutlineBuildingOffice, roles: ['admin', 'manager', 'sales_executive', 'agent'], permission: 'properties' },
+      { path: '/properties', label: 'Properties', icon: HiOutlineBuildingOffice, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent'], permission: 'properties' },
       { path: '/properties/keys', label: 'Key Mgmt', icon: HiOutlineKey, roles: ['admin', 'manager'], permission: 'property_keys' },
       { path: '/projects', label: 'Projects', icon: HiOutlineWrenchScrewdriver, roles: ['admin', 'manager', 'sales_executive'], permission: 'projects' },
-      { path: '/rental-apartments', label: 'Rentals', icon: HiOutlineBuildingOffice2, roles: ['admin', 'manager', 'sales_executive', 'agent'], permission: 'properties' },
+      { path: '/rental-apartments', label: 'Rentals', icon: HiOutlineBuildingOffice2, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent'], permission: 'properties' },
     ],
   },
   {

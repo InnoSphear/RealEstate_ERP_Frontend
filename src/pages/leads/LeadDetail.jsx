@@ -40,6 +40,8 @@ export default function LeadDetail() {
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [callNoteModalOpen, setCallNoteModalOpen] = useState(false);
   const [callNote, setCallNote] = useState('');
+  const [conversionForm, setConversionForm] = useState({ transaction_type: 'purchase', property_id: '', property_search: '', interior_project: {} });
+  const [properties, setProperties] = useState([]);
   const [history, setHistory] = useState([]);
   const [followUps, setFollowUps] = useState([]);
   const [users, setUsers] = useState([]);
@@ -102,11 +104,33 @@ export default function LeadDetail() {
     }
   };
 
+  const searchProperties = async (q) => {
+    try {
+      const { data } = await API.get(`/properties?search=${encodeURIComponent(q)}`);
+      setProperties(Array.isArray(data) ? data : data.properties || []);
+    } catch { setProperties([]); }
+  };
+
+  useEffect(() => {
+    if (convertModalOpen && (conversionForm.transaction_type === 'sell' || conversionForm.transaction_type === 'purchase')) {
+      searchProperties('');
+    }
+  }, [convertModalOpen, conversionForm.transaction_type]);
+
   const handleConvert = async () => {
     try {
-      const res = await API.put(`/leads/${id}/convert-to-client`);
+      const payload = { transaction_type: conversionForm.transaction_type };
+      if (conversionForm.transaction_type === 'sell' || conversionForm.transaction_type === 'purchase') {
+        if (!conversionForm.property_id) return toast('Select a property', 'error');
+        payload.property_id = conversionForm.property_id;
+      }
+      if (conversionForm.transaction_type === 'interior') {
+        payload.interior_project = conversionForm.interior_project;
+      }
+      const res = await API.put(`/leads/${id}/convert-to-client`, payload);
       toast('Lead converted to client');
       setConvertModalOpen(false);
+      setConversionForm({ transaction_type: 'purchase', property_id: '', property_search: '', interior_project: {} });
       fetchLead();
     } catch (err) {
       toast(err.response?.data?.message || 'Conversion failed', 'error');
@@ -291,6 +315,24 @@ export default function LeadDetail() {
               <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Converted to Client</p>
               <p className="text-sm text-stone-900 mt-1">{lead.converted_to_client ? `Yes (${lead.converted_client?.full_name || ''})` : 'No'}</p>
             </div>
+            {lead.conversion_details?.transaction_type && (
+              <div>
+                <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Deal Type</p>
+                <p className="text-sm text-stone-900 mt-1 capitalize">{lead.conversion_details.transaction_type}</p>
+              </div>
+            )}
+            {lead.conversion_details?.property && (
+              <div>
+                <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Property</p>
+                <p className="text-sm text-stone-900 mt-1">{lead.conversion_details.property.property_id} - {lead.conversion_details.property.location}</p>
+              </div>
+            )}
+            {lead.conversion_details?.interior_project && (
+              <div>
+                <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Interior Project</p>
+                <p className="text-sm text-stone-900 mt-1">{lead.conversion_details.interior_project.title || 'Interior Project'}</p>
+              </div>
+            )}
           </div>
           {lead.notes && (
             <div className="mt-4 pt-4 border-t border-stone-100">
@@ -410,11 +452,94 @@ export default function LeadDetail() {
         </form>
       </Modal>
 
-      <Modal isOpen={convertModalOpen} onClose={() => setConvertModalOpen(false)} title="Convert to Client" size="sm">
-        <p className="text-sm text-stone-600 mb-6">This will convert <strong>{lead.full_name}</strong> from a lead to a client. A client record will be created with the lead's information.</p>
-        <div className="flex justify-end gap-3">
-          <button onClick={() => setConvertModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
-          <button onClick={handleConvert} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-0 bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-900/10">Convert to Client</button>
+      <Modal isOpen={convertModalOpen} onClose={() => setConvertModalOpen(false)} title="Convert to Client" size="lg">
+        <p className="text-sm text-stone-600 mb-5">Convert <strong>{lead.full_name}</strong> to a client with deal details.</p>
+        <div className="space-y-5">
+          <div>
+            <label className="block text-sm font-semibold text-stone-700 mb-1.5">Transaction Type *</label>
+            <select className={inputClass + " appearance-none cursor-pointer"} value={conversionForm.transaction_type} onChange={(e) => setConversionForm({ ...conversionForm, transaction_type: e.target.value, property_id: '', property_search: '', interior_project: {} })}>
+              <option value="purchase">Purchase</option>
+              <option value="sell">Sell</option>
+              <option value="interior">Interior</option>
+            </select>
+          </div>
+
+          {(conversionForm.transaction_type === 'sell' || conversionForm.transaction_type === 'purchase') && (
+            <div>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Select Property</label>
+              <input
+                className={inputClass + " mb-2"}
+                placeholder="Search properties..."
+                value={conversionForm.property_search}
+                onChange={(e) => {
+                  setConversionForm({ ...conversionForm, property_search: e.target.value });
+                  searchProperties(e.target.value);
+                }}
+              />
+              <div className="max-h-48 overflow-y-auto border border-stone-200 rounded-xl divide-y divide-stone-100">
+                {properties.length === 0 ? (
+                  <p className="text-sm text-stone-400 p-3 text-center">No properties found</p>
+                ) : properties.map((p) => (
+                  <div
+                    key={p._id}
+                    className={`p-3 text-sm cursor-pointer transition-colors ${conversionForm.property_id === p._id ? 'bg-stone-100 font-semibold' : 'hover:bg-stone-50'}`}
+                    onClick={() => setConversionForm({ ...conversionForm, property_id: p._id, property_search: `${p.property_id} - ${p.location} (${p.property_type})` })}
+                  >
+                    {p.property_id} - {p.location} ({p.property_type}) {p.price_sale ? `- ₹${Number(p.price_sale).toLocaleString()}` : ''}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {conversionForm.transaction_type === 'interior' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Project Title *</label>
+                  <input className={inputClass} value={conversionForm.interior_project.title || ''} onChange={(e) => setConversionForm({ ...conversionForm, interior_project: { ...conversionForm.interior_project, title: e.target.value } })} placeholder="e.g. 3BHK Interior Design" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Project Type</label>
+                  <select className={inputClass + " appearance-none cursor-pointer"} value={conversionForm.interior_project.project_type || 'residential'} onChange={(e) => setConversionForm({ ...conversionForm, interior_project: { ...conversionForm.interior_project, project_type: e.target.value } })}>
+                    <option value="residential">Residential</option>
+                    <option value="commercial">Commercial</option>
+                    <option value="office">Office</option>
+                    <option value="renovation">Renovation</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Total Area (sqft)</label>
+                  <input type="number" className={inputClass} value={conversionForm.interior_project.total_area_sqft || ''} onChange={(e) => setConversionForm({ ...conversionForm, interior_project: { ...conversionForm.interior_project, total_area_sqft: e.target.value } })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Estimated Budget (₹)</label>
+                  <input type="number" className={inputClass} value={conversionForm.interior_project.estimated_budget || ''} onChange={(e) => setConversionForm({ ...conversionForm, interior_project: { ...conversionForm.interior_project, estimated_budget: e.target.value } })} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-stone-700 mb-1.5">Scope of Work</label>
+                <textarea className={inputClass} rows={3} value={conversionForm.interior_project.scope_of_work || ''} onChange={(e) => setConversionForm({ ...conversionForm, interior_project: { ...conversionForm.interior_project, scope_of_work: e.target.value } })} placeholder="Describe the scope of interior work..." />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Start Date</label>
+                  <input type="date" className={inputClass} value={conversionForm.interior_project.start_date || ''} onChange={(e) => setConversionForm({ ...conversionForm, interior_project: { ...conversionForm.interior_project, start_date: e.target.value } })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Expected End Date</label>
+                  <input type="date" className={inputClass} value={conversionForm.interior_project.expected_end_date || ''} onChange={(e) => setConversionForm({ ...conversionForm, interior_project: { ...conversionForm.interior_project, expected_end_date: e.target.value } })} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button onClick={() => setConvertModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
+            <button onClick={handleConvert} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-0 bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-900/10">Convert to Client</button>
+          </div>
         </div>
       </Modal>
 

@@ -4,6 +4,7 @@ import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
+import { useAuth } from '../../contexts/AuthContext';
 import { HiOutlineSquares2X2, HiOutlineTableCells, HiOutlineEye, HiOutlineHeart, HiOutlineMapPin, HiOutlineHomeModern } from 'react-icons/hi2';
 
 const propertyTypes = ['apartment', 'villa', 'plot', 'commercial', 'shop', 'office', 'warehouse', 'penthouse', 'other'];
@@ -37,6 +38,8 @@ const emptyForm = () => ({
 });
 
 export default function PropertyList() {
+  const { user } = useAuth();
+  const isAdmin = user?.role_slug === 'admin';
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('table');
@@ -150,7 +153,7 @@ export default function PropertyList() {
           data={data}
           loading={loading}
           onEdit={openEdit}
-          onDelete={(r) => { setSelected(r); setConfirmOpen(true); }}
+          onDelete={isAdmin ? (r) => { setSelected(r); setConfirmOpen(true); } : undefined}
           onView={(r) => navigateTo(r._id)}
         />
       ) : (

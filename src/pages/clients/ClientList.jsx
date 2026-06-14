@@ -129,7 +129,7 @@ export default function ClientList() {
     { header: 'Requirement', render: (r) => <span className="capitalize text-sm">{r.requirement_type?.replace(/_/g, ' ') || '-'}</span> },
     { header: 'Budget Range', render: (r) => (r.budget_min || r.budget_max) ? `₹${(r.budget_min || 0).toLocaleString()} - ₹${(r.budget_max || 0).toLocaleString()}` : '-' },
     { header: 'Status', render: (r) => <span className={statusColors[r.status] || statusColors.active}>{r.status}</span> },
-    { header: 'Assigned To', render: (r) => r.assigned_to?.name || r.assigned_to?.full_name || '-' },
+    { header: 'Assigned To', render: (r) => r.assigned_to?.full_name || '-' },
     { header: 'Converted', render: (r) => r.converted ? <span className="text-emerald-600 font-semibold">Yes</span> : 'No' },
     { header: 'Created', render: (r) => r.created_at ? new Date(r.created_at).toLocaleDateString() : '-' },
   ];
@@ -158,7 +158,7 @@ export default function ClientList() {
         {isAdmin && (
           <select value={filters.assigned_to} onChange={(e) => setFilters({ ...filters, assigned_to: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
             <option value="">All Assignees</option>
-            {users.map((u) => <option key={u._id} value={u._id}>{u.name || u.full_name}</option>)}
+            {users.map((u) => <option key={u._id} value={u._id}>{u.full_name}</option>)}
           </select>
         )}
         <select value={filters.requirement_type} onChange={(e) => setFilters({ ...filters, requirement_type: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
@@ -237,7 +237,7 @@ export default function ClientList() {
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Assigned To</label>
               <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.assigned_to} onChange={(e) => setForm({ ...form, assigned_to: e.target.value })}>
                 <option value="">Unassigned</option>
-                {users.map((u) => <option key={u._id} value={u._id}>{u.name || u.full_name}</option>)}
+                {users.map((u) => <option key={u._id} value={u._id}>{u.full_name}</option>)}
               </select>
             </div>
           </div>

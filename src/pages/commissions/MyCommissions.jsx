@@ -36,7 +36,7 @@ export default function MyCommissions() {
   const totalPending = (totals.find((t) => t._id === 'pending')?.total || 0).toLocaleString();
   const totalApproved = (totals.find((t) => t._id === 'approved')?.total || 0).toLocaleString();
   const totalPaid = (totals.find((t) => t._id === 'paid')?.total || 0).toLocaleString();
-  const totalAll = (totals.reduce((s, t) => s + t.total, 0)).toLocaleString();
+  const totalAll = (totals.filter((t) => t._id !== 'cancelled').reduce((s, t) => s + t.total, 0)).toLocaleString();
 
   return (
     <div className="space-y-6">

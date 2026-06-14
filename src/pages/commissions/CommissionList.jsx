@@ -53,7 +53,7 @@ export default function CommissionList() {
       setProperties(pRes.data);
       const summaryMap = {};
       dRes.data.forEach((c) => {
-        const name = c.employee?.full_name || c.employee?.name || 'Unknown';
+        const name = c.employee?.full_name || 'Unknown';
         if (!summaryMap[name]) summaryMap[name] = { name, total: 0, pending: 0, count: 0 };
         summaryMap[name].total += c.commission_amount || 0;
         if (c.status === 'pending') summaryMap[name].pending += c.commission_amount || 0;

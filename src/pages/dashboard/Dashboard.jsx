@@ -342,7 +342,7 @@ function AdminDashboard({ stats }) {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-stone-800">{act.description || act.message}</p>
                     <p className="text-xs text-stone-400 mt-0.5">
-                      {act.user && <span className="font-medium text-stone-500">{act.user.full_name || act.user.name || act.user} · </span>}
+                      {act.user && <span className="font-medium text-stone-500">{act.user.full_name || act.user} · </span>}
                       {formatDate(act.createdAt)} {formatTime(act.createdAt)}
                     </p>
                   </div>
@@ -361,9 +361,9 @@ function AdminDashboard({ stats }) {
               {followUps.map((fu) => (
                 <div key={fu._id} className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-stone-50 transition-colors -mx-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-stone-800 truncate">{fu.title || (fu.lead?.full_name || fu.lead?.name || fu.lead) || (fu.client?.full_name || fu.client?.name || fu.client) || 'Follow Up'}</p>
+                    <p className="text-sm font-medium text-stone-800 truncate">{fu.title || (fu.lead?.full_name || fu.lead) || (fu.client?.full_name || fu.client) || 'Follow Up'}</p>
                     <p className="text-xs text-stone-400 mt-0.5">
-                      {fu.assigned_to && <span>Assigned to: {fu.assigned_to?.full_name || fu.assigned_to?.name || fu.assigned_to}</span>}
+                      {fu.assigned_to && <span>Assigned to: {fu.assigned_to?.full_name || fu.assigned_to}</span>}
                     </p>
                   </div>
                   <div className="shrink-0 ml-4 text-right">

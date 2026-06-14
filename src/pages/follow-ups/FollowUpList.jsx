@@ -161,7 +161,7 @@ export default function FollowUpList() {
         </span>
       ),
     },
-    { header: 'Assigned To', render: (r) => r.assigned_to?.name || r.assigned_to?.full_name || '-' },
+    { header: 'Assigned To', render: (r) => r.assigned_to?.full_name || '-' },
     {
       header: 'Date',
       render: (r) => (
@@ -209,7 +209,7 @@ export default function FollowUpList() {
         </select>
         <select value={filters.assigned_to} onChange={(e) => setFilters({ ...filters, assigned_to: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
           <option value="">All Assignees</option>
-          {users.map((u) => <option key={u._id} value={u._id}>{u.name || u.full_name}</option>)}
+          {users.map((u) => <option key={u._id} value={u._id}>{u.full_name}</option>)}
         </select>
         <input type="date" value={filters.date_from} onChange={(e) => setFilters({ ...filters, date_from: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" placeholder="From" />
         <input type="date" value={filters.date_to} onChange={(e) => setFilters({ ...filters, date_to: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" placeholder="To" />
@@ -251,7 +251,7 @@ export default function FollowUpList() {
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Assigned To *</label>
               <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.assigned_to} onChange={(e) => setForm({ ...form, assigned_to: e.target.value })} required>
                 <option value="">Select user</option>
-                {users.map((u) => <option key={u._id} value={u._id}>{u.name || u.full_name}</option>)}
+                {users.map((u) => <option key={u._id} value={u._id}>{u.full_name}</option>)}
               </select>
             </div>
             <div>

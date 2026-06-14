@@ -165,7 +165,7 @@ export default function ClientDetail() {
           </div>
           <div>
             <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Assigned To</p>
-            <p className="text-sm text-stone-900 mt-1">{client.assigned_to?.name || client.assigned_to?.full_name || '-'}</p>
+            <p className="text-sm text-stone-900 mt-1">{client.assigned_to?.full_name || '-'}</p>
           </div>
         </div>
       </div>
@@ -287,7 +287,7 @@ export default function ClientDetail() {
                       <span className="text-xs text-stone-400">{comm.date || comm.follow_up_date ? new Date(comm.date || comm.follow_up_date).toLocaleDateString() : ''}</span>
                     </div>
                     <p className="text-sm text-stone-600">{comm.notes || comm.message || 'No notes'}</p>
-                    {comm.assigned_to && <p className="text-xs text-stone-400 mt-2">By: {comm.assigned_to?.name || comm.assigned_to?.full_name || 'Unknown'}</p>}
+                    {comm.assigned_to && <p className="text-xs text-stone-400 mt-2">By: {comm.assigned_to?.full_name || 'Unknown'}</p>}
                   </div>
                 ))}
               </div>

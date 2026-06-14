@@ -18,6 +18,10 @@ const statusColors = {
   lost: 'bg-red-50 text-red-700 ring-1 ring-red-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
 };
 
+const pipelineStages = ['new', 'contacted', 'follow_up', 'site_visit', 'negotiation', 'won'];
+const qualStages = ['hot', 'warm', 'cold'];
+const allStages = [...pipelineStages, ...qualStages, 'lost'];
+
 const nextStages = {
   new: ['contacted', 'cold', 'lost'],
   contacted: ['hot', 'warm', 'cold', 'follow_up', 'lost'],
@@ -29,6 +33,11 @@ const nextStages = {
   negotiation: ['won', 'lost', 'site_visit'],
   won: [],
   lost: ['new', 'contacted'],
+};
+
+const stageLabels = {
+  new: 'New Lead', contacted: 'Contacted', hot: 'Hot', warm: 'Warm', cold: 'Cold',
+  follow_up: 'Follow Up', site_visit: 'Site Visit', negotiation: 'Negotiation', won: 'Won', lost: 'Lost',
 };
 
 const historyIcons = {
@@ -343,19 +352,81 @@ export default function LeadDetail() {
 
       {activeTab === 'Overview' && (
         <>
-        {!lead.converted_to_client && nextStages[lead.status]?.length > 0 && (
+        {!lead.converted_to_client && (
           <div className="bg-white rounded-2xl border border-stone-200 p-6">
-            <h3 className="text-base font-semibold text-stone-900 mb-4">Quick Stage Update</h3>
-            <div className="flex flex-wrap gap-2">
-              {nextStages[lead.status].map((stage) => (
-                <button
-                  key={stage}
-                  onClick={() => handleQuickStatus(stage)}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold transition-all border-0 cursor-pointer bg-stone-100 text-stone-700 hover:bg-stone-200 hover:text-stone-900"
-                >
-                  {stage.replace('_', ' ').charAt(0).toUpperCase() + stage.replace('_', ' ').slice(1)}
-                </button>
-              ))}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-stone-900">Lead Pipeline</h3>
+              <span className="text-xs text-stone-400">Click a stage to update</span>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-0 overflow-x-auto pb-2">
+                {pipelineStages.map((stage, i) => {
+                  const currentIndex = pipelineStages.indexOf(lead.status);
+                  const stageIndex = pipelineStages.indexOf(stage);
+                  const isQual = qualStages.includes(lead.status);
+                  const isCompleted = currentIndex > stageIndex;
+                  const isCurrent = lead.status === stage;
+                  const isReachable = nextStages[lead.status]?.includes(stage) || stage === lead.status;
+
+                  return (
+                    <div key={stage} className="flex items-center shrink-0">
+                      <button
+                        onClick={() => !isCurrent && isReachable && handleQuickStatus(stage)}
+                        disabled={!isReachable || isCurrent}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border-0 cursor-pointer whitespace-nowrap ${
+                          isCurrent ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/20' :
+                          isCompleted ? 'bg-emerald-50 text-emerald-700' :
+                          isReachable ? 'bg-stone-100 text-stone-700 hover:bg-stone-200' :
+                          'bg-stone-50 text-stone-300 cursor-not-allowed'
+                        }`}
+                      >
+                        {isCompleted ? <span className="text-emerald-500">&#10003;</span> : null}
+                        {stageLabels[stage]}
+                      </button>
+                      {i < pipelineStages.length - 1 && (
+                        <div className={`w-6 h-px mx-1 ${currentIndex > i ? 'bg-emerald-300' : isReachable && !isCurrent ? 'bg-stone-200' : 'bg-stone-100'}`} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {qualStages.includes(lead.status) && (
+                <div className="flex items-center gap-2 pt-2 border-t border-stone-100">
+                  <span className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Quality:</span>
+                  {qualStages.map((stage) => (
+                    <button
+                      key={stage}
+                      onClick={() => handleQuickStatus(stage)}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all border-0 cursor-pointer ${
+                        lead.status === stage ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                      }`}
+                    >
+                      {stageLabels[stage]}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {lead.status === 'lost' && (
+                <div className="flex items-center gap-2 pt-2 border-t border-stone-100">
+                  <span className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Re-activate:</span>
+                  {nextStages.lost.map((stage) => (
+                    <button
+                      key={stage}
+                      onClick={() => handleQuickStatus(stage)}
+                      className="px-3 py-1 rounded-lg text-xs font-semibold transition-all border-0 cursor-pointer bg-red-50 text-red-700 hover:bg-red-100"
+                    >
+                      {stageLabels[stage]}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {nextStages[lead.status]?.filter((s) => s === 'won' || s === 'lost').length > 0 && (
+                <div className="flex items-center gap-2 pt-2 border-t border-stone-100">
+                  <span className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Resolution:</span>
+                  <button onClick={() => handleQuickStatus('won')} className="px-3 py-1 rounded-lg text-xs font-semibold transition-all border-0 cursor-pointer bg-emerald-50 text-emerald-700 hover:bg-emerald-100">Won</button>
+                  <button onClick={() => handleQuickStatus('lost')} className="px-3 py-1 rounded-lg text-xs font-semibold transition-all border-0 cursor-pointer bg-red-50 text-red-700 hover:bg-red-100">Lost</button>
+                </div>
+              )}
             </div>
           </div>
         )}

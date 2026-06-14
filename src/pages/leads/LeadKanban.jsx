@@ -131,7 +131,7 @@ export default function LeadStages() {
                         </td>
                         <td className="px-4 py-3 text-stone-600">{lead.mobile}</td>
                         <td className="px-4 py-3 text-stone-600 capitalize">{lead.source?.replace(/_/g, ' ')}</td>
-                        <td className="px-4 py-3 text-stone-600">{lead.assigned_to?.name || lead.assigned_to?.full_name || '-'}</td>
+                        <td className="px-4 py-3 text-stone-600">{lead.assigned_to?.full_name || '-'}</td>
                         <td className="px-4 py-3 text-right">
                           <span className={`text-xs font-semibold ${
                             lead.lead_score > 60 ? 'text-emerald-600' : lead.lead_score > 30 ? 'text-amber-600' : 'text-stone-500'

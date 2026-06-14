@@ -238,7 +238,7 @@ export default function LeadList() {
         </div>
       ),
     },
-    { header: 'Assigned To', render: (r) => r.assigned_to?.name || r.assigned_to?.full_name || '-' },
+    { header: 'Assigned To', render: (r) => r.assigned_to?.full_name || '-' },
     { header: 'Next Follow Up', render: (r) => r.next_follow_up ? new Date(r.next_follow_up).toLocaleDateString() : '-' },
     { header: 'Created', render: (r) => r.created_at ? new Date(r.created_at).toLocaleDateString() : '-' },
   ];
@@ -279,7 +279,7 @@ export default function LeadList() {
         </select>
         <select value={filters.assigned_to} onChange={(e) => setFilters({ ...filters, assigned_to: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
           <option value="">All Assignees</option>
-          {users.map((u) => <option key={u._id} value={u._id}>{u.name || u.full_name}</option>)}
+          {users.map((u) => <option key={u._id} value={u._id}>{u.full_name}</option>)}
         </select>
         <input type="date" value={filters.date_from} onChange={(e) => setFilters({ ...filters, date_from: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" placeholder="From" />
         <input type="date" value={filters.date_to} onChange={(e) => setFilters({ ...filters, date_to: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" placeholder="To" />
@@ -400,7 +400,7 @@ export default function LeadList() {
           <p className="text-sm text-stone-600">Assign this lead to a sales person</p>
           <select value={transferTo} onChange={(e) => setTransferTo(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
             <option value="">Select user</option>
-            {users.map((u) => <option key={u._id} value={u._id}>{u.name || u.full_name}</option>)}
+            {users.map((u) => <option key={u._id} value={u._id}>{u.full_name}</option>)}
           </select>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setTransferModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
@@ -414,7 +414,7 @@ export default function LeadList() {
           <p className="text-sm text-stone-600">Assign {selectedIds.length} selected lead(s) to a user</p>
           <select value={bulkTransferTo} onChange={(e) => setBulkTransferTo(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
             <option value="">Select user</option>
-            {users.map((u) => <option key={u._id} value={u._id}>{u.name || u.full_name}</option>)}
+            {users.map((u) => <option key={u._id} value={u._id}>{u.full_name}</option>)}
           </select>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setBulkTransferModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>

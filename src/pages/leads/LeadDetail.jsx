@@ -53,7 +53,7 @@ export default function LeadDetail() {
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [callNoteModalOpen, setCallNoteModalOpen] = useState(false);
   const [callNote, setCallNote] = useState('');
-  const [conversionForm, setConversionForm] = useState({ transaction_type: 'purchase', property_id: '', property_search: '', interior_project: {}, key_taken: false, key_id: '', rent_amount: '', rent_deposit: '' });
+  const [conversionForm, setConversionForm] = useState({ transaction_type: 'purchase', property_id: '', property_search: '', interior_project: {}, key_taken: false, key_id: '', rent_amount: '', rent_deposit: '', create_new_property: false, property_form: { owner_name: '', owner_contact: '', owner_email: '', flat_number: '', building_name: '', society_name: '', location: '', city: '', property_type: 'apartment', bedrooms: '', bathrooms: '', furnishing_status: 'unfurnished', listing_type: 'sale', price_sale: '', rent_amount: '', rent_deposit: '', amenities: '', description: '', availability: 'available', key_available: false, materials: [] } });
   const [properties, setProperties] = useState([]);
   const [propertyKeys, setPropertyKeys] = useState([]);
   const [history, setHistory] = useState([]);
@@ -151,24 +151,32 @@ export default function LeadDetail() {
     }
   }, [conversionForm.property_id]);
 
+  const resetConversionForm = () => setConversionForm({ transaction_type: 'purchase', property_id: '', property_search: '', interior_project: {}, key_taken: false, key_id: '', rent_amount: '', rent_deposit: '', create_new_property: false, property_form: { owner_name: '', owner_contact: '', owner_email: '', flat_number: '', building_name: '', society_name: '', location: '', city: '', property_type: 'apartment', bedrooms: '', bathrooms: '', furnishing_status: 'unfurnished', listing_type: 'sale', price_sale: '', rent_amount: '', rent_deposit: '', amenities: '', description: '', availability: 'available', key_available: false, materials: [] } });
+
   const handleConvert = async () => {
     try {
       const payload = { transaction_type: conversionForm.transaction_type };
       if (conversionForm.transaction_type === 'sell' || conversionForm.transaction_type === 'purchase' || conversionForm.transaction_type === 'rent') {
-        if (!conversionForm.property_id) return toast('Select a property', 'error');
-        payload.property_id = conversionForm.property_id;
+        if (conversionForm.create_new_property) {
+          if (!conversionForm.property_form.owner_name || !conversionForm.property_form.owner_contact || !conversionForm.property_form.location) return toast('Fill required property fields (Owner Name, Contact, Location)', 'error');
+          payload.create_new_property = true;
+          payload.property_form = conversionForm.property_form;
+        } else {
+          if (!conversionForm.property_id) return toast('Select a property', 'error');
+          payload.property_id = conversionForm.property_id;
+        }
       }
       if (conversionForm.transaction_type === 'interior') {
         payload.interior_project = conversionForm.interior_project;
       }
-      if (conversionForm.key_taken && conversionForm.property_id) {
+      if (conversionForm.key_taken && (conversionForm.property_id || conversionForm.create_new_property)) {
         payload.key_taken = true;
-        if (conversionForm.key_id) payload.key_id = conversionForm.key_id;
+        if (!conversionForm.create_new_property && conversionForm.key_id) payload.key_id = conversionForm.key_id;
       }
       await API.put(`/leads/${id}/convert-to-client`, payload);
       toast('Lead converted to client');
       setConvertModalOpen(false);
-      setConversionForm({ transaction_type: 'purchase', property_id: '', property_search: '', interior_project: {}, key_taken: false, key_id: '', rent_amount: '', rent_deposit: '' });
+      resetConversionForm();
       fetchLead();
     } catch (err) {
       toast(err.response?.data?.message || 'Conversion failed', 'error');
@@ -516,12 +524,12 @@ export default function LeadDetail() {
         </form>
       </Modal>
 
-      <Modal isOpen={convertModalOpen} onClose={() => setConvertModalOpen(false)} title="Convert to Client" size="lg">
+      <Modal isOpen={convertModalOpen} onClose={() => { setConvertModalOpen(false); resetConversionForm(); }} title="Convert to Client" size="lg">
         <p className="text-sm text-stone-600 mb-5">Convert <strong>{lead.full_name}</strong> to a client with deal details.</p>
         <div className="space-y-5">
           <div>
             <label className="block text-sm font-semibold text-stone-700 mb-1.5">Transaction Type *</label>
-            <select className={inputClass + " appearance-none cursor-pointer"} value={conversionForm.transaction_type} onChange={(e) => setConversionForm({ ...conversionForm, transaction_type: e.target.value, property_id: '', property_search: '', interior_project: {}, key_taken: false, key_id: '', rent_amount: '', rent_deposit: '' })}>
+            <select className={inputClass + " appearance-none cursor-pointer"} value={conversionForm.transaction_type} onChange={(e) => setConversionForm({ ...conversionForm, transaction_type: e.target.value, property_id: '', property_search: '', interior_project: {}, key_taken: false, key_id: '', rent_amount: '', rent_deposit: '', create_new_property: false, property_form: { owner_name: '', owner_contact: '', owner_email: '', flat_number: '', building_name: '', society_name: '', location: '', city: '', property_type: 'apartment', bedrooms: '', bathrooms: '', furnishing_status: 'unfurnished', listing_type: 'sale', price_sale: '', rent_amount: '', rent_deposit: '', amenities: '', description: '', availability: 'available', key_available: false, materials: [] } })}>
               <option value="purchase">Purchase</option>
               <option value="sell">Sell</option>
               <option value="rent">Rent</option>
@@ -531,65 +539,115 @@ export default function LeadDetail() {
 
           {(conversionForm.transaction_type === 'sell' || conversionForm.transaction_type === 'purchase' || conversionForm.transaction_type === 'rent') && (
             <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Select Property</label>
-              <input
-                className={inputClass + " mb-2"}
-                placeholder="Search properties..."
-                value={conversionForm.property_search}
-                onChange={(e) => {
-                  setConversionForm({ ...conversionForm, property_search: e.target.value });
-                  searchProperties(e.target.value);
-                }}
-              />
-              <div className="max-h-48 overflow-y-auto border border-stone-200 rounded-xl divide-y divide-stone-100">
-                {properties.length === 0 ? (
-                  <p className="text-sm text-stone-400 p-3 text-center">No properties found</p>
-                ) : properties.map((p) => (
-                  <div
-                    key={p._id}
-                    className={`p-3 text-sm cursor-pointer transition-colors ${conversionForm.property_id === p._id ? 'bg-stone-100 font-semibold' : 'hover:bg-stone-50'}`}
-                    onClick={() => setConversionForm({ ...conversionForm, property_id: p._id, property_search: `${p.property_id} - ${p.location} (${p.property_type})` })}
-                  >
-                    {p.property_id} - {p.location} ({p.property_type}) {p.listing_type === 'rent' ? `₹${Number(p.rent_amount || 0).toLocaleString()}/mo` : p.price_sale ? `₹${Number(p.price_sale).toLocaleString()}` : ''}
-                  </div>
-                ))}
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-sm font-semibold text-stone-700">Property:</span>
+                <button onClick={() => setConversionForm({ ...conversionForm, create_new_property: false, property_id: '', property_search: '', key_taken: false, key_id: '', rent_amount: '', rent_deposit: '' })} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${!conversionForm.create_new_property ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>Select Existing</button>
+                <button onClick={() => setConversionForm({ ...conversionForm, create_new_property: true, property_id: '', property_search: '', key_taken: false, key_id: '' })} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${conversionForm.create_new_property ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>Create New</button>
               </div>
 
-              {conversionForm.transaction_type === 'rent' && conversionForm.property_id && (
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-stone-700 mb-1.5">Rent Amount (₹)</label>
-                    <input type="number" className={inputClass} value={conversionForm.rent_amount} onChange={(e) => setConversionForm({ ...conversionForm, rent_amount: e.target.value })} placeholder="Monthly rent" />
+              {!conversionForm.create_new_property ? (
+                <>
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Search Properties</label>
+                  <input className={inputClass + " mb-2"} placeholder="Search properties..." value={conversionForm.property_search} onChange={(e) => { setConversionForm({ ...conversionForm, property_search: e.target.value }); searchProperties(e.target.value); }} />
+                  <div className="max-h-48 overflow-y-auto border border-stone-200 rounded-xl divide-y divide-stone-100">
+                    {properties.length === 0 ? (
+                      <p className="text-sm text-stone-400 p-3 text-center">No properties found</p>
+                    ) : properties.map((p) => (
+                      <div key={p._id} className={`p-3 text-sm cursor-pointer transition-colors ${conversionForm.property_id === p._id ? 'bg-stone-100 font-semibold' : 'hover:bg-stone-50'}`} onClick={() => setConversionForm({ ...conversionForm, property_id: p._id, property_search: `${p.property_id} - ${p.location} (${p.property_type})` })}>
+                        {p.property_id} - {p.location} ({p.property_type}) {p.listing_type === 'rent' ? `₹${Number(p.rent_amount || 0).toLocaleString()}/mo` : p.price_sale ? `₹${Number(p.price_sale).toLocaleString()}` : ''}
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-stone-700 mb-1.5">Deposit (₹)</label>
-                    <input type="number" className={inputClass} value={conversionForm.rent_deposit} onChange={(e) => setConversionForm({ ...conversionForm, rent_deposit: e.target.value })} placeholder="Security deposit" />
-                  </div>
-                </div>
-              )}
 
-              {conversionForm.property_id && (
-                <div className="mt-4 pt-4 border-t border-stone-100">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={conversionForm.key_taken}
-                      onChange={(e) => setConversionForm({ ...conversionForm, key_taken: e.target.checked, key_id: e.target.checked ? conversionForm.key_id : '' })}
-                      className="rounded border-stone-300 text-stone-900 focus:ring-stone-900"
-                    />
-                    <span className="text-sm font-semibold text-stone-700">Key Taken</span>
-                  </label>
-                  {conversionForm.key_taken && (
-                    <select className={inputClass + " appearance-none cursor-pointer mt-2"} value={conversionForm.key_id} onChange={(e) => setConversionForm({ ...conversionForm, key_id: e.target.value })}>
-                      <option value="">Select key</option>
-                      {propertyKeys.map((k) => (
-                        <option key={k._id} value={k._id}>Key #{k.key_number}{k.key_holder ? ` (with ${k.key_holder})` : ''}</option>
-                      ))}
-                    </select>
+                  {conversionForm.transaction_type === 'rent' && conversionForm.property_id && (
+                    <div className="mt-4 grid grid-cols-2 gap-4">
+                      <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Rent Amount (₹)</label><input type="number" className={inputClass} value={conversionForm.rent_amount} onChange={(e) => setConversionForm({ ...conversionForm, rent_amount: e.target.value })} placeholder="Monthly rent" /></div>
+                      <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Deposit (₹)</label><input type="number" className={inputClass} value={conversionForm.rent_deposit} onChange={(e) => setConversionForm({ ...conversionForm, rent_deposit: e.target.value })} placeholder="Security deposit" /></div>
+                    </div>
                   )}
-                  {conversionForm.key_taken && propertyKeys.length === 0 && (
-                    <p className="text-xs text-amber-600 mt-1">No available keys for this property</p>
+
+                  {conversionForm.property_id && (
+                    <div className="mt-4 pt-4 border-t border-stone-100">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={conversionForm.key_taken} onChange={(e) => setConversionForm({ ...conversionForm, key_taken: e.target.checked, key_id: e.target.checked ? conversionForm.key_id : '' })} className="rounded border-stone-300 text-stone-900 focus:ring-stone-900" />
+                        <span className="text-sm font-semibold text-stone-700">Key Taken</span>
+                      </label>
+                      {conversionForm.key_taken && (
+                        <select className={inputClass + " appearance-none cursor-pointer mt-2"} value={conversionForm.key_id} onChange={(e) => setConversionForm({ ...conversionForm, key_id: e.target.value })}>
+                          <option value="">Select key</option>
+                          {propertyKeys.map((k) => (
+                            <option key={k._id} value={k._id}>Key #{k.key_number}{k.key_holder ? ` (with ${k.key_holder})` : ''}</option>
+                          ))}
+                        </select>
+                      )}
+                      {conversionForm.key_taken && propertyKeys.length === 0 && (
+                        <p className="text-xs text-amber-600 mt-1">No available keys for this property</p>
+                      )}
+                    </div>
                   )}
+                </>
+              ) : (
+                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
+                  <div>
+                    <h4 className="text-xs font-semibold text-stone-500 uppercase mb-2">Owner Information</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div><label className="block text-xs font-semibold text-stone-600 mb-1">Owner Name *</label><input className={inputClass} value={conversionForm.property_form.owner_name} onChange={(e) => setConversionForm({ ...conversionForm, property_form: { ...conversionForm.property_form, owner_name: e.target.value } })} required /></div>
+                      <div><label className="block text-xs font-semibold text-stone-600 mb-1">Owner Contact *</label><input className={inputClass} value={conversionForm.property_form.owner_contact} onChange={(e) => setConversionForm({ ...conversionForm, property_form: { ...conversionForm.property_form, owner_contact: e.target.value } })} required /></div>
+                      <div><label className="block text-xs font-semibold text-stone-600 mb-1">Owner Email</label><input type="email" className={inputClass} value={conversionForm.property_form.owner_email} onChange={(e) => setConversionForm({ ...conversionForm, property_form: { ...conversionForm.property_form, owner_email: e.target.value } })} /></div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-semibold text-stone-500 uppercase mb-2">Property Location</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div><label className="block text-xs font-semibold text-stone-600 mb-1">Location *</label><input className={inputClass} value={conversionForm.property_form.location} onChange={(e) => setConversionForm({ ...conversionForm, property_form: { ...conversionForm.property_form, location: e.target.value } })} required /></div>
+                      <div><label className="block text-xs font-semibold text-stone-600 mb-1">City</label><input className={inputClass} value={conversionForm.property_form.city} onChange={(e) => setConversionForm({ ...conversionForm, property_form: { ...conversionForm.property_form, city: e.target.value } })} /></div>
+                      <div><label className="block text-xs font-semibold text-stone-600 mb-1">Flat / Unit</label><input className={inputClass} value={conversionForm.property_form.flat_number} onChange={(e) => setConversionForm({ ...conversionForm, property_form: { ...conversionForm.property_form, flat_number: e.target.value } })} /></div>
+                      <div><label className="block text-xs font-semibold text-stone-600 mb-1">Building / Society</label><input className={inputClass} value={conversionForm.property_form.building_name} onChange={(e) => setConversionForm({ ...conversionForm, property_form: { ...conversionForm.property_form, building_name: e.target.value } })} /></div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-semibold text-stone-500 uppercase mb-2">Property Details</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                      <div><label className="block text-xs font-semibold text-stone-600 mb-1">Type</label><select className={inputClass + " appearance-none cursor-pointer"} value={conversionForm.property_form.property_type} onChange={(e) => setConversionForm({ ...conversionForm, property_form: { ...conversionForm.property_form, property_type: e.target.value } })}>
+                        {['apartment','villa','plot','commercial','shop','office','warehouse','penthouse','other'].map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+                      </select></div>
+                      <div><label className="block text-xs font-semibold text-stone-600 mb-1">Bedrooms</label><input type="number" className={inputClass} value={conversionForm.property_form.bedrooms} onChange={(e) => setConversionForm({ ...conversionForm, property_form: { ...conversionForm.property_form, bedrooms: e.target.value } })} /></div>
+                      <div><label className="block text-xs font-semibold text-stone-600 mb-1">Bathrooms</label><input type="number" className={inputClass} value={conversionForm.property_form.bathrooms} onChange={(e) => setConversionForm({ ...conversionForm, property_form: { ...conversionForm.property_form, bathrooms: e.target.value } })} /></div>
+                      <div><label className="block text-xs font-semibold text-stone-600 mb-1">Furnishing</label><select className={inputClass + " appearance-none cursor-pointer"} value={conversionForm.property_form.furnishing_status} onChange={(e) => setConversionForm({ ...conversionForm, property_form: { ...conversionForm.property_form, furnishing_status: e.target.value } })}>
+                        {['unfurnished','semi-furnished','fully-furnished'].map((t) => <option key={t} value={t}>{t.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</option>)}
+                      </select></div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-semibold text-stone-500 uppercase mb-2">Pricing</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div><label className="block text-xs font-semibold text-stone-600 mb-1">Listing Type</label><select className={inputClass + " appearance-none cursor-pointer"} value={conversionForm.property_form.listing_type} onChange={(e) => setConversionForm({ ...conversionForm, property_form: { ...conversionForm.property_form, listing_type: e.target.value } })}>
+                        {['sale','rent','lease'].map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+                      </select></div>
+                      <div><label className="block text-xs font-semibold text-stone-600 mb-1">Sale Price (₹)</label><input type="number" className={inputClass} value={conversionForm.property_form.price_sale} onChange={(e) => setConversionForm({ ...conversionForm, property_form: { ...conversionForm.property_form, price_sale: e.target.value } })} /></div>
+                      <div><label className="block text-xs font-semibold text-stone-600 mb-1">Rent Amount (₹/mo)</label><input type="number" className={inputClass} value={conversionForm.property_form.rent_amount} onChange={(e) => setConversionForm({ ...conversionForm, property_form: { ...conversionForm.property_form, rent_amount: e.target.value } })} /></div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-semibold text-stone-500 uppercase mb-2">Additional</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div><label className="block text-xs font-semibold text-stone-600 mb-1">Amenities (comma separated)</label><input className={inputClass} placeholder="pool, gym, garden..." value={conversionForm.property_form.amenities} onChange={(e) => setConversionForm({ ...conversionForm, property_form: { ...conversionForm.property_form, amenities: e.target.value } })} /></div>
+                      <div><label className="block text-xs font-semibold text-stone-600 mb-1">Description</label><input className={inputClass} value={conversionForm.property_form.description} onChange={(e) => setConversionForm({ ...conversionForm, property_form: { ...conversionForm.property_form, description: e.target.value } })} /></div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 pt-2 border-t border-stone-100">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={conversionForm.property_form.key_available} onChange={(e) => setConversionForm({ ...conversionForm, property_form: { ...conversionForm.property_form, key_available: e.target.checked } })} />
+                      <div className="w-11 h-6 bg-stone-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-stone-900/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-stone-900"></div>
+                    </label>
+                    <span className="text-sm text-stone-700">Keys Available</span>
+                    {conversionForm.property_form.key_available && (
+                      <label className="flex items-center gap-2 cursor-pointer ml-auto">
+                        <input type="checkbox" checked={conversionForm.key_taken} onChange={(e) => setConversionForm({ ...conversionForm, key_taken: e.target.checked })} className="rounded border-stone-300 text-stone-900 focus:ring-stone-900" />
+                        <span className="text-xs text-stone-600">Issue Key to Client</span>
+                      </label>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -640,7 +698,7 @@ export default function LeadDetail() {
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={() => setConvertModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
+            <button onClick={() => { setConvertModalOpen(false); resetConversionForm(); }} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
             <button onClick={handleConvert} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-0 bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-900/10">Convert to Client</button>
           </div>
         </div>

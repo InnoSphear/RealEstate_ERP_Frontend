@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { HiOutlineArrowLeft, HiOutlinePencilSquare, HiOutlinePlus, HiOutlineTrash, HiOutlineReceiptPercent } from 'react-icons/hi2';
+import { HiOutlineArrowLeft, HiOutlinePencilSquare, HiOutlinePlus, HiOutlineTrash, HiOutlineReceiptPercent, HiOutlineCurrencyDollar } from 'react-icons/hi2';
 import API from '../../api/axios';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
@@ -14,7 +14,7 @@ const statusColors = {
   closed: 'bg-stone-100 text-stone-400 ring-1 ring-stone-200',
 };
 
-const tabs = ['Overview', 'Materials', 'Budget', 'Milestones', 'Team', 'Invoices'];
+const tabs = ['Overview', 'Materials', 'Budget', 'Milestones', 'Team', 'Expenses', 'Invoices'];
 
 const inputClass = "w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors";
 
@@ -40,6 +40,9 @@ export default function InteriorProjectDetail() {
   const [invoices, setInvoices] = useState([]);
   const [editBudgetId, setEditBudgetId] = useState(null);
   const [editMilestoneId, setEditMilestoneId] = useState(null);
+  const [expenseModalOpen, setExpenseModalOpen] = useState(false);
+  const [editExpenseId, setEditExpenseId] = useState(null);
+  const [expenseForm, setExpenseForm] = useState({ expense_name: '', category: 'other', cost: '', paid_amount: '', payment_date: '', vendor: '', notes: '' });
   const [form, setForm] = useState({});
 
   const fetchProject = () => {
@@ -293,7 +296,7 @@ export default function InteriorProjectDetail() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200"><p className="text-xs font-semibold uppercase tracking-wider text-emerald-700/70">Contract</p><p className="text-xl font-bold text-emerald-900 mt-0.5">₹{(project.contract_amount || 0).toLocaleString()}</p></div>
-        <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200"><p className="text-xs font-semibold uppercase tracking-wider text-blue-700/70">Total Cost</p><p className="text-xl font-bold text-blue-900 mt-0.5">₹{((project.material_cost || 0) + (project.other_cost || 0)).toLocaleString()}</p></div>
+        <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200"><p className="text-xs font-semibold uppercase tracking-wider text-blue-700/70">Total Cost</p><p className="text-xl font-bold text-blue-900 mt-0.5">₹{((project.material_cost || 0) + (project.other_cost || 0) + (project.direct_expenses || []).reduce((s, e) => s + (e.cost || 0), 0)).toLocaleString()}</p></div>
         <div className={`p-4 rounded-2xl border ${project.profit_loss >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}><p className={`text-xs font-semibold uppercase tracking-wider ${project.profit_loss >= 0 ? 'text-emerald-700/70' : 'text-red-700/70'}`}>Profit / Loss</p><p className={`text-xl font-bold mt-0.5 ${project.profit_loss >= 0 ? 'text-emerald-900' : 'text-red-900'}`}>₹{(project.profit_loss || 0).toLocaleString()}</p></div>
         <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200"><p className="text-xs font-semibold uppercase tracking-wider text-amber-700/70">Client Balance</p><p className="text-xl font-bold text-amber-900 mt-0.5">₹{(project.balance || 0).toLocaleString()}</p></div>
       </div>
@@ -523,6 +526,52 @@ export default function InteriorProjectDetail() {
         </div>
       )}
 
+      {activeTab === 'Expenses' && (
+        <div className="bg-white rounded-2xl border border-stone-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-semibold text-stone-900 flex items-center gap-2"><HiOutlineCurrencyDollar size={18} /> Direct Expenses</h3>
+            <button onClick={() => { setEditExpenseId(null); setExpenseForm({ expense_name: '', category: 'other', cost: '', paid_amount: '', payment_date: '', vendor: '', notes: '' }); setExpenseModalOpen(true); }} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10"><HiOutlinePlus size={14} /> Add Expense</button>
+          </div>
+          {(!project.direct_expenses || project.direct_expenses.length === 0) ? (
+            <p className="text-sm text-stone-400 text-center py-8">No expenses recorded</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-stone-100 bg-stone-50/50">
+                    <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Expense</th>
+                    <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Category</th>
+                    <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase">Cost</th>
+                    <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase">Paid</th>
+                    <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Vendor</th>
+                    <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Date</th>
+                    <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Notes</th>
+                    <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {project.direct_expenses.map((exp, idx) => (
+                    <tr key={exp._id || idx} className="border-b border-stone-100 hover:bg-stone-50/50">
+                      <td className="px-4 py-3 font-medium text-stone-900">{exp.expense_name}</td>
+                      <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-full text-xs font-medium bg-stone-50 text-stone-600 ring-1 ring-stone-200 capitalize">{exp.category || 'other'}</span></td>
+                      <td className="px-4 py-3 text-right text-stone-700 font-mono">₹{(exp.cost || 0).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right text-stone-700 font-mono">₹{(exp.paid_amount || 0).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-stone-600">{exp.vendor || '-'}</td>
+                      <td className="px-4 py-3 text-stone-500">{exp.payment_date ? formatDate(exp.payment_date) : '-'}</td>
+                      <td className="px-4 py-3 text-stone-500 max-w-[160px] truncate">{exp.notes || '-'}</td>
+                      <td className="px-4 py-3 text-right">
+                        <button onClick={() => { setEditExpenseId(exp._id); setExpenseForm({ expense_name: exp.expense_name, category: exp.category || 'other', cost: exp.cost || '', paid_amount: exp.paid_amount || '', payment_date: exp.payment_date ? exp.payment_date.split('T')[0] : '', vendor: exp.vendor || '', notes: exp.notes || '' }); setExpenseModalOpen(true); }} className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all"><HiOutlinePencilSquare size={15} /></button>
+                        <button onClick={() => { setConfirmAction(() => async () => { try { await API.delete(`/interior-projects/${id}/expenses/${exp._id}`); toast('Expense deleted'); fetchProject(); } catch (err) { toast('Error deleting expense', 'error'); } }); setConfirmOpen(true); }} className="p-1.5 rounded-lg text-stone-400 hover:text-red-500 hover:bg-red-50 transition-all"><HiOutlineTrash size={15} /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {activeTab === 'Invoices' && (
         <div className="bg-white rounded-2xl border border-stone-200 p-6">
           <div className="flex items-center justify-between mb-4">
@@ -656,6 +705,28 @@ export default function InteriorProjectDetail() {
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setTeamModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold ... bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
             <button type="submit" className="px-5 py-2.5 rounded-xl text-sm font-semibold ... border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">Add</button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={expenseModalOpen} onClose={() => { setExpenseModalOpen(false); setEditExpenseId(null); }} title={editExpenseId ? 'Edit Expense' : 'Add Expense'} size="sm">
+        <form onSubmit={async (e) => { e.preventDefault(); try { if (editExpenseId) { await API.put(`/interior-projects/${id}/expenses/${editExpenseId}`, { ...expenseForm, cost: Number(expenseForm.cost), paid_amount: expenseForm.paid_amount ? Number(expenseForm.paid_amount) : 0 }); toast('Expense updated'); } else { await API.post(`/interior-projects/${id}/expenses`, { ...expenseForm, cost: Number(expenseForm.cost), paid_amount: expenseForm.paid_amount ? Number(expenseForm.paid_amount) : 0 }); toast('Expense added'); } setExpenseModalOpen(false); setEditExpenseId(null); fetchProject(); } catch (err) { toast(err.response?.data?.message || 'Error', 'error'); } }} className="space-y-4">
+          <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Expense Name *</label><input className={inputClass} value={expenseForm.expense_name} onChange={(e) => setExpenseForm({ ...expenseForm, expense_name: e.target.value })} required /></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Category</label><select className={inputClass + " appearance-none cursor-pointer"} value={expenseForm.category} onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}>
+              {['labour', 'transport', 'permit', 'utility', 'equipment', 'other'].map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+            </select></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Cost (₹) *</label><input type="number" min="0" step="0.01" className={inputClass} value={expenseForm.cost} onChange={(e) => setExpenseForm({ ...expenseForm, cost: e.target.value })} required /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Paid Amount</label><input type="number" min="0" step="0.01" className={inputClass} value={expenseForm.paid_amount} onChange={(e) => setExpenseForm({ ...expenseForm, paid_amount: e.target.value })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Date</label><input type="date" className={inputClass} value={expenseForm.payment_date} onChange={(e) => setExpenseForm({ ...expenseForm, payment_date: e.target.value })} /></div>
+          </div>
+          <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Vendor</label><input className={inputClass} value={expenseForm.vendor} onChange={(e) => setExpenseForm({ ...expenseForm, vendor: e.target.value })} placeholder="Vendor name" /></div>
+          <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Notes</label><textarea className={inputClass} rows={2} value={expenseForm.notes} onChange={(e) => setExpenseForm({ ...expenseForm, notes: e.target.value })} /></div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => { setExpenseModalOpen(false); setEditExpenseId(null); }} className="px-5 py-2.5 rounded-xl text-sm font-semibold ... bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
+            <button type="submit" className="px-5 py-2.5 rounded-xl text-sm font-semibold ... border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">{editExpenseId ? 'Update' : 'Add'}</button>
           </div>
         </form>
       </Modal>

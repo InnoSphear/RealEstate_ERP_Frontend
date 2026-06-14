@@ -89,6 +89,7 @@ export default function PropertyDetail() {
           <Section title="Property Details" icon={HiOutlineHomeModern}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
               <DetailRow label="Property ID" value={p.property_id} />
+              <DetailRow label="Created By" value={p.created_by?.full_name || '-'} />
               <DetailRow label="Type" value={p.property_type && (p.property_type.charAt(0).toUpperCase() + p.property_type.slice(1))} />
               <DetailRow label="Flat/Unit" value={p.flat_number} />
               <DetailRow label="Building" value={p.building_name} />

@@ -102,9 +102,9 @@ const menuGroups = [
   {
     label: 'My',
     items: [
-      { path: '/my-attendance', label: 'My Attendance', icon: HiOutlineCalendar, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent'] },
-      { path: '/my-leaves', label: 'My Leaves', icon: HiOutlineArrowRightOnRectangle, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent'] },
-      { path: '/my-commissions', label: 'My Commissions', icon: HiOutlineTag, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent'], permission: 'commissions' },
+      { path: '/my-attendance', label: 'My Attendance', icon: HiOutlineCalendar, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent'], excludeRoles: ['admin'] },
+      { path: '/my-leaves', label: 'My Leaves', icon: HiOutlineArrowRightOnRectangle, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent'], excludeRoles: ['admin'] },
+      { path: '/my-commissions', label: 'My Commissions', icon: HiOutlineTag, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent'], permission: 'commissions', excludeRoles: ['admin'] },
     ],
   },
 ];
@@ -117,6 +117,7 @@ export default function Sidebar() {
   const roleName = user?.role?.name || '';
 
   const canShow = (item) => {
+    if (item.excludeRoles?.includes(roleSlug)) return false;
     if (item.roles.includes(roleSlug)) return true;
     if (roleName && item.roles.some(r => r === roleName.toLowerCase().replace(/\s+/g, '_'))) return true;
     if (item.permission && hasPermission(item.permission)) return true;

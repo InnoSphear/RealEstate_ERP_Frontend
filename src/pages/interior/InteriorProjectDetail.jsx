@@ -14,7 +14,7 @@ const statusColors = {
   closed: 'bg-stone-100 text-stone-400 ring-1 ring-stone-200',
 };
 
-const tabs = ['Overview', 'Budget', 'Milestones', 'Team', 'Invoices'];
+const tabs = ['Overview', 'Materials', 'Budget', 'Milestones', 'Team', 'Invoices'];
 
 const inputClass = "w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors";
 
@@ -324,6 +324,93 @@ export default function InteriorProjectDetail() {
             <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Created</p>
             <p className="text-sm text-stone-900 mt-1">{formatDate(project.createdAt)}</p>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'Materials' && (
+        <div className="space-y-4">
+          {project.materials?.length ? (
+            project.materials.map((mat, idx) => {
+              const totalPaid = (mat.payments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+              const dueAmt = (mat.cost || 0) - totalPaid;
+              return (
+                <div key={idx} className="bg-white rounded-2xl border border-stone-200 p-5">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h4 className="font-semibold text-stone-900">{mat.item_name}</h4>
+                      <p className="text-sm text-stone-500 mt-0.5">Cost: ₹{(mat.cost || 0).toLocaleString()}</p>
+                      {mat.vendor && <p className="text-xs text-stone-400 mt-0.5">Vendor: {mat.vendor?.name || 'Unknown'}</p>}
+                    </div>
+                    <div className="text-right">
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${mat.payment_status === 'paid' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : mat.payment_status === 'partial' ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' : 'bg-red-50 text-red-700 ring-1 ring-red-200'}`}>
+                        {mat.payment_status ? mat.payment_status.charAt(0).toUpperCase() + mat.payment_status.slice(1) : 'Credit'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="p-2.5 rounded-lg bg-stone-50 text-center">
+                      <p className="text-[10px] text-stone-400 font-semibold uppercase">Cost</p>
+                      <p className="text-sm font-bold text-stone-900">₹{(mat.cost || 0).toLocaleString()}</p>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-emerald-50 text-center">
+                      <p className="text-[10px] text-emerald-600 font-semibold uppercase">Paid</p>
+                      <p className="text-sm font-bold text-emerald-700">₹{totalPaid.toLocaleString()}</p>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-amber-50 text-center">
+                      <p className="text-[10px] text-amber-600 font-semibold uppercase">Due</p>
+                      <p className={`text-sm font-bold ${dueAmt > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>₹{dueAmt.toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  {(mat.payments || []).length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">Payment Timeline</p>
+                      <div className="space-y-2">
+                        {mat.payments.map((p, pi) => (
+                          <div key={pi} className="flex items-center justify-between p-2.5 rounded-lg bg-stone-50 border border-stone-100">
+                            <div className="flex items-center gap-3">
+                              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                              <div>
+                                <p className="text-sm font-medium text-stone-700">₹{(p.amount || 0).toLocaleString()}</p>
+                                {p.notes && <p className="text-xs text-stone-400">{p.notes}</p>}
+                              </div>
+                            </div>
+                            <span className="text-xs text-stone-400">{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '-'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {dueAmt > 0 && (
+                    <button
+                      onClick={async () => {
+                        const amt = prompt('Enter payment amount (₹):');
+                        if (!amt || isNaN(amt) || Number(amt) <= 0) return;
+                        try {
+                          await API.post(`/interior-projects/${id}/materials/${mat._id}/payments`, {
+                            amount: Number(amt),
+                            payment_date: new Date().toISOString().split('T')[0],
+                            notes: prompt('Notes (optional):') || '',
+                          });
+                          toast('Payment recorded');
+                          fetchProject();
+                        } catch (err) { toast('Error recording payment', 'error'); }
+                      }}
+                      className="mt-3 px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                    >
+                      + Add Payment
+                    </button>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <div className="bg-white rounded-2xl border border-stone-200 p-6 text-center text-stone-400">
+              <p>No materials added yet</p>
+            </div>
+          )}
         </div>
       )}
 

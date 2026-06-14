@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import API from '../../api/axios';
 import { toast } from '../../components/Toast';
-import { HiOutlineArrowLeft, HiOutlinePencilSquare, HiOutlineStar, HiOutlineMapPin, HiOutlineHomeModern, HiOutlinePhoto, HiOutlineDocumentText, HiOutlineKey, HiOutlineCalendarDays } from 'react-icons/hi2';
+import { HiOutlineArrowLeft, HiOutlinePencilSquare, HiOutlineStar, HiOutlineMapPin, HiOutlineHomeModern, HiOutlinePhoto, HiOutlineDocumentText, HiOutlineKey, HiOutlineCalendarDays, HiOutlineCube, HiOutlineCurrencyDollar } from 'react-icons/hi2';
 
 const badge = (classes, label) => (
   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${classes}`}>{label}</span>
@@ -124,6 +124,23 @@ export default function PropertyDetail() {
               </div>
             </Section>
           ) : null}
+
+          {p.materials?.length ? (
+            <Section title="Materials / Interior" icon={HiOutlineCube}>
+              <div className="space-y-2">
+                {p.materials.map((m, i) => (
+                  <div key={i} className="flex justify-between items-center py-2 border-b border-stone-100 dark:border-stone-700 last:border-0">
+                    <span className="text-sm text-stone-700 dark:text-stone-200">{m.item_name}</span>
+                    <span className="text-sm font-medium text-stone-900 dark:text-white">₹{Number(m.cost || 0).toLocaleString()}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center pt-2 font-semibold text-stone-900 dark:text-white">
+                  <span>Total Cost</span>
+                  <span>₹{p.materials.reduce((s, m) => s + (Number(m.cost) || 0), 0).toLocaleString()}</span>
+                </div>
+              </div>
+            </Section>
+          ) : null}
         </div>
 
         <div className="space-y-6">
@@ -164,16 +181,34 @@ export default function PropertyDetail() {
             </Section>
           ) : null}
 
-          {p.keys?.length ? (
+          {p.key_available || p.keys?.length ? (
             <Section title="Key Management" icon={HiOutlineKey}>
-              <div className="space-y-2">
-                {p.keys.map((k, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm p-2 rounded-lg bg-stone-50 dark:bg-stone-700">
-                    <span className="text-stone-700 dark:text-stone-200">{k.key_number || `Key ${i + 1}`}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${k.status === 'available' ? 'bg-green-50 text-green-700' : k.status === 'issued' ? 'bg-yellow-50 text-yellow-700' : 'bg-gray-50 text-gray-700'}`}>{k.status}</span>
-                  </div>
-                ))}
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-stone-100 dark:border-stone-700">
+                <span className="text-sm text-stone-600 dark:text-stone-300">Status</span>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${p.key_available ? 'bg-green-50 text-green-700 ring-1 ring-green-200' : 'bg-red-50 text-red-700 ring-1 ring-red-200'}`}>{p.key_available ? 'Available' : 'Not Available'}</span>
               </div>
+              {p.keys?.length ? (
+                <div className="space-y-3">
+                  {p.keys.map((k, i) => (
+                    <div key={i} className="p-3 rounded-xl bg-stone-50 dark:bg-stone-700 border border-stone-100 dark:border-stone-600">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-stone-700 dark:text-stone-200">{k.key_number}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${k.status === 'available' ? 'bg-green-50 text-green-700' : k.status === 'issued' ? 'bg-amber-50 text-amber-700' : 'bg-stone-50 text-stone-700'}`}>{k.status}</span>
+                      </div>
+                      {k.issued_to && (
+                        <div className="text-xs text-stone-500 dark:text-stone-400 space-y-1">
+                          <p>Holder: {k.issued_to?.full_name || k.key_holder?.full_name || '-'}</p>
+                          {k.issue_date && <p>Issued: {new Date(k.issue_date).toLocaleDateString()}</p>}
+                          {k.return_date && <p>Returned: {new Date(k.return_date).toLocaleDateString()}</p>}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <a href="/properties/keys" className="block text-center text-xs text-blue-600 hover:text-blue-700 underline mt-1">Manage All Keys →</a>
+                </div>
+              ) : (
+                <p className="text-xs text-stone-400 dark:text-stone-500 text-center py-2">No key records added yet</p>
+              )}
             </Section>
           ) : null}
 

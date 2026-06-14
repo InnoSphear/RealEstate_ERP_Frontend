@@ -27,6 +27,7 @@ export default function InteriorProjects() {
   const [data, setData] = useState([]);
   const [clients, setClients] = useState([]);
   const [branches, setBranches] = useState([]);
+  const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(isNew);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -37,15 +38,17 @@ export default function InteriorProjects() {
     address: '', total_area_sqft: '', start_date: '', expected_end_date: '',
     scope_of_work: '', notes: '',
     contract_amount: '', material_cost: '', other_cost: '', received_amount: '',
+    materials: [],
   });
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [dRes, cRes, bRes] = await Promise.all([API.get('/interior-projects'), API.get('/clients'), API.get('/branches')]);
+      const [dRes, cRes, bRes, vRes] = await Promise.all([API.get('/interior-projects'), API.get('/clients'), API.get('/branches'), API.get('/vendors')]);
       setData(dRes.data);
       setClients(cRes.data);
       setBranches(bRes.data);
+      setVendors(vRes.data);
     } catch (err) { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
@@ -60,6 +63,7 @@ export default function InteriorProjects() {
         address: '', total_area_sqft: '', start_date: '', expected_end_date: '',
         scope_of_work: '', notes: '',
         contract_amount: '', material_cost: '', other_cost: '', received_amount: '',
+        materials: [],
       });
       setModalOpen(true);
     }
@@ -73,6 +77,7 @@ export default function InteriorProjects() {
       address: '', total_area_sqft: '', start_date: '', expected_end_date: '',
       scope_of_work: '', notes: '',
       contract_amount: '', material_cost: '', other_cost: '', received_amount: '',
+      materials: [],
     });
     setModalOpen(true);
   };
@@ -97,6 +102,10 @@ export default function InteriorProjects() {
       material_cost: row.material_cost || '',
       other_cost: row.other_cost || '',
       received_amount: row.received_amount || '',
+      materials: (row.materials || []).map(m => ({
+        ...m,
+        vendor: m.vendor?._id || m.vendor || '',
+      })),
     });
     setModalOpen(true);
   };
@@ -104,11 +113,17 @@ export default function InteriorProjects() {
   const handleSave = async (e) => {
     e.preventDefault();
     try {
+      const materials = (form.materials || []).map(m => ({
+        ...m,
+        cost: Number(m.cost) || 0,
+        vendor: m.vendor || undefined,
+      }));
       const payload = {
         ...form,
+        materials,
         total_area_sqft: form.total_area_sqft ? Number(form.total_area_sqft) : undefined,
         contract_amount: form.contract_amount ? Number(form.contract_amount) : 0,
-        material_cost: form.material_cost ? Number(form.material_cost) : 0,
+        material_cost: materials.reduce((s, m) => s + (m.cost || 0), 0),
         other_cost: form.other_cost ? Number(form.other_cost) : 0,
         received_amount: form.received_amount ? Number(form.received_amount) : 0,
       };
@@ -166,14 +181,40 @@ export default function InteriorProjects() {
             <h3 className="text-sm font-semibold text-stone-700 mb-3">Financial Details</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Contract Amount</label><input type="number" className={inputClass} value={form.contract_amount} onChange={(e) => setForm({ ...form, contract_amount: e.target.value })} min="0" step="0.01" /></div>
-              <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Material Cost</label><input type="number" className={inputClass} value={form.material_cost} onChange={(e) => setForm({ ...form, material_cost: e.target.value })} min="0" step="0.01" /></div>
               <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Other/Labour Cost</label><input type="number" className={inputClass} value={form.other_cost} onChange={(e) => setForm({ ...form, other_cost: e.target.value })} min="0" step="0.01" /></div>
               <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Received Amount</label><input type="number" className={inputClass} value={form.received_amount} onChange={(e) => setForm({ ...form, received_amount: e.target.value })} min="0" step="0.01" /></div>
             </div>
+
+            <div className="mt-4 pt-4 border-t border-stone-200">
+              <h4 className="text-sm font-semibold text-stone-700 mb-3">Materials</h4>
+              <div className="space-y-3">
+                {(form.materials || []).map((mat, idx) => (
+                  <div key={idx} className="p-3 rounded-xl bg-stone-50 border border-stone-200 space-y-3">
+                    <div className="flex gap-3 items-start">
+                      <div className="flex-1">
+                        <input className={inputClass} placeholder="Item name" value={mat.item_name} onChange={(e) => { const materials = [...form.materials]; materials[idx] = { ...materials[idx], item_name: e.target.value }; setForm({ ...form, materials }); }} />
+                      </div>
+                      <div className="w-36">
+                        <input type="number" className={inputClass} placeholder="Cost (₹)" value={mat.cost} onChange={(e) => { const materials = [...form.materials]; materials[idx] = { ...materials[idx], cost: e.target.value }; setForm({ ...form, materials }); }} />
+                      </div>
+                      <button type="button" onClick={() => { const materials = form.materials.filter((_, i) => i !== idx); setForm({ ...form, materials }); }} className="p-2.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer mt-1">✕</button>
+                    </div>
+                    <div>
+                      <select className={`${inputClass} appearance-none cursor-pointer`} value={mat.vendor || ''} onChange={(e) => { const materials = [...form.materials]; materials[idx] = { ...materials[idx], vendor: e.target.value }; setForm({ ...form, materials }); }}>
+                        <option value="">Select vendor</option>
+                        {vendors.map((v) => <option key={v._id} value={v._id}>{v.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                ))}
+                <button type="button" onClick={() => setForm({ ...form, materials: [...form.materials, { item_name: '', cost: 0, vendor: '', payment_status: 'credit', paid_amount: 0, payments: [] }] })} className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer">+ Add Material</button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-4 gap-4 mt-3">
-              <div className="p-3 rounded-xl bg-emerald-50 text-center"><p className="text-xs text-emerald-600 font-semibold">Total Cost</p><p className="text-lg font-bold text-emerald-800">₹{((Number(form.material_cost) || 0) + (Number(form.other_cost) || 0)).toLocaleString()}</p></div>
+              <div className="p-3 rounded-xl bg-emerald-50 text-center"><p className="text-xs text-emerald-600 font-semibold">Total Cost</p><p className="text-lg font-bold text-emerald-800">₹{((form.materials || []).reduce((s, m) => s + (Number(m.cost) || 0), 0) + (Number(form.other_cost) || 0)).toLocaleString()}</p></div>
               <div className="p-3 rounded-xl bg-amber-50 text-center"><p className="text-xs text-amber-600 font-semibold">Balance</p><p className="text-lg font-bold text-amber-800">₹{((Number(form.contract_amount) || 0) - (Number(form.received_amount) || 0)).toLocaleString()}</p></div>
-              <div className="p-3 rounded-xl bg-blue-50 text-center"><p className="text-xs text-blue-600 font-semibold">Profit/Loss</p><p className={`text-lg font-bold ${((Number(form.contract_amount) || 0) - (Number(form.material_cost) || 0) - (Number(form.other_cost) || 0)) >= 0 ? 'text-blue-800' : 'text-red-800'}`}>₹{((Number(form.contract_amount) || 0) - (Number(form.material_cost) || 0) - (Number(form.other_cost) || 0)).toLocaleString()}</p></div>
+              <div className="p-3 rounded-xl bg-blue-50 text-center"><p className="text-xs text-blue-600 font-semibold">Profit/Loss</p><p className={`text-lg font-bold ${((Number(form.contract_amount) || 0) - (form.materials || []).reduce((s, m) => s + (Number(m.cost) || 0), 0) - (Number(form.other_cost) || 0)) >= 0 ? 'text-blue-800' : 'text-red-800'}`}>₹{((Number(form.contract_amount) || 0) - (form.materials || []).reduce((s, m) => s + (Number(m.cost) || 0), 0) - (Number(form.other_cost) || 0)).toLocaleString()}</p></div>
               <div className="p-3 rounded-xl bg-stone-50 text-center"><p className="text-xs text-stone-500 font-semibold">Receivable %</p><p className="text-lg font-bold text-stone-800">{Number(form.contract_amount) > 0 ? Math.round(((Number(form.received_amount) || 0) / Number(form.contract_amount)) * 100) : 0}%</p></div>
             </div>
           </div>

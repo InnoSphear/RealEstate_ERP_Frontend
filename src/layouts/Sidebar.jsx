@@ -83,6 +83,7 @@ const menuGroups = [
       { path: '/commissions', label: 'Commissions', icon: HiOutlineTag, roles: ['admin', 'manager', 'accounts'], permission: 'commissions' },
       { path: '/income', label: 'Income', icon: HiOutlineChartBar, roles: ['admin', 'manager', 'accounts'], permission: 'income' },
       { path: '/expenses', label: 'Expenses', icon: HiOutlineCurrencyDollar, roles: ['admin', 'manager', 'accounts'], permission: 'expenses' },
+      { path: '/vendors', label: 'Vendors', icon: HiOutlineShoppingCart, roles: ['admin', 'manager', 'accounts'], permission: 'vendors' },
     ],
   },
   {

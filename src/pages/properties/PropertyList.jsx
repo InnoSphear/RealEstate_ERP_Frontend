@@ -35,6 +35,7 @@ const emptyForm = () => ({
   furnishing_status: 'unfurnished', possession_status: 'ready_to_move',
   listing_type: 'sale', price_sale: '', rent_amount: '', rent_deposit: '', maintenance_amount: '',
   parking: '', amenities: '', description: '', availability: 'available', status: 'active',
+  key_available: false, materials: [],
 });
 
 export default function PropertyList() {
@@ -77,6 +78,7 @@ export default function PropertyList() {
       furnishing_status: row.furnishing_status || 'unfurnished', possession_status: row.possession_status || 'ready_to_move',
       listing_type: row.listing_type || 'sale', price_sale: row.price_sale || '', rent_amount: row.rent_amount || '', rent_deposit: row.rent_deposit || '', maintenance_amount: row.maintenance_amount || '',
       parking: row.parking || '', amenities: Array.isArray(row.amenities) ? row.amenities.join(', ') : (row.amenities || ''), description: row.description || '', availability: row.availability || 'available', status: row.status || 'active',
+      key_available: row.key_available || false, materials: row.materials || [],
     });
     setImages([]);
     setModalOpen(true);
@@ -86,7 +88,11 @@ export default function PropertyList() {
     e.preventDefault();
     try {
       const fd = new FormData();
-      Object.entries(form).forEach(([k, v]) => { if (v !== '' && v !== null) fd.append(k, v); });
+      Object.entries(form).forEach(([k, v]) => {
+        if (k === 'materials') { fd.append(k, JSON.stringify(v)); }
+        else if (k === 'key_available') { fd.append(k, v ? 'true' : 'false'); }
+        else if (v !== '' && v !== null) { fd.append(k, v); }
+      });
       images.forEach((img) => fd.append('images', img));
       if (selected) { await API.put(`/properties/${selected._id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }); toast('Property updated'); }
       else { await API.post('/properties', fd, { headers: { 'Content-Type': 'multipart/form-data' } }); toast('Property created'); }
@@ -256,6 +262,42 @@ export default function PropertyList() {
               </div>
             </div>
             <div className="mt-4"><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Description</label><textarea className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold text-stone-700 dark:text-stone-300 mb-3 pb-2 border-b border-stone-100 dark:border-stone-700">Key Management</h4>
+            <div className="flex items-center gap-3">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" className="sr-only peer" checked={form.key_available} onChange={(e) => setForm({ ...form, key_available: e.target.checked })} />
+                <div className="w-11 h-6 bg-stone-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-stone-900/10 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-stone-900"></div>
+              </label>
+              <span className="text-sm text-stone-700 dark:text-stone-300">Keys Available</span>
+              <a href="/properties/keys" className="text-sm text-blue-600 hover:text-blue-700 underline ml-auto">Manage Keys →</a>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-semibold text-stone-700 dark:text-stone-300 mb-3 pb-2 border-b border-stone-100 dark:border-stone-700">Materials / Interior</h4>
+            <div className="space-y-3">
+              {(form.materials || []).map((mat, idx) => (
+                <div key={idx} className="flex gap-3 items-start">
+                  <div className="flex-1">
+                    <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" placeholder="Item name" value={mat.item_name} onChange={(e) => { const materials = [...form.materials]; materials[idx] = { ...materials[idx], item_name: e.target.value }; setForm({ ...form, materials }); }} />
+                  </div>
+                  <div className="w-40">
+                    <input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" placeholder="Cost (₹)" value={mat.cost} onChange={(e) => { const materials = [...form.materials]; materials[idx] = { ...materials[idx], cost: parseFloat(e.target.value) || 0 }; setForm({ ...form, materials }); }} />
+                  </div>
+                  <button type="button" onClick={() => { const materials = form.materials.filter((_, i) => i !== idx); setForm({ ...form, materials }); }} className="p-2.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer">✕</button>
+                </div>
+              ))}
+              <button type="button" onClick={() => setForm({ ...form, materials: [...form.materials, { item_name: '', cost: 0 }] })} className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer">+ Add Material</button>
+              {form.materials.length > 0 && (
+                <div className="pt-2 border-t border-stone-100 dark:border-stone-700 flex justify-between text-sm font-semibold text-stone-700 dark:text-stone-300">
+                  <span>Total Material Cost:</span>
+                  <span>₹{form.materials.reduce((sum, m) => sum + (Number(m.cost) || 0), 0).toLocaleString()}</span>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

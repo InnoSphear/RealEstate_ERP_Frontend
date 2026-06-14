@@ -57,6 +57,7 @@ import CommissionList from './pages/commissions/CommissionList';
 import MyCommissions from './pages/commissions/MyCommissions';
 import IncomeList from './pages/income/IncomeList';
 import ExpenseList from './pages/expenses/ExpenseList';
+import VendorList from './pages/vendors/VendorList';
 import VisitorList from './pages/visitors/VisitorList';
 
 import Reports from './pages/reports/Reports';
@@ -138,6 +139,7 @@ export default function App() {
               <Route path="my-commissions" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent']}><MyCommissions /></ProtectedRoute>} />
               <Route path="income" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']}><IncomeList /></ProtectedRoute>} />
               <Route path="expenses" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']}><ExpenseList /></ProtectedRoute>} />
+              <Route path="vendors" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']}><VendorList /></ProtectedRoute>} />
 
               <Route path="activity" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent']}><MyActivity /></ProtectedRoute>} />
               <Route path="documents" element={<ProtectedRoute roles={['admin', 'manager', 'sales_executive', 'accounts']}><Documents /></ProtectedRoute>} />

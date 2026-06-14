@@ -77,9 +77,9 @@ export default function CommissionList() {
     try {
       const payload = {
         ...form,
-        commission_value: Number(form.commission_value) || undefined,
-        percentage_rate: Number(form.percentage_rate) || undefined,
-        amount_basis: Number(form.amount_basis) || undefined,
+        commission_value: form.commission_value !== '' ? Number(form.commission_value) : undefined,
+        percentage_rate: form.percentage_rate !== '' ? Number(form.percentage_rate) : undefined,
+        amount_basis: form.amount_basis !== '' ? Number(form.amount_basis) : undefined,
       };
       if (selected) { await API.put(`/commissions/${selected._id}`, payload); toast('Commission updated'); }
       else { await API.post('/commissions', payload); toast('Commission created'); }
@@ -270,7 +270,7 @@ export default function CommissionList() {
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Property</label>
               <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.property_id} onChange={(e) => setForm({ ...form, property_id: e.target.value })}>
                 <option value="">Select property</option>
-                {properties.map((p) => <option key={p._id} value={p._id}>{p.title || p.location}</option>)}
+                {properties.map((p) => <option key={p._id} value={p._id}>{p.property_id} - {p.location}</option>)}
               </select>
             </div>
           </div>

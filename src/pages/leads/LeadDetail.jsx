@@ -18,6 +18,19 @@ const statusColors = {
   lost: 'bg-red-50 text-red-700 ring-1 ring-red-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
 };
 
+const nextStages = {
+  new: ['contacted', 'cold', 'lost'],
+  contacted: ['hot', 'warm', 'cold', 'follow_up', 'lost'],
+  hot: ['warm', 'site_visit', 'negotiation', 'won', 'lost'],
+  warm: ['hot', 'follow_up', 'site_visit', 'lost'],
+  cold: ['new', 'contacted', 'lost'],
+  follow_up: ['contacted', 'site_visit', 'negotiation', 'lost'],
+  site_visit: ['negotiation', 'follow_up', 'won', 'lost'],
+  negotiation: ['won', 'lost', 'site_visit'],
+  won: [],
+  lost: ['new', 'contacted'],
+};
+
 const historyIcons = {
   creation: 'bg-blue-100 text-blue-600',
   status_change: 'bg-purple-100 text-purple-600',
@@ -40,8 +53,9 @@ export default function LeadDetail() {
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [callNoteModalOpen, setCallNoteModalOpen] = useState(false);
   const [callNote, setCallNote] = useState('');
-  const [conversionForm, setConversionForm] = useState({ transaction_type: 'purchase', property_id: '', property_search: '', interior_project: {} });
+  const [conversionForm, setConversionForm] = useState({ transaction_type: 'purchase', property_id: '', property_search: '', interior_project: {}, key_taken: false, key_id: '', rent_amount: '', rent_deposit: '' });
   const [properties, setProperties] = useState([]);
+  const [propertyKeys, setPropertyKeys] = useState([]);
   const [history, setHistory] = useState([]);
   const [followUps, setFollowUps] = useState([]);
   const [users, setUsers] = useState([]);
@@ -112,25 +126,49 @@ export default function LeadDetail() {
   };
 
   useEffect(() => {
-    if (convertModalOpen && (conversionForm.transaction_type === 'sell' || conversionForm.transaction_type === 'purchase')) {
+    if (convertModalOpen && (conversionForm.transaction_type === 'sell' || conversionForm.transaction_type === 'purchase' || conversionForm.transaction_type === 'rent')) {
       searchProperties('');
     }
   }, [convertModalOpen, conversionForm.transaction_type]);
 
+  const handleQuickStatus = async (newStatus) => {
+    try {
+      await API.put(`/leads/${id}`, { status: newStatus });
+      toast(`Status changed to ${newStatus.replace('_', ' ')}`);
+      fetchLead();
+    } catch (err) {
+      toast(err.response?.data?.message || 'Error', 'error');
+    }
+  };
+
+  useEffect(() => {
+    if (conversionForm.property_id) {
+      API.get(`/property-keys?property=${conversionForm.property_id}`)
+        .then((res) => setPropertyKeys(Array.isArray(res.data) ? res.data.filter((k) => k.status === 'available') : []))
+        .catch(() => setPropertyKeys([]));
+    } else {
+      setPropertyKeys([]);
+    }
+  }, [conversionForm.property_id]);
+
   const handleConvert = async () => {
     try {
       const payload = { transaction_type: conversionForm.transaction_type };
-      if (conversionForm.transaction_type === 'sell' || conversionForm.transaction_type === 'purchase') {
+      if (conversionForm.transaction_type === 'sell' || conversionForm.transaction_type === 'purchase' || conversionForm.transaction_type === 'rent') {
         if (!conversionForm.property_id) return toast('Select a property', 'error');
         payload.property_id = conversionForm.property_id;
       }
       if (conversionForm.transaction_type === 'interior') {
         payload.interior_project = conversionForm.interior_project;
       }
-      const res = await API.put(`/leads/${id}/convert-to-client`, payload);
+      if (conversionForm.key_taken && conversionForm.property_id) {
+        payload.key_taken = true;
+        if (conversionForm.key_id) payload.key_id = conversionForm.key_id;
+      }
+      await API.put(`/leads/${id}/convert-to-client`, payload);
       toast('Lead converted to client');
       setConvertModalOpen(false);
-      setConversionForm({ transaction_type: 'purchase', property_id: '', property_search: '', interior_project: {} });
+      setConversionForm({ transaction_type: 'purchase', property_id: '', property_search: '', interior_project: {}, key_taken: false, key_id: '', rent_amount: '', rent_deposit: '' });
       fetchLead();
     } catch (err) {
       toast(err.response?.data?.message || 'Conversion failed', 'error');
@@ -296,6 +334,23 @@ export default function LeadDetail() {
       </div>
 
       {activeTab === 'Overview' && (
+        <>
+        {!lead.converted_to_client && nextStages[lead.status]?.length > 0 && (
+          <div className="bg-white rounded-2xl border border-stone-200 p-6">
+            <h3 className="text-base font-semibold text-stone-900 mb-4">Quick Stage Update</h3>
+            <div className="flex flex-wrap gap-2">
+              {nextStages[lead.status].map((stage) => (
+                <button
+                  key={stage}
+                  onClick={() => handleQuickStatus(stage)}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold transition-all border-0 cursor-pointer bg-stone-100 text-stone-700 hover:bg-stone-200 hover:text-stone-900"
+                >
+                  {stage.replace('_', ' ').charAt(0).toUpperCase() + stage.replace('_', ' ').slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="bg-white rounded-2xl border border-stone-200 p-6">
           <h3 className="text-base font-semibold text-stone-900 mb-4">Additional Details</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -333,6 +388,12 @@ export default function LeadDetail() {
                 <p className="text-sm text-stone-900 mt-1">{lead.conversion_details.interior_project.title || 'Interior Project'}</p>
               </div>
             )}
+            {lead.conversion_details?.key_taken && (
+              <div>
+                <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Key</p>
+                <p className="text-sm text-stone-900 mt-1">Key taken {lead.conversion_details.key ? `(Key #${lead.conversion_details.key.key_number})` : ''}</p>
+              </div>
+            )}
           </div>
           {lead.notes && (
             <div className="mt-4 pt-4 border-t border-stone-100">
@@ -341,6 +402,7 @@ export default function LeadDetail() {
             </div>
           )}
         </div>
+        </>
       )}
 
       {activeTab === 'Timeline' && (
@@ -432,8 +494,10 @@ export default function LeadDetail() {
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Mobile *</label><input className={inputClass} value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} required /></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Alternate Mobile</label><input className={inputClass} value={form.alternate_mobile} onChange={(e) => setForm({ ...form, alternate_mobile: e.target.value })} /></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Status</label><select className={inputClass + " appearance-none cursor-pointer"} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-              {['new','contacted','hot','warm','cold','follow_up','site_visit','negotiation','won','lost'].map((s) => <option key={s} value={s}>{s.replace('_', ' ').charAt(0).toUpperCase() + s.replace('_', ' ').slice(1)}</option>)}
-            </select></div>
+              {(nextStages[form.status]?.length ? nextStages[form.status] : ['new','contacted','hot','warm','cold','follow_up','site_visit','negotiation','won','lost']).map((s) => <option key={s} value={s}>{s.replace('_', ' ').charAt(0).toUpperCase() + s.replace('_', ' ').slice(1)}</option>)}
+            </select>
+            <p className="text-xs text-stone-400 mt-1">Showing suggested next stages for "{form.status?.replace('_', ' ')}"</p>
+            </div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Source</label><select className={inputClass + " appearance-none cursor-pointer"} value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>
               {['facebook','google','instagram','website','walk_in','referral','99acres','magicbricks','housing','other','social_media','call','ad'].map((s) => <option key={s} value={s}>{s.replace('_', ' ').charAt(0).toUpperCase() + s.replace('_', ' ').slice(1)}</option>)}
             </select></div>
@@ -457,14 +521,15 @@ export default function LeadDetail() {
         <div className="space-y-5">
           <div>
             <label className="block text-sm font-semibold text-stone-700 mb-1.5">Transaction Type *</label>
-            <select className={inputClass + " appearance-none cursor-pointer"} value={conversionForm.transaction_type} onChange={(e) => setConversionForm({ ...conversionForm, transaction_type: e.target.value, property_id: '', property_search: '', interior_project: {} })}>
+            <select className={inputClass + " appearance-none cursor-pointer"} value={conversionForm.transaction_type} onChange={(e) => setConversionForm({ ...conversionForm, transaction_type: e.target.value, property_id: '', property_search: '', interior_project: {}, key_taken: false, key_id: '', rent_amount: '', rent_deposit: '' })}>
               <option value="purchase">Purchase</option>
               <option value="sell">Sell</option>
+              <option value="rent">Rent</option>
               <option value="interior">Interior</option>
             </select>
           </div>
 
-          {(conversionForm.transaction_type === 'sell' || conversionForm.transaction_type === 'purchase') && (
+          {(conversionForm.transaction_type === 'sell' || conversionForm.transaction_type === 'purchase' || conversionForm.transaction_type === 'rent') && (
             <div>
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Select Property</label>
               <input
@@ -485,10 +550,48 @@ export default function LeadDetail() {
                     className={`p-3 text-sm cursor-pointer transition-colors ${conversionForm.property_id === p._id ? 'bg-stone-100 font-semibold' : 'hover:bg-stone-50'}`}
                     onClick={() => setConversionForm({ ...conversionForm, property_id: p._id, property_search: `${p.property_id} - ${p.location} (${p.property_type})` })}
                   >
-                    {p.property_id} - {p.location} ({p.property_type}) {p.price_sale ? `- ₹${Number(p.price_sale).toLocaleString()}` : ''}
+                    {p.property_id} - {p.location} ({p.property_type}) {p.listing_type === 'rent' ? `₹${Number(p.rent_amount || 0).toLocaleString()}/mo` : p.price_sale ? `₹${Number(p.price_sale).toLocaleString()}` : ''}
                   </div>
                 ))}
               </div>
+
+              {conversionForm.transaction_type === 'rent' && conversionForm.property_id && (
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-stone-700 mb-1.5">Rent Amount (₹)</label>
+                    <input type="number" className={inputClass} value={conversionForm.rent_amount} onChange={(e) => setConversionForm({ ...conversionForm, rent_amount: e.target.value })} placeholder="Monthly rent" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-stone-700 mb-1.5">Deposit (₹)</label>
+                    <input type="number" className={inputClass} value={conversionForm.rent_deposit} onChange={(e) => setConversionForm({ ...conversionForm, rent_deposit: e.target.value })} placeholder="Security deposit" />
+                  </div>
+                </div>
+              )}
+
+              {conversionForm.property_id && (
+                <div className="mt-4 pt-4 border-t border-stone-100">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={conversionForm.key_taken}
+                      onChange={(e) => setConversionForm({ ...conversionForm, key_taken: e.target.checked, key_id: e.target.checked ? conversionForm.key_id : '' })}
+                      className="rounded border-stone-300 text-stone-900 focus:ring-stone-900"
+                    />
+                    <span className="text-sm font-semibold text-stone-700">Key Taken</span>
+                  </label>
+                  {conversionForm.key_taken && (
+                    <select className={inputClass + " appearance-none cursor-pointer mt-2"} value={conversionForm.key_id} onChange={(e) => setConversionForm({ ...conversionForm, key_id: e.target.value })}>
+                      <option value="">Select key</option>
+                      {propertyKeys.map((k) => (
+                        <option key={k._id} value={k._id}>Key #{k.key_number}{k.key_holder ? ` (with ${k.key_holder})` : ''}</option>
+                      ))}
+                    </select>
+                  )}
+                  {conversionForm.key_taken && propertyKeys.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-1">No available keys for this property</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

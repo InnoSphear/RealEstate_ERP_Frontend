@@ -10,6 +10,9 @@ export default function DataTable({
   loading,
   searchable = true,
   title,
+  selectable,
+  selectedIds = [],
+  onSelectionChange,
 }) {
   const [search, setSearch] = useState('');
   const [sortField, setSortField] = useState(null);
@@ -83,6 +86,17 @@ export default function DataTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-stone-100 bg-stone-50/50">
+              {selectable && (
+                <th className="px-5 py-3.5 w-10">
+                  <input
+                    type="checkbox"
+                    checked={data.length > 0 && selectedIds.length === data.length}
+                    indeterminate={selectedIds.length > 0 && selectedIds.length < data.length}
+                    onChange={(e) => onSelectionChange?.(e.target.checked ? data.map((r) => r._id) : [])}
+                    className="rounded border-stone-300 text-stone-900 focus:ring-stone-900 cursor-pointer"
+                  />
+                </th>
+              )}
               {columns.map((col) => (
                 <th
                   key={col.accessor || col.header}
@@ -105,7 +119,7 @@ export default function DataTable({
           <tbody>
             {paged.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + (onEdit || onDelete || onView ? 1 : 0)} className="px-5 py-14 text-center text-stone-400">
+                <td colSpan={columns.length + (selectable ? 1 : 0) + (onEdit || onDelete || onView ? 1 : 0)} className="px-5 py-14 text-center text-stone-400">
                   <div className="flex flex-col items-center gap-2">
                     <span className="text-2xl">—</span>
                     <span className="text-sm">No data found</span>
@@ -113,11 +127,25 @@ export default function DataTable({
                 </td>
               </tr>
             ) : (
-              paged.map((row, i) => (
+              paged.map((row, i) => {
+                const checked = selectedIds.includes(row._id)
+                return (
                 <tr
                   key={row._id || i}
                   onClick={() => onView?.(row)}
                   className={`border-b border-stone-100 hover:bg-stone-50/50 transition-colors ${onView ? 'cursor-pointer' : ''}`}>
+                  {selectable && (
+                    <td className="px-5 py-3.5 w-10" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => onSelectionChange?.(
+                          checked ? selectedIds.filter((id) => id !== row._id) : [...selectedIds, row._id]
+                        )}
+                        className="rounded border-stone-300 text-stone-900 focus:ring-stone-900 cursor-pointer"
+                      />
+                    </td>
+                  )}
                   {columns.map((col) => (
                     <td key={col.accessor || col.header} className="px-5 py-3.5 text-stone-700">
                       {col.render ? col.render(row) : row[col.accessor] ?? '-'}
@@ -145,7 +173,8 @@ export default function DataTable({
                     </td>
                   )}
                 </tr>
-              ))
+                )
+              })
             )}
           </tbody>
         </table>

@@ -39,7 +39,7 @@ const menuGroups = [
     items: [
       { path: '/employees', label: 'All Employees', icon: HiOutlineUserGroup, roles: ['admin', 'manager'], permission: 'employees' },
       { path: '/employees/attendance', label: 'Attendance', icon: HiOutlineCalendar, roles: ['admin', 'manager'], permission: 'attendance' },
-      { path: '/employees/leaves', label: 'Leave Mgmt', icon: HiOutlineArrowRightOnRectangle, roles: ['admin', 'manager'], permission: 'leaves' },
+      { path: '/employees/leaves', label: 'Leave Mgmt', icon: HiOutlineArrowRightOnRectangle, roles: ['admin', 'manager'] },
     ],
   },
   {

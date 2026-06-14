@@ -57,10 +57,13 @@ export default function LeadList() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [bulkTransferModalOpen, setBulkTransferModalOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [transferTo, setTransferTo] = useState('');
+  const [bulkTransferTo, setBulkTransferTo] = useState('');
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const [filters, setFilters] = useState({ status: '', source: '', assigned_to: '', date_from: '', date_to: '', search: '' });
 
@@ -163,6 +166,19 @@ export default function LeadList() {
     }
   };
 
+  const handleBulkTransfer = async () => {
+    if (!bulkTransferTo) { toast('Select a user', 'warning'); return; }
+    try {
+      await API.put('/leads/bulk-transfer', { leadIds: selectedIds, assigned_to: bulkTransferTo });
+      toast(`${selectedIds.length} lead(s) transferred`);
+      setBulkTransferModalOpen(false);
+      setSelectedIds([]);
+      fetchData();
+    } catch (err) {
+      toast(err.response?.data?.message || 'Bulk transfer failed', 'error');
+    }
+  };
+
   const handleImport = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -235,6 +251,11 @@ export default function LeadList() {
           <p className="text-stone-500 mt-1">Manage your leads and prospects</p>
         </div>
         <div className="flex gap-2">
+          {isAdmin && selectedIds.length > 0 && (
+            <button onClick={() => { setBulkTransferTo(''); setBulkTransferModalOpen(true); }} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200">
+              Transfer Selected ({selectedIds.length})
+            </button>
+          )}
           <button onClick={handleExport} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">
             <HiOutlineArrowDownTray size={15} /> Export
           </button>
@@ -275,6 +296,9 @@ export default function LeadList() {
         columns={columns}
         data={data}
         loading={loading}
+        selectable={isAdmin}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
         onView={(r) => navigate(`/leads/${r._id}`)}
         onEdit={isAdmin ? openEdit : null}
         onDelete={isAdmin ? (r) => { setSelected(r); setConfirmOpen(true); } : null}
@@ -381,6 +405,20 @@ export default function LeadList() {
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setTransferModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
             <button onClick={handleTransfer} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">Transfer</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={bulkTransferModalOpen} onClose={() => setBulkTransferModalOpen(false)} title="Bulk Transfer Leads" size="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-stone-600">Assign {selectedIds.length} selected lead(s) to a user</p>
+          <select value={bulkTransferTo} onChange={(e) => setBulkTransferTo(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
+            <option value="">Select user</option>
+            {users.map((u) => <option key={u._id} value={u._id}>{u.name || u.full_name}</option>)}
+          </select>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setBulkTransferModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
+            <button onClick={handleBulkTransfer} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">Transfer</button>
           </div>
         </div>
       </Modal>

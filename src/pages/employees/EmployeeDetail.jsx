@@ -11,6 +11,8 @@ export default function EmployeeDetail() {
   const [employee, setEmployee] = useState(null);
   const [attendance, setAttendance] = useState([]);
   const [leaves, setLeaves] = useState([]);
+  const [commissions, setCommissions] = useState([]);
+  const [commissionTotals, setCommissionTotals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [docModal, setDocModal] = useState(false);
   const [docFile, setDocFile] = useState(null);
@@ -23,10 +25,13 @@ export default function EmployeeDetail() {
       API.get(`/employees/${id}`),
       API.get(`/attendance/employee/${id}?month=${month}`),
       API.get(`/leaves/employee/${id}`),
-    ]).then(([eRes, aRes, lRes]) => {
+      API.get(`/commissions/employee/${id}`),
+    ]).then(([eRes, aRes, lRes, cRes]) => {
       setEmployee(eRes.data);
       setAttendance(Array.isArray(aRes.data) ? aRes.data : []);
       setLeaves(Array.isArray(lRes.data) ? lRes.data : []);
+      setCommissions(Array.isArray(cRes.data.commissions) ? cRes.data.commissions : []);
+      setCommissionTotals(Array.isArray(cRes.data.totals) ? cRes.data.totals : []);
     }).catch(() => toast('Failed to load employee details', 'error')).finally(() => setLoading(false));
   }, [id, month]);
 
@@ -160,6 +165,45 @@ export default function EmployeeDetail() {
           <div className="p-4 rounded-xl bg-stone-50"><p className="text-lg font-bold text-stone-900">{totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0}%</p><p className="text-xs text-stone-500 mt-1">Attendance %</p></div>
         </div>
       </div>
+
+      {commissions.length > 0 && (
+        <div className="bg-white rounded-2xl border border-stone-200 luxury-shadow overflow-hidden p-6 sm:p-8">
+          <h3 className="text-base font-semibold text-stone-900 mb-4">Commission Summary</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            {['pending', 'approved', 'paid', 'cancelled'].map((s) => {
+              const t = commissionTotals.find((x) => x._id === s);
+              return (
+                <div key={s} className="p-4 rounded-xl bg-stone-50">
+                  <p className="text-lg font-bold text-stone-900 capitalize">{t ? `₹${t.total.toLocaleString()}` : '₹0'}</p>
+                  <p className="text-xs text-stone-500 mt-1 capitalize">{s} ({t?.count || 0})</p>
+                </div>
+              );
+            })}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-stone-100 bg-stone-50/50">
+                  <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Amount</th>
+                  <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Source</th>
+                  <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {commissions.slice(0, 10).map((c) => (
+                  <tr key={c._id} className="border-b border-stone-100 hover:bg-stone-50/50 transition-colors">
+                    <td className="px-4 py-3 text-stone-700 font-medium">₹{(c.commission_amount || 0).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-stone-700 capitalize">{c.source}</td>
+                    <td className="px-4 py-3"><span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-stone-50 text-stone-700 ring-1 ring-stone-200">{c.status}</span></td>
+                    <td className="px-4 py-3 text-stone-500">{new Date(c.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <Modal isOpen={docModal} onClose={() => setDocModal(false)} title="Upload Document">
         <form onSubmit={handleDocUpload} className="space-y-5">

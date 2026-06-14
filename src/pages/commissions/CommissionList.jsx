@@ -39,7 +39,7 @@ export default function CommissionList() {
       const params = new URLSearchParams();
       if (filterStatus) params.append('status', filterStatus);
       if (filterSource) params.append('source', filterSource);
-      if (filterEmployee) params.append('employee_id', filterEmployee);
+      if (filterEmployee) params.append('employee', filterEmployee);
       const qs = params.toString();
       const [dRes, eRes, cRes, pRes] = await Promise.all([
         API.get(`/commissions${qs ? `?${qs}` : ''}`),
@@ -53,7 +53,7 @@ export default function CommissionList() {
       setProperties(pRes.data);
       const summaryMap = {};
       dRes.data.forEach((c) => {
-        const name = c.employee_id?.full_name || c.employee_id?.name || 'Unknown';
+        const name = c.employee?.full_name || c.employee?.name || 'Unknown';
         if (!summaryMap[name]) summaryMap[name] = { name, total: 0, pending: 0, count: 0 };
         summaryMap[name].total += c.commission_amount || 0;
         if (c.status === 'pending') summaryMap[name].pending += c.commission_amount || 0;
@@ -104,7 +104,7 @@ export default function CommissionList() {
   };
 
   const columns = [
-    { header: 'Employee', render: (r) => r.employee_id?.full_name || r.employee_id?.name || '-' },
+    { header: 'Employee', render: (r) => r.employee?.full_name || r.employee?.name || r.employee?.employee_id || '-' },
     { header: 'Type', render: (r) => <span className="bg-stone-50 text-stone-700 ring-1 ring-stone-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize">{r.commission_type}</span> },
     { header: 'Amount', render: (r) => r.commission_amount ? `₹${r.commission_amount.toLocaleString()}` : '-' },
     { header: 'Source', render: (r) => <span className="bg-stone-50 text-stone-700 ring-1 ring-stone-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">{r.source}</span> },
@@ -167,7 +167,7 @@ export default function CommissionList() {
                 <tr><td colSpan={4} className="px-5 py-14 text-center text-stone-400">No pending commissions</td></tr>
               ) : data.filter(r => r.status === 'pending').map((row) => (
                 <tr key={row._id} className="border-b border-stone-100 hover:bg-stone-50/50 transition-colors">
-                  <td className="px-5 py-3.5 text-stone-700 font-medium">{row.employee_id?.full_name || row.employee_id?.name || '-'}</td>
+                  <td className="px-5 py-3.5 text-stone-700 font-medium">{row.employee?.full_name || row.employee?.name || row.employee?.employee_id || '-'}</td>
                   <td className="px-5 py-3.5 text-stone-700">₹{(row.commission_amount || 0).toLocaleString()}</td>
                   <td className="px-5 py-3.5"><span className={statusColors[row.status]}>{row.status}</span></td>
                   <td className="px-5 py-3.5 text-right">
@@ -202,7 +202,7 @@ export default function CommissionList() {
                 <tr><td colSpan={4} className="px-5 py-14 text-center text-stone-400">No approved commissions</td></tr>
               ) : data.filter(r => r.status === 'approved').map((row) => (
                 <tr key={row._id} className="border-b border-stone-100 hover:bg-stone-50/50 transition-colors">
-                  <td className="px-5 py-3.5 text-stone-700 font-medium">{row.employee_id?.full_name || row.employee_id?.name || '-'}</td>
+                  <td className="px-5 py-3.5 text-stone-700 font-medium">{row.employee?.full_name || row.employee?.name || row.employee?.employee_id || '-'}</td>
                   <td className="px-5 py-3.5 text-stone-700">₹{(row.commission_amount || 0).toLocaleString()}</td>
                   <td className="px-5 py-3.5"><span className="bg-stone-50 text-stone-700 ring-1 ring-stone-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">{row.source}</span></td>
                   <td className="px-5 py-3.5 text-right">

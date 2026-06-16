@@ -45,19 +45,19 @@ const menuGroups = [
   {
     label: 'CRM',
     items: [
-      { path: '/leads', label: 'Leads', icon: HiOutlinePhone, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist'], permission: 'leads' },
-      { path: '/leads/kanban', label: 'Lead Stages', icon: HiOutlinePresentationChartBar, roles: ['admin', 'manager', 'telecaller', 'sales_executive'], permission: 'leads' },
-      { path: '/clients', label: 'Clients', icon: HiOutlineUserGroup, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist'], permission: 'clients' },
-      { path: '/follow-ups', label: 'Follow Ups', icon: HiOutlineCalendar, roles: ['admin', 'manager', 'telecaller', 'sales_executive'], permission: 'follow_ups' },
+      { path: '/leads', label: 'Leads', icon: HiOutlinePhone, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist', 'interior_manager'], permission: 'leads' },
+      { path: '/leads/kanban', label: 'Lead Stages', icon: HiOutlinePresentationChartBar, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'interior_manager'], permission: 'leads' },
+      { path: '/clients', label: 'Clients', icon: HiOutlineUserGroup, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist', 'interior_manager'], permission: 'clients' },
+      { path: '/follow-ups', label: 'Follow Ups', icon: HiOutlineCalendar, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'interior_manager'], permission: 'follow_ups' },
     ],
   },
   {
     label: 'Property',
     items: [
-      { path: '/properties', label: 'Properties', icon: HiOutlineBuildingOffice, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent'], permission: 'properties' },
+      { path: '/properties', label: 'Properties', icon: HiOutlineBuildingOffice, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager'], permission: 'properties' },
       { path: '/properties/keys', label: 'Key Mgmt', icon: HiOutlineKey, roles: ['admin', 'manager'], permission: 'property_keys' },
-      { path: '/projects', label: 'Projects', icon: HiOutlineWrenchScrewdriver, roles: ['admin', 'manager', 'sales_executive'], permission: 'projects' },
-      { path: '/rental-apartments', label: 'Rentals', icon: HiOutlineBuildingOffice2, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent'], permission: 'properties' },
+      { path: '/projects', label: 'Projects', icon: HiOutlineWrenchScrewdriver, roles: ['admin', 'manager', 'sales_executive', 'interior_manager'], permission: 'projects' },
+      { path: '/rental-apartments', label: 'Rentals', icon: HiOutlineBuildingOffice2, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager'], permission: 'properties' },
     ],
   },
   {
@@ -70,9 +70,9 @@ const menuGroups = [
   {
     label: 'Interior',
     items: [
-      { path: '/interior', label: 'Dashboard', icon: HiOutlinePresentationChartBar, roles: ['admin', 'manager'], permission: 'interior_projects' },
-      { path: '/interior-projects', label: 'Projects', icon: HiOutlineCube, roles: ['admin', 'manager'], permission: 'interior_projects' },
-      { path: '/interior-invoices', label: 'Invoices', icon: HiOutlineReceiptPercent, roles: ['admin', 'manager', 'accounts'], permission: 'invoices' },
+      { path: '/interior', label: 'Dashboard', icon: HiOutlinePresentationChartBar, roles: ['admin', 'manager', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
+      { path: '/interior-projects', label: 'Projects', icon: HiOutlineCube, roles: ['admin', 'manager', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
+      { path: '/interior-invoices', label: 'Invoices', icon: HiOutlineReceiptPercent, roles: ['admin', 'manager', 'accounts', 'interior_manager'], permission: 'interior_invoices' },
     ],
   },
   {
@@ -89,8 +89,8 @@ const menuGroups = [
   {
     label: 'Documents',
     items: [
-      { path: '/activity', label: 'Activity Log', icon: HiOutlineClock, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent'], permission: 'activity_logs' },
-      { path: '/documents', label: 'Documents', icon: HiOutlineFolder, roles: ['admin', 'manager', 'sales_executive', 'accounts'] },
+      { path: '/activity', label: 'Activity Log', icon: HiOutlineClock, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager'], permission: 'activity_logs' },
+      { path: '/documents', label: 'Documents', icon: HiOutlineFolder, roles: ['admin', 'manager', 'sales_executive', 'accounts', 'interior_manager'] },
     ],
   },
   {
@@ -102,9 +102,9 @@ const menuGroups = [
   {
     label: 'My',
     items: [
-      { path: '/my-attendance', label: 'My Attendance', icon: HiOutlineCalendar, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent'], excludeRoles: ['admin'] },
-      { path: '/my-leaves', label: 'My Leaves', icon: HiOutlineArrowRightOnRectangle, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent'], excludeRoles: ['admin'] },
-      { path: '/my-commissions', label: 'My Commissions', icon: HiOutlineTag, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent'], permission: 'commissions', excludeRoles: ['admin'] },
+      { path: '/my-attendance', label: 'My Attendance', icon: HiOutlineCalendar, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager'], excludeRoles: ['admin'] },
+      { path: '/my-leaves', label: 'My Leaves', icon: HiOutlineArrowRightOnRectangle, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager'], excludeRoles: ['admin'] },
+      { path: '/my-commissions', label: 'My Commissions', icon: HiOutlineTag, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager'], permission: 'commissions', excludeRoles: ['admin'] },
     ],
   },
 ];

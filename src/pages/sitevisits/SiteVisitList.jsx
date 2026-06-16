@@ -4,6 +4,7 @@ import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
+import { HiOutlineKey } from 'react-icons/hi2';
 
 const statusColors = {
   scheduled: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
@@ -21,6 +22,7 @@ export default function SiteVisitList() {
   const [clients, setClients] = useState([]);
   const [properties, setProperties] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [availableKeys, setAvailableKeys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [outcomeModal, setOutcomeModal] = useState(false);
@@ -33,7 +35,7 @@ export default function SiteVisitList() {
   const [dateTo, setDateTo] = useState('');
   const [form, setForm] = useState({
     client_id: '', property_id: '', assigned_executive: '',
-    scheduled_date: '', scheduled_time: '', notes: ''
+    scheduled_date: '', scheduled_time: '', notes: '', property_key: ''
   });
   const [outcomeForm, setOutcomeForm] = useState({ outcome: 'follow_up', outcome_notes: '' });
   const [rescheduleForm, setRescheduleForm] = useState({ scheduled_date: '', scheduled_time: '', notes: '' });
@@ -53,18 +55,45 @@ export default function SiteVisitList() {
         API.get('/properties'),
         API.get('/employees'),
       ]);
-      setData(dRes.data);
-      setClients(cRes.data);
-      setProperties(pRes.data);
-      setEmployees(eRes.data);
+      setData(Array.isArray(dRes.data) ? dRes.data : []);
+      setClients(Array.isArray(cRes.data) ? cRes.data : []);
+      setProperties(Array.isArray(pRes.data) ? pRes.data : []);
+      setEmployees(Array.isArray(eRes.data) ? eRes.data : []);
     } catch (err) { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, [filterStatus, filterExecutive, dateFrom, dateTo]);
 
-  const resetForm = () => setForm({ client_id: '', property_id: '', assigned_executive: '', scheduled_date: '', scheduled_time: '', notes: '' });
+  const fetchAvailableKeys = async (propertyId) => {
+    if (!propertyId) { setAvailableKeys([]); return; }
+    try {
+      const res = await API.get(`/property-keys?property=${propertyId}`);
+      setAvailableKeys(Array.isArray(res.data) ? res.data : []);
+    } catch (err) { setAvailableKeys([]); }
+  };
+
+  const keyStatusColor = (status) => {
+    const map = {
+      available: 'text-emerald-600 bg-emerald-50',
+      scheduled: 'text-blue-600 bg-blue-50',
+      issued: 'text-amber-600 bg-amber-50',
+      outside: 'text-purple-600 bg-purple-50',
+      returned: 'text-stone-600 bg-stone-50',
+    };
+    return map[status] || 'text-stone-600 bg-stone-50';
+  };
+
+  const resetForm = () => {
+    setForm({ client_id: '', property_id: '', assigned_executive: '', scheduled_date: '', scheduled_time: '', notes: '', property_key: '' });
+    setAvailableKeys([]);
+  };
 
   const openCreate = () => { setSelected(null); resetForm(); setModalOpen(true); };
+
+  const handlePropertyChange = (propertyId) => {
+    setForm({ ...form, property_id: propertyId, property_key: '' });
+    fetchAvailableKeys(propertyId);
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -82,7 +111,7 @@ export default function SiteVisitList() {
   };
 
   const handleConfirm = async (row) => {
-    try { await API.put(`/site-visits/${row._id}`, { status: 'confirmed' }); toast('Visit confirmed'); fetchData(); }
+    try { await API.put(`/site-visits/${row._id}/confirm`); toast('Visit confirmed'); fetchData(); }
     catch (err) { toast('Error', 'error'); }
   };
 
@@ -95,7 +124,7 @@ export default function SiteVisitList() {
   const submitOutcome = async (e) => {
     e.preventDefault();
     try {
-      await API.put(`/site-visits/${selected._id}`, { status: 'completed', ...outcomeForm });
+      await API.put(`/site-visits/${selected._id}/complete`, { outcome: outcomeForm.outcome, visit_notes: outcomeForm.outcome_notes, client_feedback: outcomeForm.outcome_notes });
       toast('Visit completed');
       setOutcomeModal(false);
       fetchData();
@@ -111,7 +140,7 @@ export default function SiteVisitList() {
   const submitReschedule = async (e) => {
     e.preventDefault();
     try {
-      await API.put(`/site-visits/${selected._id}`, { status: 'rescheduled', ...rescheduleForm });
+      await API.put(`/site-visits/${selected._id}/reschedule`, { rescheduled_date: rescheduleForm.scheduled_date, rescheduled_reason: rescheduleForm.notes });
       toast('Visit rescheduled');
       setRescheduleModal(false);
       fetchData();
@@ -119,18 +148,26 @@ export default function SiteVisitList() {
   };
 
   const handleCancel = async () => {
-    try { await API.put(`/site-visits/${selected._id}`, { status: 'cancelled' }); toast('Visit cancelled'); fetchData(); }
-    catch (err) { toast('Error', 'error'); }
+    try {
+      await API.put(`/site-visits/${selected._id}/cancel`, { cancellation_reason: '' });
+      toast('Visit cancelled');
+      fetchData();
+    } catch (err) { toast('Error', 'error'); }
   };
 
   const columns = [
-    { header: 'Client', render: (r) => r.client_id?.full_name || r.client_id?.name || '-' },
-    { header: 'Property', render: (r) => r.property_id?.location || r.property_id?.title || '-' },
-    { header: 'Executive', render: (r) => r.assigned_executive?.full_name || r.assigned_executive?.name || '-' },
+    { header: 'Client', render: (r) => r.client?.full_name || r.client?.name || '-' },
+    { header: 'Property', render: (r) => r.property ? `${r.property.property_id || ''} - ${r.property.location || ''}`.replace(/^ - /, '').replace(/ - $/, '') || '-' : '-' },
+    { header: 'Executive', render: (r) => r.assigned_executive?.full_name || '-' },
     { header: 'Date', render: (r) => r.scheduled_date ? new Date(r.scheduled_date).toLocaleDateString() : '-' },
     { header: 'Time', render: (r) => r.scheduled_time || '-' },
+    { header: 'Key', render: (r) => r.property_key ? (
+      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${keyStatusColor(r.property_key.status)}`}>
+        <HiOutlineKey size={11} /> {r.property_key.key_number}
+      </span>
+    ) : '-' },
     { header: 'Status', render: (r) => <span className={statusColors[r.status]}>{r.status}</span> },
-    { header: 'Outcome', accessor: 'outcome', render: (r) => r.outcome || '-' },
+    { header: 'Outcome', render: (r) => r.outcome || '-' },
   ];
 
   return (
@@ -147,18 +184,13 @@ export default function SiteVisitList() {
         </select>
         <select value={filterExecutive} onChange={(e) => setFilterExecutive(e.target.value)} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
           <option value="">All Executives</option>
-          {employees.map((e) => <option key={e._id} value={e._id}>{e.full_name || e.name}</option>)}
+          {employees.map((emp) => <option key={emp._id} value={emp._id}>{emp.full_name || emp.name}</option>)}
         </select>
         <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" />
         <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" />
       </div>
 
-      <DataTable
-        columns={columns}
-        data={data}
-        loading={loading}
-        onView={(r) => {}}
-      />
+      <DataTable columns={columns} data={data} loading={loading} />
 
       <div className="bg-white rounded-2xl border border-stone-200 luxury-shadow overflow-hidden">
         <div className="p-5 border-b border-stone-100">
@@ -178,26 +210,26 @@ export default function SiteVisitList() {
                 <tr><td colSpan={3} className="px-5 py-14 text-center text-stone-400">No pending visits</td></tr>
               ) : data.filter(r => r.status !== 'completed' && r.status !== 'cancelled').map((row) => (
                 <tr key={row._id} className="border-b border-stone-100 hover:bg-stone-50/50 transition-colors">
-                  <td className="px-5 py-3.5 text-stone-700">{row.client_id?.full_name || row.client_id?.name || '-'}</td>
+                  <td className="px-5 py-3.5 text-stone-700">{row.client?.full_name || row.client?.name || '-'}</td>
                   <td className="px-5 py-3.5"><span className={statusColors[row.status]}>{row.status}</span></td>
                   <td className="px-5 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       {row.status === 'scheduled' && (
                         <>
-                          <button onClick={() => handleConfirm(row)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all">Confirm</button>
-                          <button onClick={() => handleComplete(row)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all">Complete</button>
-                          <button onClick={() => openReschedule(row)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-all">Reschedule</button>
-                          <button onClick={() => { setSelected(row); setConfirmOpen(true); }} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-red-50 text-red-700 hover:bg-red-100 transition-all">Cancel</button>
+                          <button onClick={() => handleConfirm(row)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all cursor-pointer">Confirm</button>
+                          <button onClick={() => handleComplete(row)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all cursor-pointer">Complete</button>
+                          <button onClick={() => openReschedule(row)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-all cursor-pointer">Reschedule</button>
+                          <button onClick={() => { setSelected(row); setConfirmOpen(true); }} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-red-50 text-red-700 hover:bg-red-100 transition-all cursor-pointer">Cancel</button>
                         </>
                       )}
                       {row.status === 'confirmed' && (
                         <>
-                          <button onClick={() => handleComplete(row)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all">Complete</button>
-                          <button onClick={() => openReschedule(row)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-all">Reschedule</button>
+                          <button onClick={() => handleComplete(row)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all cursor-pointer">Complete</button>
+                          <button onClick={() => openReschedule(row)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-all cursor-pointer">Reschedule</button>
                         </>
                       )}
                       {row.status === 'rescheduled' && (
-                        <button onClick={() => handleConfirm(row)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all">Confirm</button>
+                        <button onClick={() => handleConfirm(row)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all cursor-pointer">Confirm</button>
                       )}
                     </div>
                   </td>
@@ -220,16 +252,38 @@ export default function SiteVisitList() {
             </div>
             <div>
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Property *</label>
-              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.property_id} onChange={(e) => setForm({ ...form, property_id: e.target.value })} required>
+              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.property_id} onChange={(e) => handlePropertyChange(e.target.value)} required>
                 <option value="">Search property...</option>
-                {properties.map((p) => <option key={p._id} value={p._id}>{p.location || p.title}</option>)}
+                {properties.map((p) => <option key={p._id} value={p._id}>{p.property_id || ''} - {p.location || ''}</option>)}
               </select>
             </div>
+            {form.property_id && (
+              <div>
+                <label className="block text-sm font-semibold text-stone-700 mb-1.5 flex items-center gap-1.5"><HiOutlineKey size={15} /> Assign Key</label>
+                <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.property_key} onChange={(e) => setForm({ ...form, property_key: e.target.value })}>
+                  <option value="">No key needed</option>
+                  {availableKeys.map((k) => (
+                    <option key={k._id} value={k._id}>
+                      {k.key_number} — {k.status?.charAt(0).toUpperCase() + k.status?.slice(1)}
+                    </option>
+                  ))}
+                  {availableKeys.length === 0 && <option value="" disabled>No keys found for this property</option>}
+                </select>
+                {form.property_key && (() => {
+                  const sel = availableKeys.find((k) => k._id === form.property_key);
+                  return sel ? (
+                    <span className={`inline-flex items-center gap-1 mt-1.5 text-xs px-2 py-0.5 rounded-full font-medium ${keyStatusColor(sel.status)}`}>
+                      <HiOutlineKey size={11} /> {sel.key_number} — {sel.status}
+                    </span>
+                  ) : null;
+                })()}
+              </div>
+            )}
             <div>
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Assigned Executive</label>
               <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.assigned_executive} onChange={(e) => setForm({ ...form, assigned_executive: e.target.value })}>
                 <option value="">Select executive</option>
-                {employees.map((e) => <option key={e._id} value={e._id}>{e.full_name || e.name}</option>)}
+                {employees.map((emp) => <option key={emp._id} value={emp._id}>{emp.full_name || emp.name}</option>)}
               </select>
             </div>
             <div>

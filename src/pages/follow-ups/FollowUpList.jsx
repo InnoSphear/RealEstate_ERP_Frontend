@@ -66,8 +66,8 @@ export default function FollowUpList() {
   const openEdit = (row) => {
     setSelected(row);
     setForm({
-      lead_id: row.lead_id?._id || row.lead_id || '',
-      client_id: row.client_id?._id || row.client_id || '',
+      lead_id: row.lead?._id || row.lead || row.lead_id?._id || row.lead_id || '',
+      client_id: row.client?._id || row.client || row.client_id?._id || row.client_id || '',
       assigned_to: row.assigned_to?._id || row.assigned_to || '',
       follow_up_date: row.follow_up_date ? new Date(row.follow_up_date).toISOString().split('T')[0] : '',
       follow_up_time: row.follow_up_time || '',
@@ -157,11 +157,11 @@ export default function FollowUpList() {
       header: 'Lead/Client',
       render: (r) => (
         <span className={`font-medium ${isToday(r.follow_up_date) ? 'text-amber-600' : isOverdue(r.follow_up_date, r.status) ? 'text-red-600' : 'text-stone-900'}`}>
-          {r.lead_id?.full_name || r.client_id?.full_name || '-'}
+          {r.lead?.full_name || r.lead_id?.full_name || r.client?.full_name || r.client_id?.full_name || '-'}
         </span>
       ),
     },
-    { header: 'Assigned To', render: (r) => r.assigned_to?.full_name || '-' },
+    { header: 'Assigned To', render: (r) => r.assigned_to ? `${r.assigned_to.full_name}${r.assigned_to.email ? ` (${r.assigned_to.email})` : ''}` : '-' },
     {
       header: 'Date',
       render: (r) => (

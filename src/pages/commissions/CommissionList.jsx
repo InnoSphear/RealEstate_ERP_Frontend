@@ -14,6 +14,7 @@ const statusColors = {
 const statuses = ['pending', 'approved', 'paid', 'cancelled'];
 const commissionTypes = ['fixed', 'percentage'];
 const sourceOptions = ['sale', 'rent', 'service', 'referral', 'other'];
+const paymentModes = ['cash', 'upi', 'bank_transfer', 'cheque', 'card', 'other'];
 
 export default function CommissionList() {
   const [data, setData] = useState([]);
@@ -22,14 +23,20 @@ export default function CommissionList() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [paymentModal, setPaymentModal] = useState(false);
+  const [payHistoryModal, setPayHistoryModal] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [filterStatus, setFilterStatus] = useState('');
   const [filterSource, setFilterSource] = useState('');
   const [filterEmployee, setFilterEmployee] = useState('');
+  const [filterType, setFilterType] = useState('');
   const [form, setForm] = useState({
     employee_id: '', commission_type: 'fixed', commission_value: '', percentage_rate: '',
     source: 'sale', source_description: '', client_id: '', property_id: '', amount_basis: ''
+  });
+  const [payForm, setPayForm] = useState({
+    payment_mode: 'cash', reference: '', upi_id: '', notes: '', amount: ''
   });
   const [summary, setSummary] = useState([]);
 
@@ -40,6 +47,7 @@ export default function CommissionList() {
       if (filterStatus) params.append('status', filterStatus);
       if (filterSource) params.append('source', filterSource);
       if (filterEmployee) params.append('employee', filterEmployee);
+      if (filterType) params.append('commission_type', filterType);
       const qs = params.toString();
       const [dRes, eRes, cRes, pRes] = await Promise.all([
         API.get(`/commissions${qs ? `?${qs}` : ''}`),
@@ -47,23 +55,26 @@ export default function CommissionList() {
         API.get('/clients'),
         API.get('/properties'),
       ]);
-      setData(dRes.data);
-      setEmployees(eRes.data);
-      setClients(cRes.data);
-      setProperties(pRes.data);
+      const commissions = Array.isArray(dRes.data) ? dRes.data : [];
+      setData(commissions);
+      setEmployees(Array.isArray(eRes.data) ? eRes.data : []);
+      setClients(Array.isArray(cRes.data) ? cRes.data : []);
+      setProperties(Array.isArray(pRes.data) ? pRes.data : []);
       const summaryMap = {};
-      dRes.data.forEach((c) => {
+      commissions.forEach((c) => {
         const name = c.employee?.full_name || 'Unknown';
-        if (!summaryMap[name]) summaryMap[name] = { name, total: 0, pending: 0, count: 0 };
+        if (!summaryMap[name]) summaryMap[name] = { name, total: 0, pending: 0, approved: 0, paid: 0, count: 0 };
         summaryMap[name].total += c.commission_amount || 0;
         if (c.status === 'pending') summaryMap[name].pending += c.commission_amount || 0;
+        if (c.status === 'approved') summaryMap[name].approved += c.commission_amount || 0;
+        if (c.status === 'paid') summaryMap[name].paid += c.commission_amount || 0;
         summaryMap[name].count++;
       });
       setSummary(Object.values(summaryMap));
     } catch (err) { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
-  useEffect(() => { fetchData(); }, [filterStatus, filterSource, filterEmployee]);
+  useEffect(() => { fetchData(); }, [filterStatus, filterSource, filterEmployee, filterType]);
 
   const resetForm = () => setForm({
     employee_id: '', commission_type: 'fixed', commission_value: '', percentage_rate: '',
@@ -71,6 +82,39 @@ export default function CommissionList() {
   });
 
   const openCreate = () => { setSelected(null); resetForm(); setModalOpen(true); };
+
+  const openEdit = (row) => {
+    setSelected(row);
+    setForm({
+      employee_id: row.employee?._id || row.employee || '',
+      commission_type: row.commission_type || 'fixed',
+      commission_value: row.commission_value || '',
+      percentage_rate: row.percentage_rate || '',
+      source: row.source || 'sale',
+      source_description: row.source_description || '',
+      client_id: row.client?._id || row.client || '',
+      property_id: row.property?._id || row.property || '',
+      amount_basis: row.amount_basis || '',
+    });
+    setModalOpen(true);
+  };
+
+  const openPay = (row) => {
+    setSelected(row);
+    setPayForm({
+      payment_mode: 'cash',
+      reference: '',
+      upi_id: '',
+      notes: '',
+      amount: row.commission_amount || '',
+    });
+    setPaymentModal(true);
+  };
+
+  const openPayHistory = (row) => {
+    setSelected(row);
+    setPayHistoryModal(true);
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -89,26 +133,47 @@ export default function CommissionList() {
   };
 
   const handleApprove = async (row) => {
-    try { await API.put(`/commissions/${row._id}`, { status: 'approved' }); toast('Commission approved'); fetchData(); }
-    catch (err) { toast('Error', 'error'); }
+    try { await API.put(`/commissions/${row._id}/approve`); toast('Commission approved'); fetchData(); }
+    catch (err) { toast(err.response?.data?.message || 'Error', 'error'); }
   };
 
-  const handlePay = async (row) => {
-    try { await API.put(`/commissions/${row._id}`, { status: 'paid', paid_at: new Date().toISOString() }); toast('Commission marked as paid'); fetchData(); }
-    catch (err) { toast('Error', 'error'); }
+  const handlePay = async (e) => {
+    e.preventDefault();
+    try {
+      await API.put(`/commissions/${selected._id}/pay`, {
+        payment_mode: payForm.payment_mode,
+        reference: payForm.reference,
+        upi_id: payForm.upi_id,
+        notes: payForm.notes,
+        amount: payForm.amount ? Number(payForm.amount) : undefined,
+      });
+      toast('Commission paid successfully');
+      setPaymentModal(false);
+      fetchData();
+    } catch (err) { toast(err.response?.data?.message || 'Error', 'error'); }
   };
 
   const handleCancel = async () => {
-    try { await API.put(`/commissions/${selected._id}`, { status: 'cancelled' }); toast('Commission cancelled'); fetchData(); }
-    catch (err) { toast('Error', 'error'); }
+    try { await API.put(`/commissions/${selected._id}/cancel`); toast('Commission cancelled'); fetchData(); }
+    catch (err) { toast(err.response?.data?.message || 'Error', 'error'); }
   };
 
   const columns = [
-    { header: 'Employee', render: (r) => r.employee?.full_name || r.employee?.name || r.employee?.employee_id || '-' },
+    { header: 'Employee', render: (r) => r.employee?.full_name || r.employee?.employee_id || '-' },
     { header: 'Type', render: (r) => <span className="bg-stone-50 text-stone-700 ring-1 ring-stone-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize">{r.commission_type}</span> },
     { header: 'Amount', render: (r) => r.commission_amount ? `₹${r.commission_amount.toLocaleString()}` : '-' },
     { header: 'Source', render: (r) => <span className="bg-stone-50 text-stone-700 ring-1 ring-stone-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">{r.source}</span> },
     { header: 'Status', render: (r) => <span className={statusColors[r.status]}>{r.status}</span> },
+    { header: 'Payment', render: (r) => r.status === 'paid' ? (
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-stone-500">{r.payment_mode || '-'}</span>
+        {r.payment_history?.length > 0 && (
+          <button onClick={(e) => { e.stopPropagation(); openPayHistory(r); }} className="text-xs text-blue-600 hover:text-blue-800 underline cursor-pointer">
+            ({r.payment_history.length})
+          </button>
+        )}
+      </div>
+    ) : '-' },
     { header: 'Paid At', render: (r) => r.paid_at ? new Date(r.paid_at).toLocaleDateString() : '-' },
   ];
 
@@ -125,7 +190,12 @@ export default function CommissionList() {
             <div key={s.name} className="bg-white rounded-2xl border border-stone-200 luxury-shadow p-5">
               <p className="text-xs font-semibold text-stone-400 uppercase tracking-widest">{s.name}</p>
               <p className="text-2xl font-bold text-stone-900 mt-1">₹{s.total.toLocaleString()}</p>
-              <p className="text-xs text-stone-500 mt-0.5">{s.count} commissions{s.pending > 0 && `, ₹${s.pending.toLocaleString()} pending`}</p>
+              <p className="text-xs text-stone-500 mt-0.5">
+                {s.count} commissions
+                {s.pending > 0 && <span className="text-amber-600"> · ₹{s.pending.toLocaleString()} pending</span>}
+                {s.approved > 0 && <span className="text-blue-600"> · ₹{s.approved.toLocaleString()} approved</span>}
+                {s.paid > 0 && <span className="text-emerald-600"> · ₹{s.paid.toLocaleString()} paid</span>}
+              </p>
             </div>
           ))}
         </div>
@@ -140,13 +210,17 @@ export default function CommissionList() {
           <option value="">All Sources</option>
           {sourceOptions.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
+        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
+          <option value="">All Types</option>
+          {commissionTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
         <select value={filterEmployee} onChange={(e) => setFilterEmployee(e.target.value)} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
           <option value="">All Employees</option>
-          {employees.map((e) => <option key={e._id} value={e._id}>{e.full_name || e.name}</option>)}
+          {employees.map((emp) => <option key={emp._id} value={emp._id}>{emp.full_name || emp.name}</option>)}
         </select>
       </div>
 
-      <DataTable columns={columns} data={data} loading={loading} onEdit={openCreate} />
+      <DataTable columns={columns} data={data} loading={loading} onEdit={openEdit} />
 
       <div className="bg-white rounded-2xl border border-stone-200 luxury-shadow overflow-hidden">
         <div className="p-5 border-b border-stone-100">
@@ -158,7 +232,7 @@ export default function CommissionList() {
               <tr className="border-b border-stone-100 bg-stone-50/50">
                 <th className="px-5 py-3.5 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Employee</th>
                 <th className="px-5 py-3.5 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Amount</th>
-                <th className="px-5 py-3.5 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Status</th>
+                <th className="px-5 py-3.5 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Source</th>
                 <th className="px-5 py-3.5 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -167,13 +241,13 @@ export default function CommissionList() {
                 <tr><td colSpan={4} className="px-5 py-14 text-center text-stone-400">No pending commissions</td></tr>
               ) : data.filter(r => r.status === 'pending').map((row) => (
                 <tr key={row._id} className="border-b border-stone-100 hover:bg-stone-50/50 transition-colors">
-                  <td className="px-5 py-3.5 text-stone-700 font-medium">{row.employee?.full_name || row.employee?.name || row.employee?.employee_id || '-'}</td>
+                  <td className="px-5 py-3.5 text-stone-700 font-medium">{row.employee?.full_name || row.employee?.employee_id || '-'}</td>
                   <td className="px-5 py-3.5 text-stone-700">₹{(row.commission_amount || 0).toLocaleString()}</td>
-                  <td className="px-5 py-3.5"><span className={statusColors[row.status]}>{row.status}</span></td>
+                  <td className="px-5 py-3.5"><span className="bg-stone-50 text-stone-700 ring-1 ring-stone-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">{row.source}</span></td>
                   <td className="px-5 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                      <button onClick={() => handleApprove(row)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all">Approve</button>
-                      <button onClick={() => { setSelected(row); setConfirmOpen(true); }} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-red-50 text-red-700 hover:bg-red-100 transition-all">Cancel</button>
+                      <button onClick={() => handleApprove(row)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all cursor-pointer">Approve</button>
+                      <button onClick={() => { setSelected(row); setConfirmOpen(true); }} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-red-50 text-red-700 hover:bg-red-100 transition-all cursor-pointer">Cancel</button>
                     </div>
                   </td>
                 </tr>
@@ -202,11 +276,11 @@ export default function CommissionList() {
                 <tr><td colSpan={4} className="px-5 py-14 text-center text-stone-400">No approved commissions</td></tr>
               ) : data.filter(r => r.status === 'approved').map((row) => (
                 <tr key={row._id} className="border-b border-stone-100 hover:bg-stone-50/50 transition-colors">
-                  <td className="px-5 py-3.5 text-stone-700 font-medium">{row.employee?.full_name || row.employee?.name || row.employee?.employee_id || '-'}</td>
+                  <td className="px-5 py-3.5 text-stone-700 font-medium">{row.employee?.full_name || row.employee?.employee_id || '-'}</td>
                   <td className="px-5 py-3.5 text-stone-700">₹{(row.commission_amount || 0).toLocaleString()}</td>
                   <td className="px-5 py-3.5"><span className="bg-stone-50 text-stone-700 ring-1 ring-stone-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">{row.source}</span></td>
                   <td className="px-5 py-3.5 text-right">
-                    <button onClick={() => handlePay(row)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all">Pay</button>
+                    <button onClick={() => openPay(row)} className="px-3 py-1.5 rounded-lg text-xs font-semibold border-0 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all cursor-pointer">Pay</button>
                   </td>
                 </tr>
               ))}
@@ -222,7 +296,7 @@ export default function CommissionList() {
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Employee *</label>
               <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })} required>
                 <option value="">Select employee</option>
-                {employees.map((e) => <option key={e._id} value={e._id}>{e.full_name || e.name}</option>)}
+                {employees.map((emp) => <option key={emp._id} value={emp._id}>{emp.full_name || emp.name}</option>)}
               </select>
             </div>
             <div>
@@ -279,6 +353,97 @@ export default function CommissionList() {
             <button type="submit" className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">{selected ? 'Update' : 'Create'}</button>
           </div>
         </form>
+      </Modal>
+
+      <Modal isOpen={paymentModal} onClose={() => setPaymentModal(false)} title={`Pay Commission - ${selected?.employee?.full_name || ''}`}>
+        <form onSubmit={handlePay} className="space-y-5">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+            Commission Amount: <strong>₹{(selected?.commission_amount || 0).toLocaleString()}</strong>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Amount (₹)</label>
+              <input type="number" min="1" step="0.01" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={payForm.amount} onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })} required />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Mode *</label>
+              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={payForm.payment_mode} onChange={(e) => setPayForm({ ...payForm, payment_mode: e.target.value })} required>
+                {paymentModes.map((m) => <option key={m} value={m}>{m.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</option>)}
+              </select>
+            </div>
+            {payForm.payment_mode === 'upi' && (
+              <div>
+                <label className="block text-sm font-semibold text-stone-700 mb-1.5">UPI ID</label>
+                <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={payForm.upi_id} onChange={(e) => setPayForm({ ...payForm, upi_id: e.target.value })} placeholder="example@upi" />
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Reference (Trx ID / Cheque No.)</label>
+              <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={payForm.reference} onChange={(e) => setPayForm({ ...payForm, reference: e.target.value })} placeholder="Transaction/Cheque reference" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-stone-700 mb-1.5">Notes</label>
+            <textarea className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" rows={2} value={payForm.notes} onChange={(e) => setPayForm({ ...payForm, notes: e.target.value })} placeholder="Payment notes..." />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setPaymentModal(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
+            <button type="submit" className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-0 bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-900/10">Confirm Payment</button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={payHistoryModal} onClose={() => setPayHistoryModal(false)} title={`Payment History - ${selected?.employee?.full_name || ''}`} size="lg">
+        {selected?.payment_history?.length > 0 ? (
+          <div className="space-y-4">
+            <div className="bg-stone-50 rounded-xl p-4 border border-stone-200">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-xs text-stone-500 uppercase tracking-wider font-semibold">Total Paid</p>
+                  <p className="text-lg font-bold text-emerald-600 mt-1">₹{selected.payment_history.reduce((s, p) => s + (p.amount || 0), 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-stone-500 uppercase tracking-wider font-semibold">Payments</p>
+                  <p className="text-lg font-bold text-stone-900 mt-1">{selected.payment_history.length}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-stone-500 uppercase tracking-wider font-semibold">Status</p>
+                  <p className="text-lg font-bold text-stone-900 mt-1 capitalize">{selected.status}</p>
+                </div>
+              </div>
+            </div>
+            <div className="relative">
+              {selected.payment_history.map((ph, i) => (
+                <div key={i} className="relative pl-8 pb-6 last:pb-0">
+                  {i < selected.payment_history.length - 1 && (
+                    <div className="absolute left-3 top-3 bottom-0 w-0.5 bg-stone-200" />
+                  )}
+                  <div className="absolute left-0 top-1.5 w-6 h-6 rounded-full bg-emerald-100 border-2 border-emerald-400 flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  </div>
+                  <div className="bg-white rounded-xl border border-stone-200 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-emerald-700">₹{(ph.amount || 0).toLocaleString()}</span>
+                      <span className="text-xs text-stone-400">{ph.timestamp ? new Date(ph.timestamp).toLocaleString() : ''}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-stone-600">
+                      <div><span className="font-medium text-stone-500">Mode:</span> {ph.payment_mode?.replace(/_/g, ' ') || '-'}</div>
+                      {ph.reference && <div><span className="font-medium text-stone-500">Reference:</span> {ph.reference}</div>}
+                      {ph.upi_id && <div><span className="font-medium text-stone-500">UPI ID:</span> {ph.upi_id}</div>}
+                      {ph.paid_by && <div><span className="font-medium text-stone-500">Paid By:</span> {ph.paid_by?.full_name || 'N/A'}</div>}
+                    </div>
+                    {ph.notes && <p className="text-xs text-stone-500 mt-2 italic">{ph.notes}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="text-center text-stone-400 py-8">No payment history found</p>
+        )}
+        <div className="flex justify-end pt-2">
+          <button type="button" onClick={() => setPayHistoryModal(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Close</button>
+        </div>
       </Modal>
 
       <ConfirmDialog isOpen={confirmOpen} onClose={() => setConfirmOpen(false)} onConfirm={handleCancel} title="Cancel Commission" message="Are you sure you want to cancel this commission?" />

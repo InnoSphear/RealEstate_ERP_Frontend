@@ -85,6 +85,7 @@ export default function MyCommissions() {
                   <th className="text-left px-4 py-3 font-semibold text-stone-600">Source</th>
                   <th className="text-left px-4 py-3 font-semibold text-stone-600">Description</th>
                   <th className="text-left px-4 py-3 font-semibold text-stone-600">Status</th>
+                  <th className="text-left px-4 py-3 font-semibold text-stone-600">Payment Mode</th>
                   <th className="text-left px-4 py-3 font-semibold text-stone-600">Paid At</th>
                 </tr>
               </thead>
@@ -110,6 +111,11 @@ export default function MyCommissions() {
                       <span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-medium border ${statusStyles[c.status] || ''}`}>
                         {c.status}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-stone-500">
+                      {c.status === 'paid' && c.payment_mode ? (
+                        <span className="text-xs">{c.payment_mode?.replace(/_/g, ' ')}</span>
+                      ) : '-'}
                     </td>
                     <td className="px-4 py-3 text-stone-500">
                       {c.paid_at ? new Date(c.paid_at).toLocaleDateString() : '-'}

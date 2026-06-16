@@ -43,6 +43,9 @@ export default function InteriorProjectDetail() {
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [editExpenseId, setEditExpenseId] = useState(null);
   const [expenseForm, setExpenseForm] = useState({ expense_name: '', category: 'other', cost: '', paid_amount: '', payment_date: '', vendor: '', notes: '' });
+  const [vendors, setVendors] = useState([]);
+  const [materialModalOpen, setMaterialModalOpen] = useState(false);
+  const [materialForm, setMaterialForm] = useState({ item_name: '', cost: '', vendor: '' });
   const [form, setForm] = useState({});
 
   const fetchProject = () => {
@@ -83,7 +86,10 @@ export default function InteriorProjectDetail() {
   };
 
   useEffect(() => { fetchProject(); }, [id]);
-  useEffect(() => { API.get('/users').then((res) => setUsers(Array.isArray(res.data) ? res.data : [])).catch(() => {}); }, []);
+  useEffect(() => {
+    API.get('/users').then((res) => setUsers(Array.isArray(res.data) ? res.data : [])).catch(() => {});
+    API.get('/vendors').then((res) => setVendors(Array.isArray(res.data) ? res.data : [])).catch(() => {});
+  }, []);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -332,6 +338,10 @@ export default function InteriorProjectDetail() {
 
       {activeTab === 'Materials' && (
         <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-semibold text-stone-900">Materials</h3>
+            <button onClick={() => { setMaterialForm({ item_name: '', cost: '', vendor: '' }); setMaterialModalOpen(true); }} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10"><HiOutlinePlus size={14} /> Add Material</button>
+          </div>
           {project.materials?.length ? (
             project.materials.map((mat, idx) => {
               const totalPaid = (mat.payments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
@@ -727,6 +737,35 @@ export default function InteriorProjectDetail() {
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => { setExpenseModalOpen(false); setEditExpenseId(null); }} className="px-5 py-2.5 rounded-xl text-sm font-semibold ... bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
             <button type="submit" className="px-5 py-2.5 rounded-xl text-sm font-semibold ... border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">{editExpenseId ? 'Update' : 'Add'}</button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={materialModalOpen} onClose={() => setMaterialModalOpen(false)} title="Add Material" size="sm">
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          try {
+            await API.post(`/interior-projects/${id}/materials`, {
+              item_name: materialForm.item_name,
+              cost: Number(materialForm.cost),
+              vendor: materialForm.vendor || undefined,
+            });
+            toast('Material added');
+            setMaterialModalOpen(false);
+            fetchProject();
+          } catch (err) { toast(err.response?.data?.message || 'Error', 'error'); }
+        }} className="space-y-4">
+          <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Item Name *</label><input className={inputClass} value={materialForm.item_name} onChange={(e) => setMaterialForm({ ...materialForm, item_name: e.target.value })} required /></div>
+          <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Cost (₹) *</label><input type="number" min="0" step="0.01" className={inputClass} value={materialForm.cost} onChange={(e) => setMaterialForm({ ...materialForm, cost: e.target.value })} required /></div>
+          <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Vendor</label>
+            <select className={`${inputClass} appearance-none cursor-pointer`} value={materialForm.vendor} onChange={(e) => setMaterialForm({ ...materialForm, vendor: e.target.value })}>
+              <option value="">Select vendor</option>
+              {vendors.map((v) => <option key={v._id} value={v._id}>{v.name}</option>)}
+            </select>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setMaterialModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold ... bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
+            <button type="submit" className="px-5 py-2.5 rounded-xl text-sm font-semibold ... border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">Add</button>
           </div>
         </form>
       </Modal>

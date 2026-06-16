@@ -4,7 +4,7 @@ import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
-import { HiOutlineBanknotes, HiOutlineShoppingCart, HiOutlineCreditCard, HiOutlineCube } from 'react-icons/hi2';
+import { HiOutlineBanknotes, HiOutlineShoppingCart, HiOutlineCreditCard, HiOutlineCube, HiOutlineBuildingOffice } from 'react-icons/hi2';
 
 const paymentStatusBadge = (v) => {
   const map = {
@@ -28,11 +28,13 @@ export default function VendorList() {
   const [detailModal, setDetailModal] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [projects, setProjects] = useState([]);
   const [form, setForm] = useState(emptyForm());
-  const [purchaseForm, setPurchaseForm] = useState({ item_name: '', quantity: 1, rate: 0, amount: 0, purchase_date: new Date().toISOString().split('T')[0], notes: '' });
+  const [purchaseForm, setPurchaseForm] = useState({ item_name: '', quantity: 1, rate: 0, amount: 0, purchase_date: new Date().toISOString().split('T')[0], property: '', project: '', notes: '' });
   const [paymentForm, setPaymentForm] = useState({ amount: '', payment_date: new Date().toISOString().split('T')[0], payment_mode: 'cash', reference: '', notes: '' });
   const [filters, setFilters] = useState({ category: '', payment_status: '', search: '' });
   const [stats, setStats] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -40,12 +42,14 @@ export default function VendorList() {
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([k, v]) => { if (v) params.set(k, v); });
       const qs = params.toString();
-      const [dRes, sRes] = await Promise.all([
+      const [dRes, sRes, pjRes] = await Promise.all([
         API.get(qs ? `/vendors?${qs}` : '/vendors'),
         API.get('/vendors/stats'),
+        API.get('/projects?limit=500'),
       ]);
       setData(Array.isArray(dRes.data) ? dRes.data : dRes.data.vendors || []);
       setStats(sRes.data);
+      setProjects(Array.isArray(pjRes.data) ? pjRes.data : pjRes.data?.projects || []);
     } catch (err) { toast('Failed to load vendors', 'error'); }
     finally { setLoading(false); }
   };
@@ -61,40 +65,47 @@ export default function VendorList() {
     setModalOpen(true);
   };
   const openDetail = (row) => { setSelected(row); setDetailModal(true); };
-  const openPurchase = (row) => { setSelected(row); setPurchaseForm({ item_name: '', quantity: 1, rate: 0, amount: 0, purchase_date: new Date().toISOString().split('T')[0], notes: '' }); setPurchaseModal(true); };
+  const openPurchase = (row) => { setSelected(row); setPurchaseForm({ item_name: '', quantity: 1, rate: 0, amount: 0, purchase_date: new Date().toISOString().split('T')[0], property: '', project: '', notes: '' }); setPurchaseModal(true); };
   const openPayment = (row) => { setSelected(row); setPaymentForm({ amount: '', payment_date: new Date().toISOString().split('T')[0], payment_mode: 'cash', reference: '', notes: '' }); setPaymentModal(true); };
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
     try {
       if (selected) { await API.put(`/vendors/${selected._id}`, form); toast('Vendor updated'); }
       else { await API.post('/vendors', form); toast('Vendor created'); }
       setModalOpen(false); fetchData();
     } catch (err) { toast(err.response?.data?.message || 'Error saving vendor', 'error'); }
+    finally { setSaving(false); }
   };
 
   const handlePurchase = async (e) => {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
     try {
-      await API.post(`/vendors/${selected._id}/purchases`, purchaseForm);
+      const res = await API.post(`/vendors/${selected._id}/purchases`, purchaseForm);
       toast('Purchase added');
       setPurchaseModal(false);
-      const { data: updated } = await API.get(`/vendors/${selected._id}`);
-      setSelected(updated);
+      setSelected(res.data);
       fetchData();
     } catch (err) { toast(err.response?.data?.message || 'Error', 'error'); }
+    finally { setSaving(false); }
   };
 
   const handlePayment = async (e) => {
     e.preventDefault();
+    if (saving) return;
+    setSaving(true);
     try {
-      await API.post(`/vendors/${selected._id}/payments`, paymentForm);
+      const res = await API.post(`/vendors/${selected._id}/payments`, paymentForm);
       toast('Payment recorded');
       setPaymentModal(false);
-      const { data: updated } = await API.get(`/vendors/${selected._id}`);
-      setSelected(updated);
+      setSelected(res.data);
       fetchData();
     } catch (err) { toast(err.response?.data?.message || 'Error', 'error'); }
+    finally { setSaving(false); }
   };
 
   const handleDelete = async () => {
@@ -204,7 +215,7 @@ export default function VendorList() {
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-white text-stone-600 hover:bg-stone-50 border border-stone-200 dark:bg-stone-700 dark:text-stone-300 dark:border-stone-600 dark:hover:bg-stone-600">Cancel</button>
-            <button type="submit" className="px-5 py-2.5 rounded-xl text-sm font-semibold border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10 dark:bg-stone-700 dark:hover:bg-stone-600">{selected ? 'Update' : 'Create'}</button>
+            <button type="submit" disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-semibold border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10 dark:bg-stone-700 dark:hover:bg-stone-600 disabled:opacity-50 disabled:cursor-not-allowed">{saving ? 'Saving...' : (selected ? 'Update' : 'Create')}</button>
           </div>
         </form>
       </Modal>
@@ -218,13 +229,19 @@ export default function VendorList() {
             <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Rate (₹)</label><input type="number" min="0" className={inputClass} value={purchaseForm.rate} onChange={(e) => updatePurchaseItem('rate', e.target.value)} required /></div>
             <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Amount</label><input type="number" className={inputClass + " bg-stone-50"} value={purchaseForm.amount} readOnly /></div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Purchase Date</label><input type="date" className={inputClass} value={purchaseForm.purchase_date} onChange={(e) => setPurchaseForm({ ...purchaseForm, purchase_date: e.target.value })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Project</label>
+              <select className={inputClass + " appearance-none cursor-pointer"} value={purchaseForm.project} onChange={(e) => setPurchaseForm({ ...purchaseForm, project: e.target.value })}>
+                <option value="">Select project</option>
+                {projects.map((pj) => <option key={pj._id} value={pj._id}>{pj.name || pj.project_id || pj._id}</option>)}
+              </select>
+            </div>
           </div>
           <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Notes</label><textarea className={inputClass} rows={2} value={purchaseForm.notes} onChange={(e) => setPurchaseForm({ ...purchaseForm, notes: e.target.value })} /></div>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setPurchaseModal(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
-            <button type="submit" className="px-5 py-2.5 rounded-xl text-sm font-semibold border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10"><HiOutlineShoppingCart size={15} /> Add Purchase</button>
+            <button type="submit" disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-semibold border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10 disabled:opacity-50 disabled:cursor-not-allowed"><HiOutlineShoppingCart size={15} /> {saving ? 'Adding...' : 'Add Purchase'}</button>
           </div>
         </form>
       </Modal>
@@ -245,7 +262,7 @@ export default function VendorList() {
           <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Notes</label><textarea className={inputClass} rows={2} value={paymentForm.notes} onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })} /></div>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setPaymentModal(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
-            <button type="submit" className="px-5 py-2.5 rounded-xl text-sm font-semibold border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10"><HiOutlineBanknotes size={15} /> Record Payment</button>
+            <button type="submit" disabled={saving} className="px-5 py-2.5 rounded-xl text-sm font-semibold border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10 disabled:opacity-50 disabled:cursor-not-allowed"><HiOutlineBanknotes size={15} /> {saving ? 'Recording...' : 'Record Payment'}</button>
           </div>
         </form>
       </Modal>
@@ -282,12 +299,20 @@ export default function VendorList() {
                 <h4 className="text-sm font-semibold text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2"><HiOutlineShoppingCart size={16} /> Purchases</h4>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {selected.purchases.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-stone-50 dark:bg-stone-700 border border-stone-100 dark:border-stone-600">
-                      <div>
-                        <p className="text-sm font-medium text-stone-700 dark:text-stone-200">{p.item_name}</p>
-                        <p className="text-xs text-stone-500 dark:text-stone-400">{p.quantity} x ₹{p.rate?.toLocaleString()} | {p.purchase_date ? new Date(p.purchase_date).toLocaleDateString() : ''}</p>
+                    <div key={i} className="p-3 rounded-xl bg-stone-50 dark:bg-stone-700 border border-stone-100 dark:border-stone-600">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-stone-700 dark:text-stone-200">{p.item_name}</p>
+                          <p className="text-xs text-stone-500 dark:text-stone-400">{p.quantity} x ₹{p.rate?.toLocaleString()} | {p.purchase_date ? new Date(p.purchase_date).toLocaleDateString() : ''}</p>
+                        </div>
+                        <span className="text-sm font-semibold text-stone-900 dark:text-white">₹{(p.amount || 0).toLocaleString()}</span>
                       </div>
-                      <span className="text-sm font-semibold text-stone-900 dark:text-white">₹{(p.amount || 0).toLocaleString()}</span>
+                      {(p.project || p.property) && (
+                        <div className="flex gap-3 mt-1.5 text-xs text-stone-500 dark:text-stone-400">
+                          {p.project && <span className="flex items-center gap-1"><HiOutlineBuildingOffice size={12} /> {p.project?.name || p.project?.project_id || 'Project'}</span>}
+                          {p.property && <span>Property: {p.property?.property_id || p.property?.location || 'N/A'}</span>}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -296,15 +321,19 @@ export default function VendorList() {
 
             {selected.payments?.length ? (
               <div>
-                <h4 className="text-sm font-semibold text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2"><HiOutlineCreditCard size={16} /> Payments</h4>
+                <h4 className="text-sm font-semibold text-stone-700 dark:text-stone-300 mb-3 flex items-center gap-2"><HiOutlineCreditCard size={16} /> Payment History</h4>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {selected.payments.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800">
-                      <div>
-                        <p className="text-sm font-medium text-stone-700 dark:text-stone-200">₹{(p.amount || 0).toLocaleString()}</p>
-                        <p className="text-xs text-stone-500 dark:text-stone-400">{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : ''} - {p.payment_mode?.replace(/_/g, ' ')} {p.reference ? `| ${p.reference}` : ''}</p>
+                    <div key={i} className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-stone-900 dark:text-white">₹{(p.amount || 0).toLocaleString()}</p>
+                        <span className="text-xs text-stone-500 dark:text-stone-400">{p.payment_date ? new Date(p.payment_date).toLocaleDateString() : ''}</span>
                       </div>
-                      {p.notes && <span className="text-xs text-stone-500 dark:text-stone-400">{p.notes}</span>}
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-stone-500 dark:text-stone-400">
+                        <span>Mode: <strong>{p.payment_mode?.replace(/_/g, ' ')}</strong></span>
+                        {p.reference && <span>Ref: <strong>{p.reference}</strong></span>}
+                      </div>
+                      {p.notes && <p className="text-xs text-stone-500 dark:text-stone-400 mt-1 italic">{p.notes}</p>}
                     </div>
                   ))}
                 </div>

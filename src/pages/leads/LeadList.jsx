@@ -185,8 +185,13 @@ export default function LeadList() {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      await API.post('/leads/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      toast('Leads imported successfully');
+      const res = await API.post('/leads/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const { created, errors } = res.data;
+      if (errors?.length) {
+        toast(`${created.length} imported, ${errors.length} errors: ${errors[0].message}${errors.length > 1 ? ` (+${errors.length - 1} more)` : ''}`, 'error');
+      } else {
+        toast(`${created.length} leads imported successfully`);
+      }
       setImportModalOpen(false);
       fetchData();
     } catch (err) {

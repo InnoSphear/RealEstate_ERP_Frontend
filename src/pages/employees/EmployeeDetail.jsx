@@ -187,6 +187,7 @@ export default function EmployeeDetail() {
                   <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Amount</th>
                   <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Source</th>
                   <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Pay Mode</th>
                   <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Date</th>
                 </tr>
               </thead>
@@ -196,6 +197,7 @@ export default function EmployeeDetail() {
                     <td className="px-4 py-3 text-stone-700 font-medium">₹{(c.commission_amount || 0).toLocaleString()}</td>
                     <td className="px-4 py-3 text-stone-700 capitalize">{c.source}</td>
                     <td className="px-4 py-3"><span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-stone-50 text-stone-700 ring-1 ring-stone-200">{c.status}</span></td>
+                    <td className="px-4 py-3 text-stone-500">{c.status === 'paid' && c.payment_mode ? c.payment_mode.replace(/_/g, ' ') : '-'}</td>
                     <td className="px-4 py-3 text-stone-500">{new Date(c.createdAt).toLocaleDateString()}</td>
                   </tr>
                 ))}

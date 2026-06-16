@@ -121,7 +121,8 @@ function EmployeeDashboard({ stats }) {
       color: todayAtt ? 'success' : 'danger',
     },
     { title: 'Pending Leaves', value: stats?.pendingLeaves || 0, icon: HiOutlineClock, color: 'warning' },
-    { title: 'Commission Earned', value: fmt(stats?.commission), icon: HiOutlineCurrencyDollar, color: 'success' },
+    { title: 'Pending Commission', value: fmt(stats?.commission), icon: HiOutlineCurrencyDollar, color: 'warning' },
+    { title: 'Commission Paid', value: fmt(stats?.commission_paid), icon: HiOutlineCheckBadge, color: 'success' },
   ];
 
   return (

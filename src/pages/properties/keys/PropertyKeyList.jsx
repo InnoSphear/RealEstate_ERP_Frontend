@@ -4,12 +4,14 @@ import DataTable from '../../../components/DataTable';
 import Modal from '../../../components/Modal';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 import { toast } from '../../../components/Toast';
-import { HiOutlineArrowPath, HiOutlineClock, HiOutlineCheckCircle, HiOutlineXCircle } from 'react-icons/hi2';
+import { HiOutlineArrowPath, HiOutlineClock, HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineGlobeAlt } from 'react-icons/hi2';
 
 const statusBadge = (v) => {
   const map = {
     available: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+    scheduled: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
     issued: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+    outside: 'bg-purple-50 text-purple-700 ring-1 ring-purple-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
     returned: 'bg-stone-50 text-stone-700 ring-1 ring-stone-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
   };
   return <span className={map[v] || map.returned}>{v ? v.charAt(0).toUpperCase() + v.slice(1) : '-'}</span>;
@@ -74,6 +76,14 @@ export default function PropertyKeyList() {
     } catch (err) { toast(err.response?.data?.message || 'Error', 'error'); }
   };
 
+  const handleMarkOutside = async (row) => {
+    try {
+      await API.put(`/property-keys/${row._id}/outside`);
+      toast('Key marked as outside');
+      fetchData();
+    } catch (err) { toast(err.response?.data?.message || 'Error', 'error'); }
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
@@ -120,7 +130,16 @@ export default function PropertyKeyList() {
           {r.status === 'available' && (
             <ActionButton onClick={() => openIssue(r)} label="Issue Key" icon={HiOutlineArrowPath} color="text-amber-500 hover:text-amber-700 hover:bg-amber-50" />
           )}
+          {r.status === 'scheduled' && (
+            <ActionButton onClick={() => openIssue(r)} label="Issue Key (Scheduled)" icon={HiOutlineArrowPath} color="text-blue-500 hover:text-blue-700 hover:bg-blue-50" />
+          )}
           {r.status === 'issued' && (
+            <>
+              <ActionButton onClick={() => openReturn(r)} label="Return Key" icon={HiOutlineCheckCircle} color="text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50" />
+              <ActionButton onClick={() => handleMarkOutside(r)} label="Mark Outside" icon={HiOutlineGlobeAlt} color="text-purple-500 hover:text-purple-700 hover:bg-purple-50" />
+            </>
+          )}
+          {r.status === 'outside' && (
             <ActionButton onClick={() => openReturn(r)} label="Return Key" icon={HiOutlineCheckCircle} color="text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50" />
           )}
           {r.status === 'returned' && (
@@ -145,7 +164,9 @@ export default function PropertyKeyList() {
         <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none transition-colors appearance-none cursor-pointer">
           <option value="">All Status</option>
           <option value="available">Available</option>
+          <option value="scheduled">Scheduled</option>
           <option value="issued">Issued</option>
+          <option value="outside">Outside</option>
           <option value="returned">Returned</option>
         </select>
         <select value={filters.property} onChange={(e) => setFilters({ ...filters, property: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none transition-colors appearance-none cursor-pointer min-w-[180px]">

@@ -7,6 +7,7 @@ import StatsCard from '../../components/StatsCard';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
+import { useAuth } from '../../contexts/AuthContext';
 
 const statusBadge = (v) => {
   const map = {
@@ -29,6 +30,8 @@ const inputClass = "w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-whi
 
 export default function InteriorInvoices() {
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  const canViewProfit = hasRole('admin', 'manager');
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total_invoices: 0, total_sale: 0, total_purchase: 0, total_expense: 0, total_profit: 0, total_paid: 0, total_due: 0 });
@@ -158,7 +161,7 @@ export default function InteriorInvoices() {
     { key: 'invoice_date', label: 'Date', render: (v) => v ? new Date(v).toLocaleDateString('en-IN') : '-' },
     { key: 'due_date', label: 'Due', render: (v) => v ? new Date(v).toLocaleDateString('en-IN') : '-' },
     { key: 'total_sale', label: 'Sale Amt', render: (v) => `₹${(v || 0).toLocaleString()}` },
-    { key: 'profit', label: 'Profit', render: (v) => <span className={profitClass(v)}>₹{(v || 0).toLocaleString()}</span> },
+    ...(canViewProfit ? [{ key: 'profit', label: 'Profit', render: (v) => <span className={profitClass(v)}>₹{(v || 0).toLocaleString()}</span> }] : []),
     { key: 'paid_amount', label: 'Paid', render: (v) => `₹${(v || 0).toLocaleString()}` },
     { key: 'due_amount', label: 'Due', render: (v) => `₹${(v || 0).toLocaleString()}` },
     { key: 'status', label: 'Status', render: (v) => statusBadge(v) },
@@ -186,7 +189,7 @@ export default function InteriorInvoices() {
         <StatsCard label="Total Sale" value={`₹${(stats.total_sale || 0).toLocaleString()}`} icon={HiOutlineCurrencyDollar} color="emerald" />
         <StatsCard label="Total Purchase" value={`₹${(stats.total_purchase || 0).toLocaleString()}`} icon={HiOutlineShoppingCart} color="blue" />
         <StatsCard label="Total Expense" value={`₹${(stats.total_expense || 0).toLocaleString()}`} icon={HiOutlineChartBar} color="amber" />
-        <StatsCard label="Net Profit" value={`₹${(stats.total_profit || 0).toLocaleString()}`} icon={HiOutlineChartBar} color={stats.total_profit >= 0 ? 'emerald' : 'red'} />
+        {canViewProfit && <StatsCard label="Net Profit" value={`₹${(stats.total_profit || 0).toLocaleString()}`} icon={HiOutlineChartBar} color={stats.total_profit >= 0 ? 'emerald' : 'red'} />}
         <StatsCard label="Total Paid" value={`₹${(stats.total_paid || 0).toLocaleString()}`} icon={HiOutlineCurrencyDollar} color="emerald" />
         <StatsCard label="Total Due" value={`₹${(stats.total_due || 0).toLocaleString()}`} icon={HiOutlineCurrencyDollar} color="red" />
       </div>

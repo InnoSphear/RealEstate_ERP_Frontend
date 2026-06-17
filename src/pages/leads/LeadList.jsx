@@ -28,10 +28,18 @@ const sourceColors = {
   walk_in: 'bg-teal-50 text-teal-700 ring-1 ring-teal-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
   call: 'bg-lime-50 text-lime-700 ring-1 ring-lime-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
   ad: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+  '99acres': 'bg-orange-50 text-orange-700 ring-1 ring-orange-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+  housing: 'bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+  nobroker: 'bg-violet-50 text-violet-700 ring-1 ring-violet-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+  magicbricks: 'bg-green-50 text-green-700 ring-1 ring-green-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+  justdial: 'bg-pink-50 text-pink-700 ring-1 ring-pink-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+  indiamart: 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+  flatdekho: 'bg-fuchsia-50 text-fuchsia-700 ring-1 ring-fuchsia-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+  olx: 'bg-red-50 text-red-700 ring-1 ring-red-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
 };
 
 const statuses = ['new', 'contacted', 'hot', 'warm', 'cold', 'follow_up', 'site_visit', 'negotiation', 'won', 'lost'];
-const sources = ['referral', 'website', 'social_media', 'walk_in', 'call', 'ad'];
+const sources = ['referral', 'website', 'social_media', 'walk_in', 'call', 'ad', '99acres', 'housing', 'nobroker', 'magicbricks', 'justdial', 'indiamart', 'flatdekho', 'olx'];
 const propertyTypes = ['apartment', 'villa', 'plot', 'commercial', 'office', 'warehouse'];
 
 function getScoreColor(score) {
@@ -69,6 +77,7 @@ export default function LeadList() {
 
   const initForm = {
     full_name: '', email: '', mobile: '', alternate_mobile: '', address: '', city: '', state: '', pincode: '',
+    society: '', flat_number: '', tower: '', key_available: false, flat_size: '',
     requirement: '', budget: '', property_type: 'apartment', preferred_locations: [], source: 'referral', notes: '',
   };
   const [form, setForm] = useState(initForm);
@@ -108,6 +117,11 @@ export default function LeadList() {
       city: row.city || '',
       state: row.state || '',
       pincode: row.pincode || '',
+      society: row.society || '',
+      flat_number: row.flat_number || '',
+      tower: row.tower || '',
+      key_available: row.key_available || false,
+      flat_size: row.flat_size || '',
       requirement: row.requirement || '',
       budget: row.budget || '',
       property_type: row.property_type || 'apartment',
@@ -166,6 +180,19 @@ export default function LeadList() {
     }
   };
 
+  const [isBulkDelete, setIsBulkDelete] = useState(false);
+
+  const handleBulkDelete = async () => {
+    try {
+      await API.post('/leads/bulk-delete', { ids: selectedIds });
+      toast(`${selectedIds.length} lead(s) deleted`);
+      setSelectedIds([]);
+      fetchData();
+    } catch (err) {
+      toast(err.response?.data?.message || 'Error deleting leads', 'error');
+    }
+  };
+
   const handleBulkTransfer = async () => {
     if (!bulkTransferTo) { toast('Select a user', 'warning'); return; }
     try {
@@ -188,7 +215,9 @@ export default function LeadList() {
       const res = await API.post('/leads/import', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       const { created, errors } = res.data;
       if (errors?.length) {
-        toast(`${created.length} imported, ${errors.length} errors: ${errors[0].message}${errors.length > 1 ? ` (+${errors.length - 1} more)` : ''}`, 'error');
+        const uniqueMsgs = [...new Set(errors.map(e => e.message))];
+        const detail = uniqueMsgs.slice(0, 3).join('; ');
+        toast(`${created.length} imported, ${errors.length} errors: ${detail}${errors.length > 3 ? ` (${errors.length - 3} more)` : ''}`, 'error');
       } else {
         toast(`${created.length} leads imported successfully`);
       }
@@ -206,10 +235,22 @@ export default function LeadList() {
     setTransferModalOpen(true);
   };
 
-  const handleExport = () => {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
-    window.open(`/api/leads/export?${params.toString()}`, '_blank');
+  const handleExport = async () => {
+    try {
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
+      const res = await API.get(`/leads/export?${params.toString()}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `leads-${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      toast(err.response?.data?.message || 'Export failed', 'error');
+    }
   };
 
   const handleLocationToggle = (loc) => {
@@ -224,6 +265,11 @@ export default function LeadList() {
     { header: 'ID', accessor: 'lead_id' },
     { header: 'Name', accessor: 'full_name' },
     { header: 'Mobile', accessor: 'mobile' },
+    { header: 'Society', render: (r) => r.society || '-' },
+    { header: 'Flat', render: (r) => r.flat_number || '-' },
+    { header: 'Tower', render: (r) => r.tower || '-' },
+    { header: 'Key', render: (r) => r.key_available ? <span className="text-emerald-600 font-semibold">Yes</span> : '-' },
+    { header: 'Size', render: (r) => r.flat_size ? `${r.flat_size} sqft` : '-' },
     {
       header: 'Source',
       render: (r) => <span className={sourceColors[r.source] || sourceColors.referral}>{r.source?.replace(/_/g, ' ')}</span>,
@@ -257,9 +303,14 @@ export default function LeadList() {
         </div>
         <div className="flex gap-2">
           {isAdmin && selectedIds.length > 0 && (
-            <button onClick={() => { setBulkTransferTo(''); setBulkTransferModalOpen(true); }} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200">
-              Transfer Selected ({selectedIds.length})
-            </button>
+            <>
+              <button onClick={() => { setBulkTransferTo(''); setBulkTransferModalOpen(true); }} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200">
+                Transfer ({selectedIds.length})
+              </button>
+              <button onClick={() => { setIsBulkDelete(true); setConfirmOpen(true); }} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-red-50 text-red-700 hover:bg-red-100 border border-red-200">
+                Delete ({selectedIds.length})
+              </button>
+            </>
           )}
           <button onClick={handleExport} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">
             <HiOutlineArrowDownTray size={15} /> Export
@@ -335,6 +386,28 @@ export default function LeadList() {
             <div>
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">State</label>
               <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Society</label>
+              <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.society} onChange={(e) => setForm({ ...form, society: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Flat Number</label>
+              <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.flat_number} onChange={(e) => setForm({ ...form, flat_number: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Tower</label>
+              <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.tower} onChange={(e) => setForm({ ...form, tower: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Flat Size (sqft)</label>
+              <input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.flat_size} onChange={(e) => setForm({ ...form, flat_size: e.target.value })} />
+            </div>
+            <div>
+              <label className="flex items-center gap-2 cursor-pointer pt-2">
+                <input type="checkbox" checked={form.key_available} onChange={(e) => setForm({ ...form, key_available: e.target.checked })} className="rounded border-stone-300 text-stone-900 focus:ring-stone-900" />
+                <span className="text-sm font-semibold text-stone-700">Key Available</span>
+              </label>
             </div>
             <div>
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Pincode</label>
@@ -438,7 +511,7 @@ export default function LeadList() {
         </div>
       </Modal>
 
-      <ConfirmDialog isOpen={confirmOpen} onClose={() => setConfirmOpen(false)} onConfirm={handleDelete} title="Delete Lead" message="Are you sure you want to delete this lead?" />
+      <ConfirmDialog isOpen={confirmOpen} onClose={() => { setConfirmOpen(false); setIsBulkDelete(false); }} onConfirm={isBulkDelete ? handleBulkDelete : handleDelete} title={isBulkDelete ? 'Delete Leads' : 'Delete Lead'} message={isBulkDelete ? `Are you sure you want to delete ${selectedIds.length} selected leads?` : 'Are you sure you want to delete this lead?'} />
     </div>
   );
 }

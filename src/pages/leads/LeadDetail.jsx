@@ -85,6 +85,11 @@ export default function LeadDetail() {
           city: res.data.city || '',
           state: res.data.state || '',
           pincode: res.data.pincode || '',
+          society: res.data.society || '',
+          flat_number: res.data.flat_number || '',
+          tower: res.data.tower || '',
+          key_available: res.data.key_available || false,
+          flat_size: res.data.flat_size || '',
           budget: res.data.budget || '',
           property_type: res.data.property_type || '',
           source: res.data.source || 'website',
@@ -314,6 +319,26 @@ export default function LeadDetail() {
           <div>
             <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">State</p>
             <p className="text-sm text-stone-900 mt-1">{lead.state || '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Society</p>
+            <p className="text-sm text-stone-900 mt-1">{lead.society || '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Flat Number</p>
+            <p className="text-sm text-stone-900 mt-1">{lead.flat_number || '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Tower</p>
+            <p className="text-sm text-stone-900 mt-1">{lead.tower || '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Key Available</p>
+            <p className="text-sm text-stone-900 mt-1">{lead.key_available ? 'Yes' : 'No'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Flat Size</p>
+            <p className="text-sm text-stone-900 mt-1">{lead.flat_size ? `${lead.flat_size} sqft` : '-'}</p>
           </div>
           <div>
             <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Created</p>
@@ -585,6 +610,14 @@ export default function LeadDetail() {
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Property Type</label><input className={inputClass} value={form.property_type} onChange={(e) => setForm({ ...form, property_type: e.target.value })} /></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">City</label><input className={inputClass} value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">State</label><input className={inputClass} value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Society</label><input className={inputClass} value={form.society} onChange={(e) => setForm({ ...form, society: e.target.value })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Flat Number</label><input className={inputClass} value={form.flat_number} onChange={(e) => setForm({ ...form, flat_number: e.target.value })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Tower</label><input className={inputClass} value={form.tower} onChange={(e) => setForm({ ...form, tower: e.target.value })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Flat Size (sqft)</label><input type="number" className={inputClass} value={form.flat_size} onChange={(e) => setForm({ ...form, flat_size: e.target.value })} /></div>
+            <div className="flex items-center gap-2 pt-2">
+              <input type="checkbox" checked={form.key_available} onChange={(e) => setForm({ ...form, key_available: e.target.checked })} className="rounded border-stone-300 text-stone-900 focus:ring-stone-900" />
+              <label className="text-sm font-semibold text-stone-700 cursor-pointer">Key Available</label>
+            </div>
           </div>
           <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Requirement</label><textarea className={inputClass} rows={2} value={form.requirement} onChange={(e) => setForm({ ...form, requirement: e.target.value })} /></div>
           <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Notes</label><textarea className={inputClass} rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>

@@ -160,6 +160,7 @@ export default function CommissionList() {
 
   const columns = [
     { header: 'Employee', render: (r) => r.employee?.full_name || r.employee?.employee_id || '-' },
+    { header: 'Created By', render: (r) => r.created_by?.full_name || '-' },
     { header: 'Type', render: (r) => <span className="bg-stone-50 text-stone-700 ring-1 ring-stone-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize">{r.commission_type}</span> },
     { header: 'Amount', render: (r) => r.commission_amount ? `₹${r.commission_amount.toLocaleString()}` : '-' },
     { header: 'Source', render: (r) => <span className="bg-stone-50 text-stone-700 ring-1 ring-stone-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">{r.source}</span> },

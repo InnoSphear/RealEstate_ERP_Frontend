@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { HiOutlineCurrencyDollar, HiOutlineShoppingCart, HiOutlineChartBar, HiOutlineUserGroup, HiOutlinePlus } from 'react-icons/hi2';
 import API from '../../api/axios';
 import { toast } from '../../components/Toast';
+import { useAuth } from '../../contexts/AuthContext';
 
 const statusColors = {
   not_started: 'bg-stone-100 text-stone-700 ring-1 ring-stone-200',
@@ -14,6 +15,8 @@ const statusColors = {
 
 export default function InteriorDashboard() {
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  const canViewProfit = hasRole('admin', 'manager');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -68,11 +71,13 @@ export default function InteriorDashboard() {
           <p className="text-2xl font-bold text-blue-900 mt-1">{formatCurrency(totalCost)}</p>
           <p className="text-xs text-blue-600/60 mt-0.5">Material: {formatCurrency(summary.total_material)} | Other: {formatCurrency(summary.total_other_cost)}</p>
         </div>
-        <div className={`p-5 rounded-2xl bg-gradient-to-br border ${totalProfitLoss >= 0 ? 'from-emerald-50 to-emerald-100/50 border-emerald-200' : 'from-red-50 to-red-100/50 border-red-200'}`}>
-          <HiOutlineChartBar size={20} className={totalProfitLoss >= 0 ? 'text-emerald-600' : 'text-red-600'} />
-          <p className="text-xs font-semibold uppercase tracking-wider text-stone-500/70">Profit / Loss</p>
-          <p className={`text-2xl font-bold mt-1 ${totalProfitLoss >= 0 ? 'text-emerald-900' : 'text-red-900'}`}>{formatCurrency(totalProfitLoss)}</p>
-        </div>
+        {canViewProfit && (
+          <div className={`p-5 rounded-2xl bg-gradient-to-br border ${totalProfitLoss >= 0 ? 'from-emerald-50 to-emerald-100/50 border-emerald-200' : 'from-red-50 to-red-100/50 border-red-200'}`}>
+            <HiOutlineChartBar size={20} className={totalProfitLoss >= 0 ? 'text-emerald-600' : 'text-red-600'} />
+            <p className="text-xs font-semibold uppercase tracking-wider text-stone-500/70">Profit / Loss</p>
+            <p className={`text-2xl font-bold mt-1 ${totalProfitLoss >= 0 ? 'text-emerald-900' : 'text-red-900'}`}>{formatCurrency(totalProfitLoss)}</p>
+          </div>
+        )}
         <div className="p-5 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-200">
           <HiOutlineUserGroup size={20} className="text-amber-600 mb-2" />
           <p className="text-xs font-semibold uppercase tracking-wider text-amber-700/70">Client Balance</p>
@@ -104,7 +109,7 @@ export default function InteriorDashboard() {
                 <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Total Cost</th>
                 <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Received</th>
                 <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Balance</th>
-                <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Profit / Loss</th>
+                {canViewProfit && <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Profit / Loss</th>}
               </tr>
             </thead>
             <tbody>
@@ -123,12 +128,12 @@ export default function InteriorDashboard() {
                     <td className="px-4 py-3 text-right text-blue-700 font-medium">{formatCurrency(totalCost)}</td>
                     <td className="px-4 py-3 text-right text-stone-700">{formatCurrency(p.received_amount)}</td>
                     <td className={`px-4 py-3 text-right font-medium ${balance > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>{formatCurrency(balance)}</td>
-                    <td className={`px-4 py-3 text-right font-medium ${profitLoss >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{formatCurrency(profitLoss)}</td>
+                    {canViewProfit && <td className={`px-4 py-3 text-right font-medium ${profitLoss >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{formatCurrency(profitLoss)}</td>}
                   </tr>
                 );
               })}
               {projects.length === 0 && (
-                <tr><td colSpan={10} className="px-4 py-10 text-center text-stone-400">No interior projects found</td></tr>
+                <tr><td colSpan={canViewProfit ? 10 : 9} className="px-4 py-10 text-center text-stone-400">No interior projects found</td></tr>
               )}
             </tbody>
           </table>

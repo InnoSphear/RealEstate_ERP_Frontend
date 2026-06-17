@@ -4,6 +4,7 @@ import { HiOutlineArrowLeft, HiOutlinePencilSquare, HiOutlineCurrencyDollar, HiO
 import API from '../../api/axios';
 import Modal from '../../components/Modal';
 import { toast } from '../../components/Toast';
+import { useAuth } from '../../contexts/AuthContext';
 
 const statusColors = {
   draft: 'bg-stone-50 text-stone-700 ring-1 ring-stone-200',
@@ -19,6 +20,8 @@ const inputClass = "w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-whi
 export default function InteriorInvoiceDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  const canViewProfit = hasRole('admin', 'manager');
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -113,7 +116,7 @@ export default function InteriorInvoiceDetail() {
           { label: 'Total Sale', value: `₹${(invoice.total_sale || 0).toLocaleString()}`, color: 'bg-emerald-50 text-emerald-700', icon: HiOutlineCurrencyDollar },
           { label: 'Total Purchase', value: `₹${(invoice.total_purchase || 0).toLocaleString()}`, color: 'bg-blue-50 text-blue-700', icon: HiOutlineShoppingCart },
           { label: 'Total Expense', value: `₹${(invoice.total_expense || 0).toLocaleString()}`, color: 'bg-amber-50 text-amber-700', icon: HiOutlineChartBar },
-          { label: 'Net Profit', value: `₹${(invoice.profit || 0).toLocaleString()}`, color: (invoice.profit || 0) >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700', icon: HiOutlineChartBar },
+          ...(canViewProfit ? [{ label: 'Net Profit', value: `₹${(invoice.profit || 0).toLocaleString()}`, color: (invoice.profit || 0) >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700', icon: HiOutlineChartBar }] : []),
           { label: 'Paid', value: `₹${(invoice.paid_amount || 0).toLocaleString()}`, color: 'bg-emerald-50 text-emerald-700', icon: HiOutlineCheckCircle },
           { label: 'Due', value: `₹${(invoice.due_amount || 0).toLocaleString()}`, color: invoice.due_amount > 0 ? 'bg-red-50 text-red-700' : 'bg-stone-50 text-stone-500', icon: HiOutlineCheckCircle },
         ].map((s) => (
@@ -185,15 +188,17 @@ export default function InteriorInvoiceDetail() {
       </div>
 
       <div className="bg-white rounded-2xl border border-stone-200 p-6">
-        <h3 className="text-base font-semibold text-stone-900 mb-4">Profit Summary</h3>
+        <h3 className="text-base font-semibold text-stone-900 mb-4">Summary</h3>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="p-4 rounded-xl bg-emerald-50"><p className="text-xs text-emerald-600 font-semibold uppercase">Total Sale</p><p className="text-xl font-bold text-emerald-800">₹{(invoice.total_sale || 0).toLocaleString()}</p></div>
           <div className="p-4 rounded-xl bg-blue-50"><p className="text-xs text-blue-600 font-semibold uppercase">Total Purchase</p><p className="text-xl font-bold text-blue-800">₹{(invoice.total_purchase || 0).toLocaleString()}</p></div>
           <div className="p-4 rounded-xl bg-amber-50"><p className="text-xs text-amber-600 font-semibold uppercase">Total Expense</p><p className="text-xl font-bold text-amber-800">₹{(invoice.total_expense || 0).toLocaleString()}</p></div>
-          <div className={`p-4 rounded-xl ${(invoice.profit || 0) >= 0 ? 'bg-emerald-50' : 'bg-red-50'}`}>
-            <p className={`text-xs font-semibold uppercase ${(invoice.profit || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>Net Profit</p>
-            <p className={`text-xl font-bold ${(invoice.profit || 0) >= 0 ? 'text-emerald-800' : 'text-red-800'}`}>₹{(invoice.profit || 0).toLocaleString()}</p>
-          </div>
+          {canViewProfit && (
+            <div className={`p-4 rounded-xl ${(invoice.profit || 0) >= 0 ? 'bg-emerald-50' : 'bg-red-50'}`}>
+              <p className={`text-xs font-semibold uppercase ${(invoice.profit || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>Net Profit</p>
+              <p className={`text-xl font-bold ${(invoice.profit || 0) >= 0 ? 'text-emerald-800' : 'text-red-800'}`}>₹{(invoice.profit || 0).toLocaleString()}</p>
+            </div>
+          )}
         </div>
         {invoice.notes && <div className="mt-4 pt-4 border-t border-stone-100"><p className="text-xs text-stone-400 font-semibold uppercase mb-1">Notes</p><p className="text-sm text-stone-700">{invoice.notes}</p></div>}
         {invoice.terms && <div className="mt-2"><p className="text-xs text-stone-400 font-semibold uppercase mb-1">Terms</p><p className="text-sm text-stone-700">{invoice.terms}</p></div>}

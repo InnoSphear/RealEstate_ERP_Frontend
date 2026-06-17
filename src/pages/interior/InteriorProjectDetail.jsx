@@ -5,6 +5,7 @@ import API from '../../api/axios';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
+import { useAuth } from '../../contexts/AuthContext';
 
 const statusColors = {
   not_started: 'bg-stone-50 text-stone-700 ring-1 ring-stone-200',
@@ -21,6 +22,8 @@ const inputClass = "w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-whi
 export default function InteriorProjectDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  const canViewProfit = hasRole('admin', 'manager');
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Overview');
@@ -303,7 +306,9 @@ export default function InteriorProjectDetail() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200"><p className="text-xs font-semibold uppercase tracking-wider text-emerald-700/70">Contract</p><p className="text-xl font-bold text-emerald-900 mt-0.5">₹{(project.contract_amount || 0).toLocaleString()}</p></div>
         <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200"><p className="text-xs font-semibold uppercase tracking-wider text-blue-700/70">Total Cost</p><p className="text-xl font-bold text-blue-900 mt-0.5">₹{((project.material_cost || 0) + (project.other_cost || 0) + (project.direct_expenses || []).reduce((s, e) => s + (e.cost || 0), 0)).toLocaleString()}</p></div>
-        <div className={`p-4 rounded-2xl border ${project.profit_loss >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}><p className={`text-xs font-semibold uppercase tracking-wider ${project.profit_loss >= 0 ? 'text-emerald-700/70' : 'text-red-700/70'}`}>Profit / Loss</p><p className={`text-xl font-bold mt-0.5 ${project.profit_loss >= 0 ? 'text-emerald-900' : 'text-red-900'}`}>₹{(project.profit_loss || 0).toLocaleString()}</p></div>
+        {canViewProfit && (
+          <div className={`p-4 rounded-2xl border ${project.profit_loss >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}><p className={`text-xs font-semibold uppercase tracking-wider ${project.profit_loss >= 0 ? 'text-emerald-700/70' : 'text-red-700/70'}`}>Profit / Loss</p><p className={`text-xl font-bold mt-0.5 ${project.profit_loss >= 0 ? 'text-emerald-900' : 'text-red-900'}`}>₹{(project.profit_loss || 0).toLocaleString()}</p></div>
+        )}
         <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200"><p className="text-xs font-semibold uppercase tracking-wider text-amber-700/70">Client Balance</p><p className="text-xl font-bold text-amber-900 mt-0.5">₹{(project.balance || 0).toLocaleString()}</p></div>
       </div>
 

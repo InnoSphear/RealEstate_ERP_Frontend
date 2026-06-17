@@ -5,7 +5,7 @@ import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
 import { useAuth } from '../../contexts/AuthContext';
-import { HiOutlineSquares2X2, HiOutlineTableCells, HiOutlineEye, HiOutlineHeart, HiOutlineMapPin, HiOutlineHomeModern } from 'react-icons/hi2';
+import { HiOutlineSquares2X2, HiOutlineTableCells, HiOutlineMapPin, HiOutlineHomeModern, HiOutlineTrash } from 'react-icons/hi2';
 
 const propertyTypes = ['apartment', 'villa', 'plot', 'commercial', 'shop', 'office', 'warehouse', 'penthouse', 'other'];
 const listingTypes = ['sale', 'rent', 'lease'];
@@ -30,7 +30,7 @@ const statusBadge = (v) => {
 
 const emptyForm = () => ({
   owner_name: '', owner_contact: '', owner_email: '',
-  flat_number: '', building_name: '', society_name: '', location: '', city: '', state: '', pincode: '',
+  flat_number: '', tower: '', building_name: '', society_name: '', location: '', city: '', state: '', pincode: '',
   property_type: 'apartment', carpet_area: '', built_up_area: '', plot_area: '', bedrooms: '', bathrooms: '', balconies: '', floors: '', total_floors: '',
   furnishing_status: 'unfurnished', possession_status: 'ready_to_move',
   listing_type: 'sale', price_sale: '', rent_amount: '', rent_deposit: '', maintenance_amount: '',
@@ -49,8 +49,10 @@ export default function PropertyList() {
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState(emptyForm());
   const [images, setImages] = useState([]);
-  const [filters, setFilters] = useState({ property_type: '', listing_type: '', availability: '', status: '', city: '', priceMin: '', priceMax: '' });
+  const [filters, setFilters] = useState({ property_type: '', listing_type: '', availability: '', status: '', city: '', society_name: '', tower: '', built_up_area_min: '', built_up_area_max: '', priceMin: '', priceMax: '' });
   const [search, setSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
 
   const queryString = () => {
     const params = new URLSearchParams();
@@ -73,7 +75,7 @@ export default function PropertyList() {
     setSelected(row);
     setForm({
       owner_name: row.owner_name || '', owner_contact: row.owner_contact || '', owner_email: row.owner_email || '',
-      flat_number: row.flat_number || '', building_name: row.building_name || '', society_name: row.society_name || '', location: row.location || '', city: row.city || '', state: row.state || '', pincode: row.pincode || '',
+      flat_number: row.flat_number || '', tower: row.tower || '', building_name: row.building_name || '', society_name: row.society_name || '', location: row.location || '', city: row.city || '', state: row.state || '', pincode: row.pincode || '',
       property_type: row.property_type || 'apartment', carpet_area: row.carpet_area || '', built_up_area: row.built_up_area || '', plot_area: row.plot_area || '', bedrooms: row.bedrooms || '', bathrooms: row.bathrooms || '', balconies: row.balconies || '', floors: row.floors || '', total_floors: row.total_floors || '',
       furnishing_status: row.furnishing_status || 'unfurnished', possession_status: row.possession_status || 'ready_to_move',
       listing_type: row.listing_type || 'sale', price_sale: row.price_sale || '', rent_amount: row.rent_amount || '', rent_deposit: row.rent_deposit || '', maintenance_amount: row.maintenance_amount || '',
@@ -105,10 +107,25 @@ export default function PropertyList() {
     catch (err) { toast('Error deleting property', 'error'); }
   };
 
+  const handleBulkDelete = async () => {
+    try {
+      await API.post('/properties/bulk-delete', { ids: selectedIds });
+      toast(`${selectedIds.length} property(ies) deleted`);
+      setSelectedIds([]);
+      fetchData();
+    } catch (err) {
+      toast(err.response?.data?.message || 'Error deleting properties', 'error');
+    }
+  };
+
+  const handleBulkDeleteClick = () => {
+    setBulkConfirmOpen(true);
+  };
+
   const columns = [
     { header: 'Property ID', accessor: 'property_id' },
     { header: 'Owner', render: (r) => r.owner_name || '-' },
-    { header: 'Location', render: (r) => [r.flat_number, r.building_name, r.location].filter(Boolean).join(', ') || '-' },
+    { header: 'Location', render: (r) => [r.flat_number, r.building_name, r.society_name, r.tower, r.location].filter(Boolean).join(', ') || '-' },
     { header: 'Type', render: (r) => r.property_type ? r.property_type.charAt(0).toUpperCase() + r.property_type.slice(1) : '-' },
     { header: 'Listing', render: (r) => r.listing_type?.charAt(0).toUpperCase() + r.listing_type?.slice(1) || '-' },
     { header: 'Price / Rent', render: (r) => {
@@ -148,16 +165,29 @@ export default function PropertyList() {
           <option value="">All Availability</option>
           {availabilityOptions.map((t) => <option key={t} value={t}>{t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</option>)}
         </select>
+        <input type="text" placeholder="Society" value={filters.society_name} onChange={(e) => setFilters({ ...filters, society_name: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-32 dark:text-white dark:placeholder-stone-400" />
+        <input type="text" placeholder="Tower" value={filters.tower} onChange={(e) => setFilters({ ...filters, tower: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
         <input type="text" placeholder="City" value={filters.city} onChange={(e) => setFilters({ ...filters, city: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
+        <input type="number" placeholder="Built-up Min" value={filters.built_up_area_min} onChange={(e) => setFilters({ ...filters, built_up_area_min: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
+        <input type="number" placeholder="Built-up Max" value={filters.built_up_area_max} onChange={(e) => setFilters({ ...filters, built_up_area_max: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
         <input type="number" placeholder="Min Price" value={filters.priceMin} onChange={(e) => setFilters({ ...filters, priceMin: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
         <input type="number" placeholder="Max Price" value={filters.priceMax} onChange={(e) => setFilters({ ...filters, priceMax: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
       </div>
+
+      {isAdmin && selectedIds.length > 0 && (
+        <button onClick={handleBulkDeleteClick} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-red-50 text-red-700 hover:bg-red-100 border border-red-200">
+          <HiOutlineTrash size={15} /> Delete ({selectedIds.length})
+        </button>
+      )}
 
       {viewMode === 'table' ? (
         <DataTable
           columns={columns}
           data={data}
           loading={loading}
+          selectable={isAdmin}
+          selectedIds={selectedIds}
+          onSelectionChange={setSelectedIds}
           onEdit={openEdit}
           onDelete={isAdmin ? (r) => { setSelected(r); setConfirmOpen(true); } : undefined}
           onView={(r) => navigateTo(r._id)}
@@ -213,6 +243,7 @@ export default function PropertyList() {
             <h4 className="text-sm font-semibold text-stone-700 dark:text-stone-300 mb-3 pb-2 border-b border-stone-100 dark:border-stone-700">Property Details</h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Flat / Unit Number</label><input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" value={form.flat_number} onChange={(e) => setForm({ ...form, flat_number: e.target.value })} /></div>
+              <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Tower Number</label><input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" value={form.tower} onChange={(e) => setForm({ ...form, tower: e.target.value })} /></div>
               <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Building Name</label><input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" value={form.building_name} onChange={(e) => setForm({ ...form, building_name: e.target.value })} /></div>
               <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Society Name</label><input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" value={form.society_name} onChange={(e) => setForm({ ...form, society_name: e.target.value })} /></div>
               <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Location *</label><input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} required /></div>
@@ -313,6 +344,7 @@ export default function PropertyList() {
       </Modal>
 
       <ConfirmDialog isOpen={confirmOpen} onClose={() => setConfirmOpen(false)} onConfirm={handleDelete} title="Delete Property" message="Are you sure you want to delete this property? This action cannot be undone." />
+      <ConfirmDialog isOpen={bulkConfirmOpen} onClose={() => setBulkConfirmOpen(false)} onConfirm={handleBulkDelete} title="Delete Properties" message={`Are you sure you want to delete ${selectedIds.length} selected properties? This action cannot be undone.`} />
     </div>
   );
 }

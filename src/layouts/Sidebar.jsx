@@ -183,6 +183,12 @@ export default function Sidebar() {
             <span>Settings</span>
           </NavLink>
         </div>
+        <div className="px-6 py-3 border-t border-stone-100 text-center">
+          <p className="text-[10px] text-stone-400 tracking-wider">
+            Product by <a href="https://aiorzen.com" target="_blank" rel="noopener noreferrer" className="font-semibold text-stone-500 hover:text-stone-900 transition-colors">AIORZEN</a>
+          </p>
+          <a href="https://aiorzen.com" target="_blank" rel="noopener noreferrer" className="text-[10px] text-stone-400 hover:text-stone-600 transition-colors tracking-wider">aiorzen.com</a>
+        </div>
       </aside>
     </>
   );

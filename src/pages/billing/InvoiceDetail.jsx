@@ -29,6 +29,7 @@ export default function InvoiceDetail() {
   const [loading, setLoading] = useState(true);
   const [paymentModal, setPaymentModal] = useState(false);
   const [paymentForm, setPaymentForm] = useState({ amount: '', payment_date: new Date().toISOString().split('T')[0], payment_mode: 'cash', reference_no: '' });
+  const [timelinePayment, setTimelinePayment] = useState(null);
 
   const fetchInvoice = async () => {
     setLoading(true);
@@ -200,7 +201,8 @@ export default function InvoiceDetail() {
                   <th className="px-6 py-3.5 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Date</th>
                   <th className="px-6 py-3.5 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Mode</th>
                   <th className="px-6 py-3.5 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-3.5 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Reference</th>
+                    <th className="px-6 py-3.5 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider">Reference</th>
+                    <th className="px-6 py-3.5 text-left font-semibold text-stone-500 text-xs uppercase tracking-wider" />
                 </tr>
               </thead>
               <tbody>
@@ -211,6 +213,11 @@ export default function InvoiceDetail() {
                     <td className="px-6 py-3.5"><span className={paymentModeColors[p.payment_mode]}>{p.payment_mode?.replace(/_/g, ' ')}</span></td>
                     <td className="px-6 py-3.5 text-right text-stone-700 font-medium">{formatCurrency(p.amount)}</td>
                     <td className="px-6 py-3.5 text-stone-700">{p.reference_no || '-'}</td>
+                    <td className="px-6 py-3.5 text-right">
+                      {p.timeline?.length > 0 && (
+                        <button onClick={() => setTimelinePayment(p)} className="text-xs text-stone-400 hover:text-stone-700 transition-colors underline underline-offset-2">Timeline</button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -246,6 +253,37 @@ export default function InvoiceDetail() {
             <button type="submit" className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">Record Payment</button>
           </div>
         </form>
+      </Modal>
+
+      <Modal isOpen={!!timelinePayment} onClose={() => setTimelinePayment(null)} title={`Timeline — ${timelinePayment?.payment_number || ''}`} size="md">
+        {timelinePayment && (
+          <div className="space-y-0">
+            <div className="flex flex-wrap gap-x-6 gap-y-2 mb-5 pb-4 border-b border-stone-100">
+              <div><span className="text-xs text-stone-400">Amount</span><p className="text-sm font-medium text-stone-900">₹{timelinePayment.amount?.toLocaleString()}</p></div>
+              <div><span className="text-xs text-stone-400">Status</span><span className={`ml-1 ${statusColors[timelinePayment.status]}`}>{timelinePayment.status}</span></div>
+              <div><span className="text-xs text-stone-400">Mode</span><p className="text-sm font-medium text-stone-900 capitalize">{timelinePayment.payment_mode?.replace(/_/g, ' ')}</p></div>
+            </div>
+            {(timelinePayment.timeline || []).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)).map((entry, i, arr) => (
+              <div key={i} className="relative flex gap-4 pb-4 last:pb-0">
+                <div className="flex flex-col items-center">
+                  <div className={`w-2.5 h-2.5 rounded-full mt-1.5 ring-2 ring-white z-10 ${entry.action === 'created' ? 'bg-emerald-500' : entry.action === 'status_changed' ? 'bg-amber-500' : entry.action === 'deleted' ? 'bg-red-500' : 'bg-stone-400'}`} />
+                  {i < arr.length - 1 && <div className="w-0.5 flex-1 bg-stone-200 -mt-0.5" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-stone-900 capitalize">{entry.action?.replace(/_/g, ' ')}</p>
+                  <p className="text-xs text-stone-500 mt-0.5">{entry.description}</p>
+                  <p className="text-xs text-stone-400 mt-0.5">
+                    {new Date(entry.createdAt).toLocaleString()}
+                    {entry.changed_by_name ? ` by ${entry.changed_by_name}` : ''}
+                  </p>
+                </div>
+              </div>
+            ))}
+            {(timelinePayment.timeline || []).length === 0 && (
+              <p className="text-sm text-stone-400 text-center py-4">No timeline entries</p>
+            )}
+          </div>
+        )}
       </Modal>
     </div>
   );

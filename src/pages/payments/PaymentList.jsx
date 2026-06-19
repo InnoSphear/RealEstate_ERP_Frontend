@@ -21,6 +21,8 @@ export default function PaymentList() {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewPayment, setViewPayment] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [filterStatus, setFilterStatus] = useState('');
@@ -126,7 +128,7 @@ export default function PaymentList() {
         <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" />
       </div>
 
-      <DataTable columns={columns} data={data} loading={loading} onEdit={openCreate} onDelete={(r) => { setSelected(r); setConfirmOpen(true); }} />
+      <DataTable columns={columns} data={data} loading={loading} onView={(r) => { setViewPayment(r); setViewModalOpen(true); }} onEdit={openCreate} onDelete={(r) => { setSelected(r); setConfirmOpen(true); }} />
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={selected ? 'Edit Payment' : 'New Payment'} size="lg">
         <form onSubmit={handleSave} className="space-y-5">
@@ -200,6 +202,50 @@ export default function PaymentList() {
       </Modal>
 
       <ConfirmDialog isOpen={confirmOpen} onClose={() => setConfirmOpen(false)} onConfirm={handleDelete} title="Delete Payment" message="Are you sure you want to delete this payment?" />
+
+      <Modal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} title={`Payment ${viewPayment?.payment_number || ''}`} size="lg">
+        {viewPayment && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Client</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.client_id?.full_name || viewPayment.client_id?.name || '-'}</p></div>
+              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Amount</p><p className="text-sm font-medium text-stone-900 mt-1">₹{viewPayment.amount?.toLocaleString()}</p></div>
+              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Date</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.payment_date ? new Date(viewPayment.payment_date).toLocaleDateString() : '-'}</p></div>
+              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Mode</p><p className="text-sm font-medium text-stone-900 mt-1 capitalize">{viewPayment.payment_mode?.replace(/_/g, ' ')}</p></div>
+              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Status</p><span className={statusColors[viewPayment.status]}>{viewPayment.status}</span></div>
+              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Invoice</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.invoice_id?.invoice_number || '-'}</p></div>
+              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Reference</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.reference_number || '-'}</p></div>
+              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Processed By</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.processed_by?.full_name || '-'}</p></div>
+            </div>
+            {viewPayment.notes && (
+              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-1">Notes</p><p className="text-sm text-stone-700 bg-stone-50 rounded-xl px-4 py-3">{viewPayment.notes}</p></div>
+            )}
+            <div>
+              <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">Timeline</p>
+              <div className="space-y-0">
+                {(viewPayment.timeline || []).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)).map((entry, i) => (
+                  <div key={i} className="relative flex gap-4 pb-4 last:pb-0">
+                    <div className="flex flex-col items-center">
+                      <div className={`w-2.5 h-2.5 rounded-full mt-1.5 ring-2 ring-white z-10 ${entry.action === 'created' ? 'bg-emerald-500' : entry.action === 'status_changed' ? 'bg-amber-500' : entry.action === 'deleted' ? 'bg-red-500' : 'bg-stone-400'}`} />
+                      {i < (viewPayment.timeline || []).length - 1 && <div className="w-0.5 flex-1 bg-stone-200 -mt-0.5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-stone-900 capitalize">{entry.action?.replace(/_/g, ' ')}</p>
+                      <p className="text-xs text-stone-500 mt-0.5">{entry.description}</p>
+                      <p className="text-xs text-stone-400 mt-0.5">
+                        {new Date(entry.createdAt).toLocaleString()}
+                        {entry.changed_by_name ? ` by ${entry.changed_by_name}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {(viewPayment.timeline || []).length === 0 && (
+                  <p className="text-sm text-stone-400 text-center py-4">No timeline entries</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

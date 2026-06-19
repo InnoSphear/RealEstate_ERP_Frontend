@@ -21,6 +21,8 @@ export default function FollowUpList() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [completionModalOpen, setCompletionModalOpen] = useState(false);
   const [rescheduleModalOpen, setRescheduleModalOpen] = useState(false);
   const [selected, setSelected] = useState(null);
@@ -98,6 +100,18 @@ export default function FollowUpList() {
     try {
       await API.delete(`/follow-ups/${selected._id}`);
       toast('Follow-up deleted');
+      fetchData();
+    } catch (err) {
+      toast('Error deleting', 'error');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      await API.post('/follow-ups/bulk-delete', { ids: selectedIds });
+      toast(`${selectedIds.length} follow-ups deleted`);
+      setSelectedIds([]);
+      setBulkConfirmOpen(false);
       fetchData();
     } catch (err) {
       toast('Error deleting', 'error');
@@ -226,9 +240,19 @@ export default function FollowUpList() {
         columns={columns}
         data={data}
         loading={loading}
+        selectable
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
         onEdit={openEdit}
         onDelete={(r) => { setSelected(r); setConfirmOpen(true); }}
       />
+      {selectedIds.length > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-stone-50 rounded-xl border border-stone-200">
+          <span className="text-sm text-stone-600 font-medium">{selectedIds.length} selected</span>
+          <button onClick={() => { setBulkConfirmOpen(true); }} className="px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-all cursor-pointer">Delete Selected</button>
+          <button onClick={() => setSelectedIds([])} className="px-4 py-1.5 rounded-lg text-sm font-semibold bg-white text-stone-600 hover:bg-stone-100 border border-stone-200 transition-all cursor-pointer">Clear</button>
+        </div>
+      )}
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={selected ? 'Edit Follow-up' : 'Create Follow-up'} size="lg">
         <form onSubmit={handleSave} className="space-y-5">
@@ -312,6 +336,7 @@ export default function FollowUpList() {
       </Modal>
 
       <ConfirmDialog isOpen={confirmOpen} onClose={() => setConfirmOpen(false)} onConfirm={handleDelete} title="Delete Follow-up" message="Are you sure you want to delete this follow-up?" />
+      <ConfirmDialog isOpen={bulkConfirmOpen} onClose={() => setBulkConfirmOpen(false)} onConfirm={handleBulkDelete} title="Delete Follow-ups" message={`Are you sure you want to delete ${selectedIds.length} follow-ups?`} />
     </div>
   );
 }

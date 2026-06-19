@@ -18,16 +18,18 @@ export default function ProtectedRoute({ children, roles, permission }) {
   if (!user) return <Navigate to="/login" replace />;
 
   const roleSlug = user.role_slug || user.role?.slug;
-  if (roles && !roles.includes(roleSlug)) {
-    return <Navigate to="/dashboard" replace />;
-  }
 
+  // Allow if role slug matches
+  if (roles && roles.includes(roleSlug)) return children;
+
+  // Allow if permission is granted (fallback for dynamically added permissions)
   if (permission) {
     const [mod, action = 'read'] = permission.split(':');
-    if (!hasPermission(mod, action)) {
-      return <Navigate to="/dashboard" replace />;
-    }
+    if (hasPermission(mod, action)) return children;
   }
+
+  // Block if roles were specified but neither role nor permission matched
+  if (roles) return <Navigate to="/dashboard" replace />;
 
   return children;
 }

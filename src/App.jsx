@@ -105,23 +105,23 @@ export default function App() {
               <Route path="my-leaves" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager']}><MyLeaves /></ProtectedRoute>} />
               <Route path="employees/leaves" element={<ProtectedRoute roles={['admin', 'manager']}><LeaveManagement /></ProtectedRoute>} />
 
-              <Route path="leads" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist', 'interior_manager']}><LeadList /></ProtectedRoute>} />
-              <Route path="leads/:id" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist', 'interior_manager']}><LeadDetail /></ProtectedRoute>} />
-              <Route path="leads/kanban" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'interior_manager']}><LeadKanban /></ProtectedRoute>} />
+              <Route path="leads" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist', 'interior_manager', 'junior_interior_manager']} permission="leads"><LeadList /></ProtectedRoute>} />
+              <Route path="leads/:id" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist', 'interior_manager', 'junior_interior_manager']} permission="leads"><LeadDetail /></ProtectedRoute>} />
+              <Route path="leads/kanban" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'interior_manager', 'junior_interior_manager']} permission="leads"><LeadKanban /></ProtectedRoute>} />
 
-              <Route path="clients" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist', 'interior_manager']}><ClientList /></ProtectedRoute>} />
-              <Route path="clients/:id" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist', 'interior_manager']}><ClientDetail /></ProtectedRoute>} />
+              <Route path="clients" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist', 'interior_manager', 'junior_interior_manager']} permission="clients"><ClientList /></ProtectedRoute>} />
+              <Route path="clients/:id" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist', 'interior_manager', 'junior_interior_manager']} permission="clients"><ClientDetail /></ProtectedRoute>} />
 
-              <Route path="follow-ups" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'interior_manager']}><FollowUpList /></ProtectedRoute>} />
+              <Route path="follow-ups" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'interior_manager', 'junior_interior_manager']} permission="follow_ups"><FollowUpList /></ProtectedRoute>} />
 
-              <Route path="properties" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager']}><PropertyList /></ProtectedRoute>} />
-              <Route path="properties/:id" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager']}><PropertyDetail /></ProtectedRoute>} />
+              <Route path="properties" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager']} permission="properties"><PropertyList /></ProtectedRoute>} />
+              <Route path="properties/:id" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager']} permission="properties"><PropertyDetail /></ProtectedRoute>} />
               <Route path="properties/keys" element={<ProtectedRoute roles={['admin', 'manager']}><PropertyKeyList /></ProtectedRoute>} />
 
               <Route path="projects" element={<ProtectedRoute roles={['admin', 'manager', 'sales_executive', 'interior_manager']}><ProjectList /></ProtectedRoute>} />
               <Route path="projects/:id" element={<ProtectedRoute roles={['admin', 'manager', 'sales_executive', 'interior_manager']}><ProjectDetail /></ProtectedRoute>} />
 
-              <Route path="site-visits" element={<ProtectedRoute roles={['admin', 'manager', 'sales_executive']}><SiteVisitList /></ProtectedRoute>} />
+              <Route path="site-visits" element={<ProtectedRoute roles={['admin', 'manager', 'sales_executive', 'junior_interior_manager']} permission="site_visits"><SiteVisitList /></ProtectedRoute>} />
               <Route path="visitors" element={<ProtectedRoute roles={['admin', 'manager', 'receptionist']}><VisitorList /></ProtectedRoute>} />
               <Route path="interior" element={<ProtectedRoute roles={['admin', 'manager', 'interior_manager', 'junior_interior_manager']}><InteriorDashboard /></ProtectedRoute>} />
               <Route path="interior-projects" element={<ProtectedRoute roles={['admin', 'manager', 'interior_manager', 'junior_interior_manager']}><InteriorProjects /></ProtectedRoute>} />

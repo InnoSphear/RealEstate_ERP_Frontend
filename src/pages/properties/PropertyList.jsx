@@ -39,8 +39,8 @@ const emptyForm = () => ({
 });
 
 export default function PropertyList() {
-  const { user } = useAuth();
-  const isAdmin = user?.role_slug === 'admin';
+  const { hasRole, user } = useAuth();
+  const isAdmin = hasRole('admin', 'manager');
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('table');
@@ -128,6 +128,7 @@ export default function PropertyList() {
     { header: 'Location', render: (r) => [r.flat_number, r.building_name, r.society_name, r.tower, r.location].filter(Boolean).join(', ') || '-' },
     { header: 'Type', render: (r) => r.property_type ? r.property_type.charAt(0).toUpperCase() + r.property_type.slice(1) : '-' },
     { header: 'Listing', render: (r) => r.listing_type?.charAt(0).toUpperCase() + r.listing_type?.slice(1) || '-' },
+    { header: 'Created By', render: (r) => r.created_by?.full_name || '-' },
     { header: 'Price / Rent', render: (r) => {
       if (r.listing_type === 'rent' || r.listing_type === 'lease') return r.rent_amount ? `₹${Number(r.rent_amount).toLocaleString()}/mo` : '-';
       return r.price_sale ? `₹${Number(r.price_sale).toLocaleString()}` : '-';

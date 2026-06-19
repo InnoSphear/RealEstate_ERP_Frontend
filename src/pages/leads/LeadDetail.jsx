@@ -301,6 +301,10 @@ export default function LeadDetail() {
             <p className="text-sm text-stone-900 mt-1">{lead.assigned_to?.full_name || 'Unassigned'}</p>
           </div>
           <div>
+            <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Created By</p>
+            <p className="text-sm text-stone-900 mt-1">{lead.created_by?.full_name || '-'}</p>
+          </div>
+          <div>
             <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Budget</p>
             <p className="text-sm text-stone-900 mt-1">{lead.budget ? `₹${Number(lead.budget).toLocaleString()}` : '-'}</p>
           </div>

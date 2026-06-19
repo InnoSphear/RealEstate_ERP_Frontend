@@ -290,6 +290,7 @@ export default function LeadList() {
       ),
     },
     { header: 'Assigned To', render: (r) => r.assigned_to?.full_name || '-' },
+    { header: 'Created By', render: (r) => r.created_by?.full_name || '-' },
     { header: 'Next Follow Up', render: (r) => r.next_follow_up ? new Date(r.next_follow_up).toLocaleDateString() : '-' },
     { header: 'Created', render: (r) => r.created_at ? new Date(r.created_at).toLocaleDateString() : '-' },
   ];

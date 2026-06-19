@@ -45,16 +45,16 @@ const menuGroups = [
   {
     label: 'CRM',
     items: [
-      { path: '/leads', label: 'Leads', icon: HiOutlinePhone, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist', 'interior_manager'], permission: 'leads' },
-      { path: '/leads/kanban', label: 'Lead Stages', icon: HiOutlinePresentationChartBar, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'interior_manager'], permission: 'leads' },
-      { path: '/clients', label: 'Clients', icon: HiOutlineUserGroup, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist', 'interior_manager'], permission: 'clients' },
-      { path: '/follow-ups', label: 'Follow Ups', icon: HiOutlineCalendar, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'interior_manager'], permission: 'follow_ups' },
+      { path: '/leads', label: 'Leads', icon: HiOutlinePhone, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist', 'interior_manager', 'junior_interior_manager'], permission: 'leads' },
+      { path: '/leads/kanban', label: 'Lead Stages', icon: HiOutlinePresentationChartBar, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'interior_manager', 'junior_interior_manager'], permission: 'leads' },
+      { path: '/clients', label: 'Clients', icon: HiOutlineUserGroup, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'receptionist', 'interior_manager', 'junior_interior_manager'], permission: 'clients' },
+      { path: '/follow-ups', label: 'Follow Ups', icon: HiOutlineCalendar, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'interior_manager', 'junior_interior_manager'], permission: 'follow_ups' },
     ],
   },
   {
     label: 'Property',
     items: [
-      { path: '/properties', label: 'Properties', icon: HiOutlineBuildingOffice, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager'], permission: 'properties' },
+      { path: '/properties', label: 'Properties', icon: HiOutlineBuildingOffice, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager'], permission: 'properties' },
       { path: '/properties/keys', label: 'Key Mgmt', icon: HiOutlineKey, roles: ['admin', 'manager'], permission: 'property_keys' },
       { path: '/projects', label: 'Projects', icon: HiOutlineWrenchScrewdriver, roles: ['admin', 'manager', 'sales_executive', 'interior_manager'], permission: 'projects' },
       { path: '/rental-apartments', label: 'Rentals', icon: HiOutlineBuildingOffice2, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager'], permission: 'properties' },

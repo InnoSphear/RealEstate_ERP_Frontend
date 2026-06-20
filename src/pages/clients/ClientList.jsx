@@ -28,12 +28,14 @@ export default function ClientList() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selected, setSelected] = useState(null);
 
+  const [properties, setProperties] = useState([]);
   const [filters, setFilters] = useState({ status: '', source: '', assigned_to: '', requirement_type: '' });
 
   const initForm = {
     full_name: '', email: '', mobile: '', alternate_mobile: '', address: '', city: '', state: '', pincode: '',
     requirement_type: 'buy', budget_min: '', budget_max: '', requirement: '', preferred_locations: [],
     source: 'referral', notes: '', status: 'active', assigned_to: '',
+    transaction_type: '', property: '',
   };
   const [form, setForm] = useState(initForm);
 
@@ -49,6 +51,7 @@ export default function ClientList() {
 
   useEffect(() => {
     API.get('/users').then((res) => setUsers(res.data)).catch(() => {});
+    API.get('/properties').then((res) => setProperties(res.data)).catch(() => {});
   }, []);
 
   const openCreate = () => {
@@ -77,6 +80,8 @@ export default function ClientList() {
       notes: row.notes || '',
       status: row.status || 'active',
       assigned_to: row.assigned_to?._id || row.assigned_to || '',
+      transaction_type: row.transaction_type || '',
+      property: row.property?._id || row.property || '',
     });
     setModalOpen(true);
   };
@@ -127,6 +132,7 @@ export default function ClientList() {
     { header: 'Mobile', accessor: 'mobile' },
     { header: 'Email', accessor: 'email' },
     { header: 'Requirement', render: (r) => <span className="capitalize text-sm">{r.requirement_type?.replace(/_/g, ' ') || '-'}</span> },
+    { header: 'Client Type', render: (r) => r.transaction_type ? <span className="capitalize text-sm">{r.transaction_type}</span> : '-' },
     { header: 'Budget Range', render: (r) => (r.budget_min || r.budget_max) ? `₹${(r.budget_min || 0).toLocaleString()} - ₹${(r.budget_max || 0).toLocaleString()}` : '-' },
     { header: 'Status', render: (r) => <span className={statusColors[r.status] || statusColors.active}>{r.status}</span> },
     { header: 'Assigned To', render: (r) => r.assigned_to?.full_name || '-' },
@@ -211,6 +217,23 @@ export default function ClientList() {
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Requirement Type</label>
               <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.requirement_type} onChange={(e) => setForm({ ...form, requirement_type: e.target.value })}>
                 {requirementTypes.map((r) => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Client Type</label>
+              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.transaction_type} onChange={(e) => setForm({ ...form, transaction_type: e.target.value })}>
+                <option value="">Select Type</option>
+                <option value="rent">Rent</option>
+                <option value="purchase">Purchase</option>
+                <option value="sell">Sell</option>
+                <option value="interior">Interior</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Property</label>
+              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.property} onChange={(e) => setForm({ ...form, property: e.target.value })}>
+                <option value="">Select Property</option>
+                {properties.map((p) => <option key={p._id} value={p._id}>{p.property_id} - {p.location || p.name || p.title}</option>)}
               </select>
             </div>
             <div>

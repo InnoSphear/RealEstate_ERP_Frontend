@@ -26,6 +26,7 @@ export default function ClientDetail() {
   const [properties, setProperties] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [form, setForm] = useState({});
+  const [allProperties, setAllProperties] = useState([]);
 
   const fetchClient = () => {
     setLoading(true);
@@ -49,13 +50,15 @@ export default function ClientDetail() {
           source: res.data.source || 'referral',
           notes: res.data.notes || '',
           status: res.data.status || 'active',
+          transaction_type: res.data.transaction_type || '',
+          property: res.data.property?._id || res.data.property || '',
         });
       })
       .catch(() => toast('Failed to load client', 'error'))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchClient(); }, [id]);
+  useEffect(() => { fetchClient(); API.get('/properties').then((res) => setAllProperties(res.data)).catch(() => {}); }, [id]);
 
   useEffect(() => {
     if (!client) return;
@@ -209,6 +212,14 @@ export default function ClientDetail() {
                 <p className="text-sm text-stone-900 mt-1 capitalize">{client.requirement_type?.replace(/_/g, ' ') || '-'}</p>
               </div>
               <div>
+                <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Client Type</p>
+                <p className="text-sm text-stone-900 mt-1 capitalize">{client.transaction_type || '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Property</p>
+                <p className="text-sm text-stone-900 mt-1">{client.property?.property_id || client.property?.name || client.property?.title || '-'}</p>
+              </div>
+              <div>
                 <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Budget Range</p>
                 <p className="text-sm text-stone-900 mt-1">
                   {client.budget_min || client.budget_max
@@ -355,6 +366,13 @@ export default function ClientDetail() {
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Pincode</label><input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.pincode} onChange={(e) => setForm({ ...form, pincode: e.target.value })} /></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Requirement Type</label><select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.requirement_type} onChange={(e) => setForm({ ...form, requirement_type: e.target.value })}>
               <option value="buy">Buy</option><option value="rent">Rent</option><option value="lease">Lease</option><option value="interior">Interior</option><option value="sell">Sell</option>
+            </select></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Client Type</label><select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.transaction_type} onChange={(e) => setForm({ ...form, transaction_type: e.target.value })}>
+              <option value="">Select Type</option><option value="rent">Rent</option><option value="purchase">Purchase</option><option value="sell">Sell</option><option value="interior">Interior</option>
+            </select></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Property</label><select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.property} onChange={(e) => setForm({ ...form, property: e.target.value })}>
+              <option value="">Select Property</option>
+              {allProperties.map((p) => <option key={p._id} value={p._id}>{p.property_id} - {p.location || p.name || p.title}</option>)}
             </select></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Min Budget</label><input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.budget_min} onChange={(e) => setForm({ ...form, budget_min: e.target.value })} /></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Max Budget</label><input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.budget_max} onChange={(e) => setForm({ ...form, budget_max: e.target.value })} /></div>

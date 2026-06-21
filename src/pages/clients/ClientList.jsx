@@ -29,7 +29,7 @@ export default function ClientList() {
   const [selected, setSelected] = useState(null);
 
   const [properties, setProperties] = useState([]);
-  const [filters, setFilters] = useState({ status: '', source: '', assigned_to: '', requirement_type: '' });
+  const [filters, setFilters] = useState({ status: '', source: '', assigned_to: '', requirement_type: '', date_from: '', date_to: '' });
 
   const initForm = {
     full_name: '', email: '', mobile: '', alternate_mobile: '', address: '', city: '', state: '', pincode: '',
@@ -91,6 +91,8 @@ export default function ClientList() {
     try {
       const payload = {
         ...form,
+        property: form.property || undefined,
+        assigned_to: form.assigned_to || undefined,
         budget_min: form.budget_min ? Number(form.budget_min) : undefined,
         budget_max: form.budget_max ? Number(form.budget_max) : undefined,
       };
@@ -162,10 +164,14 @@ export default function ClientList() {
           {sources.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
         </select>
         {isAdmin && (
-          <select value={filters.assigned_to} onChange={(e) => setFilters({ ...filters, assigned_to: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
-            <option value="">All Assignees</option>
-            {users.map((u) => <option key={u._id} value={u._id}>{u.full_name}</option>)}
-          </select>
+          <>
+            <select value={filters.assigned_to} onChange={(e) => setFilters({ ...filters, assigned_to: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
+              <option value="">All Assignees</option>
+              {users.map((u) => <option key={u._id} value={u._id}>{u.full_name}</option>)}
+            </select>
+            <input type="date" value={filters.date_from} onChange={(e) => setFilters({ ...filters, date_from: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" placeholder="From" />
+            <input type="date" value={filters.date_to} onChange={(e) => setFilters({ ...filters, date_to: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" placeholder="To" />
+          </>
         )}
         <select value={filters.requirement_type} onChange={(e) => setFilters({ ...filters, requirement_type: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
           <option value="">All Requirements</option>

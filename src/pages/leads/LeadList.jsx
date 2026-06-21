@@ -73,7 +73,8 @@ export default function LeadList() {
   const [bulkTransferTo, setBulkTransferTo] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
 
-  const [filters, setFilters] = useState({ status: '', source: '', assigned_to: '', date_from: '', date_to: '', search: '' });
+  const [employees, setEmployees] = useState([]);
+  const [filters, setFilters] = useState({ status: '', source: '', assigned_to: '', date_from: '', date_to: '', search: '', created_by_employee: '' });
 
   const initForm = {
     full_name: '', email: '', mobile: '', alternate_mobile: '', address: '', city: '', state: '', pincode: '',
@@ -98,6 +99,7 @@ export default function LeadList() {
 
   useEffect(() => {
     API.get('/users').then((res) => setUsers(res.data)).catch(() => {});
+    API.get('/employees').then((res) => setEmployees(Array.isArray(res.data) ? res.data : [])).catch(() => {});
   }, []);
 
   const openCreate = () => {
@@ -338,8 +340,16 @@ export default function LeadList() {
           <option value="">All Assignees</option>
           {users.map((u) => <option key={u._id} value={u._id}>{u.full_name}</option>)}
         </select>
-        <input type="date" value={filters.date_from} onChange={(e) => setFilters({ ...filters, date_from: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" placeholder="From" />
-        <input type="date" value={filters.date_to} onChange={(e) => setFilters({ ...filters, date_to: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" placeholder="To" />
+        {isAdmin && (
+          <>
+            <select value={filters.created_by_employee} onChange={(e) => setFilters({ ...filters, created_by_employee: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
+              <option value="">All Creators</option>
+              {employees.map((emp) => <option key={emp._id} value={emp._id}>{emp.full_name}</option>)}
+            </select>
+            <input type="date" value={filters.date_from} onChange={(e) => setFilters({ ...filters, date_from: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" placeholder="From" />
+            <input type="date" value={filters.date_to} onChange={(e) => setFilters({ ...filters, date_to: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" placeholder="To" />
+          </>
+        )}
         <input
           type="text"
           placeholder="Search by name, email or mobile..."

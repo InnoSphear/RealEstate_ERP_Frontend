@@ -86,6 +86,7 @@ export default function ClientDetail() {
     try {
       await API.put(`/clients/${id}`, {
         ...form,
+        property: form.property || undefined,
         budget_min: form.budget_min ? Number(form.budget_min) : undefined,
         budget_max: form.budget_max ? Number(form.budget_max) : undefined,
       });

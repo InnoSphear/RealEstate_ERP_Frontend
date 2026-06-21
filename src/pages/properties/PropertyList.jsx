@@ -49,7 +49,8 @@ export default function PropertyList() {
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState(emptyForm());
   const [images, setImages] = useState([]);
-  const [filters, setFilters] = useState({ property_type: '', listing_type: '', availability: '', status: '', city: '', society_name: '', tower: '', built_up_area_min: '', built_up_area_max: '', priceMin: '', priceMax: '' });
+  const [employees, setEmployees] = useState([]);
+  const [filters, setFilters] = useState({ property_type: '', listing_type: '', availability: '', status: '', city: '', society_name: '', tower: '', built_up_area_min: '', built_up_area_max: '', priceMin: '', priceMax: '', created_by_employee: '', date_from: '', date_to: '' });
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
@@ -64,7 +65,14 @@ export default function PropertyList() {
 
   const fetchData = async () => {
     setLoading(true);
-    try { const { data: d } = await API.get(queryString()); setData(Array.isArray(d) ? d : d.properties || []); }
+    try {
+      const [propRes, empRes] = await Promise.all([
+        API.get(queryString()),
+        API.get('/employees')
+      ]);
+      setData(Array.isArray(propRes.data) ? propRes.data : propRes.data?.properties || []);
+      setEmployees(Array.isArray(empRes.data) ? empRes.data : []);
+    }
     catch (err) { toast('Failed to load properties', 'error'); }
     finally { setLoading(false); }
   };
@@ -173,6 +181,16 @@ export default function PropertyList() {
         <input type="number" placeholder="Built-up Max" value={filters.built_up_area_max} onChange={(e) => setFilters({ ...filters, built_up_area_max: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
         <input type="number" placeholder="Min Price" value={filters.priceMin} onChange={(e) => setFilters({ ...filters, priceMin: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
         <input type="number" placeholder="Max Price" value={filters.priceMax} onChange={(e) => setFilters({ ...filters, priceMax: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
+        {isAdmin && (
+          <>
+            <select value={filters.created_by_employee} onChange={(e) => setFilters({ ...filters, created_by_employee: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors dark:text-white">
+              <option value="">All Creators</option>
+              {employees.map((emp) => <option key={emp._id} value={emp._id}>{emp.full_name}</option>)}
+            </select>
+            <input type="date" value={filters.date_from} onChange={(e) => setFilters({ ...filters, date_from: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors dark:text-white" placeholder="From" />
+            <input type="date" value={filters.date_to} onChange={(e) => setFilters({ ...filters, date_to: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors dark:text-white" placeholder="To" />
+          </>
+        )}
       </div>
 
       {isAdmin && selectedIds.length > 0 && (

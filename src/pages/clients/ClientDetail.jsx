@@ -27,6 +27,7 @@ export default function ClientDetail() {
   const [documents, setDocuments] = useState([]);
   const [form, setForm] = useState({});
   const [allProperties, setAllProperties] = useState([]);
+  const [employees, setEmployees] = useState([]);
 
   const fetchClient = () => {
     setLoading(true);
@@ -52,13 +53,14 @@ export default function ClientDetail() {
           status: res.data.status || 'active',
           transaction_type: res.data.transaction_type || '',
           property: res.data.property?._id || res.data.property || '',
+          assigned_to: res.data.assigned_to?._id || res.data.assigned_to || '',
         });
       })
       .catch(() => toast('Failed to load client', 'error'))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchClient(); API.get('/properties').then((res) => setAllProperties(res.data)).catch(() => {}); }, [id]);
+  useEffect(() => { fetchClient(); API.get('/properties').then((res) => setAllProperties(res.data)).catch(() => {}); API.get('/employees').then((res) => setEmployees(res.data)).catch(() => {}); }, [id]);
 
   useEffect(() => {
     if (!client) return;
@@ -87,6 +89,7 @@ export default function ClientDetail() {
       await API.put(`/clients/${id}`, {
         ...form,
         property: form.property || undefined,
+        assigned_to: form.assigned_to || undefined,
         budget_min: form.budget_min ? Number(form.budget_min) : undefined,
         budget_max: form.budget_max ? Number(form.budget_max) : undefined,
       });
@@ -382,6 +385,10 @@ export default function ClientDetail() {
             </select></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Status</label><select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
               <option value="active">Active</option><option value="inactive">Inactive</option><option value="blocked">Blocked</option>
+            </select></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Assigned To</label><select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.assigned_to} onChange={(e) => setForm({ ...form, assigned_to: e.target.value })}>
+              <option value="">Unassigned</option>
+              {employees.map((e) => <option key={e._id} value={e._id}>{e.full_name} ({e.employee_id})</option>)}
             </select></div>
           </div>
           <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Address</label><textarea className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" rows={2} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>

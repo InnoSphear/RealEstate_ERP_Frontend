@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { HiOutlineArrowLeft, HiOutlineArrowUpTray, HiOutlineDocumentText } from 'react-icons/hi2';
+import { HiOutlineArrowLeft, HiOutlineArrowUpTray, HiOutlineClipboardDocumentList } from 'react-icons/hi2';
 import API from '../../api/axios';
 import Modal from '../../components/Modal';
 import { toast } from '../../components/Toast';
@@ -11,6 +11,7 @@ export default function EmployeeDetail() {
   const [employee, setEmployee] = useState(null);
   const [attendance, setAttendance] = useState([]);
   const [leaves, setLeaves] = useState([]);
+  const [leaveBalance, setLeaveBalance] = useState(null);
   const [commissions, setCommissions] = useState([]);
   const [commissionTotals, setCommissionTotals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,11 +26,13 @@ export default function EmployeeDetail() {
       API.get(`/employees/${id}`),
       API.get(`/attendance/employee/${id}?month=${month}`),
       API.get(`/leaves/employee/${id}`),
+      API.get(`/leaves/balance/${id}`),
       API.get(`/commissions/employee/${id}`),
-    ]).then(([eRes, aRes, lRes, cRes]) => {
+    ]).then(([eRes, aRes, lRes, lbRes, cRes]) => {
       setEmployee(eRes.data);
       setAttendance(Array.isArray(aRes.data) ? aRes.data : []);
       setLeaves(Array.isArray(lRes.data) ? lRes.data : []);
+      setLeaveBalance(lbRes.data || null);
       setCommissions(Array.isArray(cRes.data.commissions) ? cRes.data.commissions : []);
       setCommissionTotals(Array.isArray(cRes.data.totals) ? cRes.data.totals : []);
     }).catch(() => toast('Failed to load employee details', 'error')).finally(() => setLoading(false));
@@ -124,7 +127,7 @@ export default function EmployeeDetail() {
           <div className="space-y-2">
             {employee.documents.map((doc, i) => (
               <a key={i} href={doc.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-stone-50 hover:bg-stone-100 transition-colors text-sm text-stone-700">
-                <HiOutlineDocumentText size={18} className="text-stone-400" />
+                <HiOutlineClipboardDocumentList size={18} className="text-stone-400" />
                 <span className="flex-1">{doc.name || doc.filename || 'Document'}</span>
                 <span className="text-stone-400 text-xs">Download</span>
               </a>
@@ -148,11 +151,30 @@ export default function EmployeeDetail() {
 
         <div className="bg-white rounded-2xl border border-stone-200 luxury-shadow overflow-hidden p-6 sm:p-8">
           <h3 className="text-base font-semibold text-stone-900 mb-4">Leave Summary</h3>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-4 mb-4">
             <div className="p-4 rounded-xl bg-amber-50 text-center"><p className="text-2xl font-bold text-amber-700">{leaves.filter((l) => l.status === 'pending').length}</p><p className="text-xs text-amber-600 font-medium mt-1">Pending</p></div>
             <div className="p-4 rounded-xl bg-emerald-50 text-center"><p className="text-2xl font-bold text-emerald-700">{leaves.filter((l) => l.status === 'approved').length}</p><p className="text-xs text-emerald-600 font-medium mt-1">Approved</p></div>
             <div className="p-4 rounded-xl bg-red-50 text-center"><p className="text-2xl font-bold text-red-700">{leaves.filter((l) => l.status === 'rejected').length}</p><p className="text-xs text-red-600 font-medium mt-1">Rejected</p></div>
           </div>
+          {leaveBalance && (
+            <div className="border-t border-stone-100 pt-4 mt-2">
+              <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">Annual Leave Balance</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-3 rounded-xl bg-blue-50 text-center">
+                  <p className="text-lg font-bold text-blue-700">{leaveBalance.total_allowed || 0}</p>
+                  <p className="text-xs text-blue-600 font-medium mt-0.5">Total</p>
+                </div>
+                <div className="p-3 rounded-xl bg-amber-50 text-center">
+                  <p className="text-lg font-bold text-amber-700">{leaveBalance.taken || 0}</p>
+                  <p className="text-xs text-amber-600 font-medium mt-0.5">Used</p>
+                </div>
+                <div className="p-3 rounded-xl bg-emerald-50 text-center">
+                  <p className="text-lg font-bold text-emerald-700">{leaveBalance.remaining || 0}</p>
+                  <p className="text-xs text-emerald-600 font-medium mt-0.5">Remaining</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

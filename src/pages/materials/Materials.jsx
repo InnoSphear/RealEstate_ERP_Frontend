@@ -5,13 +5,19 @@ import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
 
+const categories = ['raw_material', 'finished_good', 'consumable', 'tool', 'equipment', 'furniture', 'fixture', 'other'];
+
 export default function Materials() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selected, setSelected] = useState(null);
-  const [form, setForm] = useState({ name: '', category: '', unit: '', sku: '', supplier_name: '', unit_cost: '', reorder_level: '', description: '', is_active: true });
+  const [form, setForm] = useState({
+    name: '', category: 'other', unit: '', sku: '', supplier_name: '',
+    unit_cost: '', reorder_level: '', current_stock: 0, min_stock_level: 0,
+    max_stock_level: '', location: '', description: '', is_active: true
+  });
 
   const fetchData = () => {
     setLoading(true);
@@ -19,29 +25,51 @@ export default function Materials() {
   };
   useEffect(() => { fetchData(); }, []);
 
-  const openCreate = () => { setSelected(null); setForm({ name: '', category: '', unit: '', sku: '', supplier_name: '', unit_cost: '', reorder_level: '', description: '', is_active: true }); setModalOpen(true); };
-  const openEdit = (row) => { setSelected(row); setForm({ name: row.name, category: row.category || '', unit: row.unit || '', sku: row.sku || '', supplier_name: row.supplier_name || '', unit_cost: row.unit_cost || '', reorder_level: row.reorder_level || '', description: row.description || '', is_active: row.is_active }); setModalOpen(true); };
+  const openCreate = () => {
+    setSelected(null);
+    setForm({ name: '', category: 'other', unit: '', sku: '', supplier_name: '', unit_cost: '', reorder_level: '', current_stock: 0, min_stock_level: 0, max_stock_level: '', location: '', description: '', is_active: true });
+    setModalOpen(true);
+  };
+  const openEdit = (row) => {
+    setSelected(row);
+    setForm({
+      name: row.name, category: row.category || 'other', unit: row.unit || '', sku: row.sku || '',
+      supplier_name: row.supplier_name || '', unit_cost: row.unit_cost || '',
+      reorder_level: row.reorder_level || '', current_stock: row.current_stock ?? 0,
+      min_stock_level: row.min_stock_level ?? 0, max_stock_level: row.max_stock_level ?? '',
+      location: row.location || '', description: row.description || '', is_active: row.is_active
+    });
+    setModalOpen(true);
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
     try {
-      const payload = { ...form, unit_cost: form.unit_cost ? Number(form.unit_cost) : undefined, reorder_level: form.reorder_level ? Number(form.reorder_level) : undefined };
+      const payload = {
+        ...form,
+        unit_cost: form.unit_cost ? Number(form.unit_cost) : undefined,
+        reorder_level: form.reorder_level ? Number(form.reorder_level) : undefined,
+        current_stock: Number(form.current_stock),
+        min_stock_level: Number(form.min_stock_level),
+        max_stock_level: form.max_stock_level ? Number(form.max_stock_level) : undefined
+      };
       if (selected) { await API.put(`/materials/${selected._id}`, payload); toast('Material updated'); }
       else { await API.post('/materials', payload); toast('Material created'); }
       setModalOpen(false); fetchData();
     } catch (err) { toast(err.response?.data?.message || 'Error', 'error'); }
   };
 
-  const handleDelete = async () => { try { await API.delete(`/materials/${selected._id}`); toast('Material deleted'); fetchData(); } catch (err) { toast('Error', 'error'); } };
+  const handleDelete = async () => { try { await API.delete(`/materials/${selected._id}`); toast('Material deleted'); fetchData(); } catch { toast('Error', 'error'); } };
 
   const columns = [
     { header: 'Name', accessor: 'name' },
     { header: 'SKU', accessor: 'sku' },
-    { header: 'Category', accessor: 'category' },
+    { header: 'Category', render: (r) => <span className="text-xs bg-stone-100 text-stone-700 px-2 py-0.5 rounded-full">{r.category?.replace(/_/g, ' ')}</span> },
     { header: 'Unit', accessor: 'unit' },
+    { header: 'Stock', render: (r) => <span className={`font-semibold ${r.current_stock <= r.min_stock_level ? 'text-red-600' : 'text-stone-900'}`}>{r.current_stock ?? 0} {r.unit || ''}</span> },
     { header: 'Unit Cost', render: (r) => r.unit_cost ? `₹${r.unit_cost}` : '-' },
     { header: 'Supplier', accessor: 'supplier_name' },
-    { header: 'Reorder Level', accessor: 'reorder_level' },
+    { header: 'Location', render: (r) => r.location || '-' },
     { header: 'Status', render: (r) => <span className={r.is_active ? 'bg-green-50 text-green-700 ring-1 ring-green-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium' : 'bg-red-50 text-red-700 ring-1 ring-red-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium'}>{r.is_active ? 'Active' : 'Inactive'}</span> },
   ];
 
@@ -57,10 +85,14 @@ export default function Materials() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Name *</label><input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">SKU</label><input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} /></div>
-            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Category</label><input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Category *</label><select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} required>{categories.map((c) => <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>)}</select></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Unit</label><input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="pcs, kg, sqft..." /></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Supplier</label><input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.supplier_name} onChange={(e) => setForm({ ...form, supplier_name: e.target.value })} /></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Unit Cost (₹)</label><input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.unit_cost} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Current Stock</label><input type="number" min="0" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.current_stock} onChange={(e) => setForm({ ...form, current_stock: e.target.value })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Min Stock Level</label><input type="number" min="0" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.min_stock_level} onChange={(e) => setForm({ ...form, min_stock_level: e.target.value })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Max Stock Level</label><input type="number" min="0" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.max_stock_level} onChange={(e) => setForm({ ...form, max_stock_level: e.target.value })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Location</label><input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Shelf, warehouse..." /></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Reorder Level</label><input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.reorder_level} onChange={(e) => setForm({ ...form, reorder_level: e.target.value })} /></div>
           </div>
           <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Description</label><textarea className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
@@ -72,3 +104,4 @@ export default function Materials() {
     </div>
   );
 }
+

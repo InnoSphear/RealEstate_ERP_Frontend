@@ -127,7 +127,6 @@ export default function LeadStages() {
                       >
                         <td className="px-4 py-3">
                           <span className="font-medium text-stone-900">{lead.full_name}</span>
-                          <span className="text-stone-400 ml-2 text-xs">{lead.lead_id}</span>
                         </td>
                         <td className="px-4 py-3 text-stone-600">{lead.mobile}</td>
                         <td className="px-4 py-3 text-stone-600 capitalize">{lead.source?.replace(/_/g, ' ')}</td>

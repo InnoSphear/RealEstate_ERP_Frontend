@@ -4,7 +4,7 @@ import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
-import { HiOutlineBanknotes, HiOutlineShoppingCart, HiOutlineCreditCard, HiOutlineCube, HiOutlineBuildingOffice } from 'react-icons/hi2';
+import { HiOutlineBanknotes, HiOutlineShoppingCart, HiOutlineCreditCard, HiOutlineBuildingOffice } from 'react-icons/hi2';
 
 const paymentStatusBadge = (v) => {
   const map = {
@@ -50,7 +50,7 @@ export default function VendorList() {
       setData(Array.isArray(dRes.data) ? dRes.data : dRes.data.vendors || []);
       setStats(sRes.data);
       setProjects(Array.isArray(pjRes.data) ? pjRes.data : pjRes.data?.projects || []);
-    } catch (err) { toast('Failed to load vendors', 'error'); }
+    } catch { toast('Failed to load vendors', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, [filters]);
@@ -110,7 +110,7 @@ export default function VendorList() {
 
   const handleDelete = async () => {
     try { await API.delete(`/vendors/${selected._id}`); toast('Vendor deleted'); fetchData(); }
-    catch (err) { toast('Error', 'error'); }
+    catch { toast('Error', 'error'); }
   };
 
   const updatePurchaseItem = (field, value) => {
@@ -352,3 +352,4 @@ export default function VendorList() {
     </div>
   );
 }
+

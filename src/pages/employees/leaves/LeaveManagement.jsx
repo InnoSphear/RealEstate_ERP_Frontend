@@ -68,7 +68,7 @@ export default function LeaveManagement() {
       await API.put(`/leaves/${row._id}/approve`);
       toast('Leave approved');
       fetchData();
-    } catch (err) { toast('Error approving leave', 'error'); }
+    } catch { toast('Error approving leave', 'error'); }
   };
 
   const handleReject = async () => {
@@ -78,7 +78,7 @@ export default function LeaveManagement() {
       setRejectModal(false);
       setRejectReason('');
       fetchData();
-    } catch (err) { toast('Error rejecting leave', 'error'); }
+    } catch { toast('Error rejecting leave', 'error'); }
   };
 
   const pending = data.filter((l) => l.status === 'pending').length;
@@ -177,3 +177,4 @@ export default function LeaveManagement() {
     </div>
   );
 }
+

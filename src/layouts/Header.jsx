@@ -43,7 +43,7 @@ export default function Header() {
       try {
         const res = await API.get('/notifications');
         setNotifications(res.data.data || res.data);
-      } catch {}
+      } catch { /* ignore notification errors */ }
     }
   };
 

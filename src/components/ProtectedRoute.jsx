@@ -19,16 +19,19 @@ export default function ProtectedRoute({ children, roles, permission }) {
 
   const roleSlug = user.role_slug || user.role?.slug;
 
-  // Allow if role slug matches
-  if (roles && roles.includes(roleSlug)) return children;
-
-  // Allow if permission is granted (fallback for dynamically added permissions)
+  // First: check granular permission if specified (primary gate)
   if (permission) {
     const [mod, action = 'read'] = permission.split(':');
     if (hasPermission(mod, action)) return children;
+    if (hasPermission(mod, 'manage')) return children;
+    if (roles && roles.includes(roleSlug)) return children;
+    return <Navigate to="/dashboard" replace />;
   }
 
-  // Block if roles were specified but neither role nor permission matched
+  // Second: allow if role slug matches (fallback when no permission is specified)
+  if (roles && roles.includes(roleSlug)) return children;
+
+  // Block if roles were specified but didn't match
   if (roles) return <Navigate to="/dashboard" replace />;
 
   return children;

@@ -5,7 +5,6 @@ import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
-import { useAuth } from '../../contexts/AuthContext';
 
 const statusColors = {
   active: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
@@ -13,14 +12,12 @@ const statusColors = {
   blocked: 'bg-red-50 text-red-700 ring-1 ring-red-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
 };
 
-const sources = ['referral', 'website', 'social_media', 'walk_in', 'call', 'ad'];
+const sources = ['facebook', 'google', 'instagram', 'website', 'walk_in', 'referral', '99acres', 'magicbricks', 'housing', 'nobroker', 'justdial', 'indiamart', 'flatdekho', 'olx', 'other', 'social_media', 'call', 'ad'];
 const requirementTypes = ['buy', 'rent', 'lease', 'interior', 'sell'];
 const statuses = ['active', 'inactive', 'blocked'];
 
 export default function ClientList() {
   const navigate = useNavigate();
-  const { hasRole } = useAuth();
-  const isAdmin = hasRole('admin', 'manager');
   const [data, setData] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -115,7 +112,7 @@ export default function ClientList() {
       await API.delete(`/clients/${selected._id}`);
       toast('Client deleted');
       fetchData();
-    } catch (err) {
+    } catch {
       toast('Error deleting', 'error');
     }
   };
@@ -128,18 +125,41 @@ export default function ClientList() {
     });
   };
 
+  const requirementColors = {
+    buy: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
+    rent: 'bg-violet-50 text-violet-700 ring-1 ring-violet-200',
+    lease: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
+    interior: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200',
+    commercial: 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200',
+    investment: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
+    sell: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200',
+  };
+
+  const activeCount = data.filter((r) => r.status === 'active').length;
+  const inactiveCount = data.filter((r) => r.status === 'inactive').length;
+  const convertedCount = data.filter((r) => r.converted).length;
+
   const columns = [
-    { header: 'ID', accessor: 'client_id' },
     { header: 'Name', accessor: 'full_name' },
     { header: 'Mobile', accessor: 'mobile' },
     { header: 'Email', accessor: 'email' },
-    { header: 'Requirement', render: (r) => <span className="capitalize text-sm">{r.requirement_type?.replace(/_/g, ' ') || '-'}</span> },
-    { header: 'Client Type', render: (r) => r.transaction_type ? <span className="capitalize text-sm">{r.transaction_type}</span> : '-' },
-    { header: 'Budget Range', render: (r) => (r.budget_min || r.budget_max) ? `₹${(r.budget_min || 0).toLocaleString()} - ₹${(r.budget_max || 0).toLocaleString()}` : '-' },
+    { header: 'Requirement', render: (r) => (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${requirementColors[r.requirement_type] || 'bg-stone-50 text-stone-700 ring-1 ring-stone-200'}`}>
+        {r.requirement_type?.replace(/_/g, ' ') || '-'}
+      </span>
+    )},
+    { header: 'Notes', render: (r) => r.notes ? (
+      <span className="text-sm text-stone-600 truncate block max-w-[200px]" title={r.notes}>
+        {r.notes.length > 60 ? `${r.notes.slice(0, 60)}...` : r.notes}
+      </span>
+    ) : <span className="text-sm text-stone-400">-</span>},
     { header: 'Status', render: (r) => <span className={statusColors[r.status] || statusColors.active}>{r.status}</span> },
-    { header: 'Assigned To', render: (r) => r.assigned_to?.full_name || '-' },
-    { header: 'Converted', render: (r) => r.converted ? <span className="text-emerald-600 font-semibold">Yes</span> : 'No' },
-    { header: 'Created', render: (r) => r.created_at ? new Date(r.created_at).toLocaleDateString() : '-' },
+    { header: 'Assigned To', render: (r) => r.assigned_to ? (
+      <span className="text-sm font-medium text-stone-700">{r.assigned_to.full_name}</span>
+    ) : <span className="text-sm text-stone-400">Unassigned</span>},
+    { header: 'Created', render: (r) => r.createdAt ? (
+      <span className="text-sm text-stone-500">{new Date(r.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+    ) : '-' },
   ];
 
   return (
@@ -173,6 +193,25 @@ export default function ClientList() {
           <option value="">All Requirements</option>
           {requirementTypes.map((r) => <option key={r} value={r}>{r.replace(/_/g, ' ')}</option>)}
         </select>
+      </div>
+
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+          <p className="text-xs text-emerald-600 font-semibold uppercase tracking-wider">Active</p>
+          <p className="text-2xl font-bold text-emerald-900 mt-1">{activeCount}</p>
+        </div>
+        <div className="p-4 rounded-xl bg-stone-50 border border-stone-200">
+          <p className="text-xs text-stone-600 font-semibold uppercase tracking-wider">Inactive</p>
+          <p className="text-2xl font-bold text-stone-900 mt-1">{inactiveCount}</p>
+        </div>
+        <div className="p-4 rounded-xl bg-blue-50 border border-blue-200">
+          <p className="text-xs text-blue-600 font-semibold uppercase tracking-wider">Total</p>
+          <p className="text-2xl font-bold text-blue-900 mt-1">{data.length}</p>
+        </div>
+        <div className="p-4 rounded-xl bg-purple-50 border border-purple-200">
+          <p className="text-xs text-purple-600 font-semibold uppercase tracking-wider">Converted</p>
+          <p className="text-2xl font-bold text-purple-900 mt-1">{convertedCount}</p>
+        </div>
       </div>
 
       <DataTable
@@ -304,3 +343,4 @@ export default function ClientList() {
     </div>
   );
 }
+

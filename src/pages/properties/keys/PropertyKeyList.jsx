@@ -17,9 +17,9 @@ const statusBadge = (v) => {
   return <span className={map[v] || map.returned}>{v ? v.charAt(0).toUpperCase() + v.slice(1) : '-'}</span>;
 };
 
-const ActionButton = ({ onClick, label, icon: Icon, color }) => (
+const ActionButton = ({ onClick, label, icon, color }) => (
   <button onClick={onClick} className={`p-1.5 rounded-lg transition-all cursor-pointer ${color}`} title={label}>
-    <Icon size={14} />
+    {typeof icon === 'function' ? icon({size: 14}) : icon}
   </button>
 );
 
@@ -54,7 +54,7 @@ export default function PropertyKeyList() {
       setData(Array.isArray(dRes.data) ? dRes.data : dRes.data.keys || []);
       setProperties(Array.isArray(pRes.data) ? pRes.data : pRes.data.properties || []);
       setUsers(Array.isArray(uRes.data) ? uRes.data : uRes.data.users || []);
-    } catch (err) { toast('Failed to load keys', 'error'); }
+    } catch { toast('Failed to load keys', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, [filters]);
@@ -65,7 +65,7 @@ export default function PropertyKeyList() {
   const openHistory = async (row) => {
     setSelected(row);
     try { const { data: h } = await API.get(`/property-keys/${row._id}/history`); setHistory(Array.isArray(h) ? h : []); }
-    catch (err) { setHistory([]); }
+    catch { setHistory([]); }
     setHistoryModal(true);
   };
   const handleMarkAvailable = async (row) => {
@@ -113,7 +113,7 @@ export default function PropertyKeyList() {
 
   const handleDelete = async () => {
     try { await API.delete(`/property-keys/${selected._id}`); toast('Key deleted'); fetchData(); }
-    catch (err) { toast('Error', 'error'); }
+    catch { toast('Error', 'error'); }
   };
 
   const columns = [
@@ -261,3 +261,4 @@ export default function PropertyKeyList() {
     </div>
   );
 }
+

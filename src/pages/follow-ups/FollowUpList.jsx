@@ -5,6 +5,14 @@ import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
 
+const tabs = [
+  { key: '', label: 'All' },
+  { key: 'due', label: 'Due Today' },
+  { key: 'overdue', label: 'Overdue' },
+  { key: 'pending', label: 'Pending' },
+  { key: 'completed', label: 'Completed' },
+];
+
 const statusColors = {
   pending: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
   completed: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
@@ -29,6 +37,8 @@ export default function FollowUpList() {
   const [completionNotes, setCompletionNotes] = useState('');
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleTime, setRescheduleTime] = useState('');
+  const [classification, setClassification] = useState('');
+  const [counts, setCounts] = useState({ total: 0, due: 0, overdue: 0, completed: 0, pending: 0 });
 
   const [filters, setFilters] = useState({ status: '', assigned_to: '', date_from: '', date_to: '' });
 
@@ -37,15 +47,27 @@ export default function FollowUpList() {
   };
   const [form, setForm] = useState(initForm);
 
+  const fetchCounts = (assigneeFilter = '') => {
+    const params = new URLSearchParams();
+    if (assigneeFilter) params.append('assigned_to', assigneeFilter);
+    if (classification) params.append('classification', classification);
+    const qs = params.toString();
+    API.get(`/follow-ups/counts${qs ? `?${qs}` : ''}`).then((res) => setCounts(res.data)).catch(() => {});
+  };
+
   const fetchData = () => {
     setLoading(true);
     const params = new URLSearchParams();
+    if (classification) params.append('classification', classification);
     Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
     const qs = params.toString();
     API.get(`/follow-ups${qs ? `?${qs}` : ''}`).then((res) => setData(res.data)).catch(() => toast('Failed to load follow-ups', 'error')).finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchData(); }, [filters]);
+  useEffect(() => {
+    fetchData();
+    fetchCounts(filters.assigned_to);
+  }, [filters, classification]);
 
   useEffect(() => {
     Promise.all([
@@ -58,6 +80,11 @@ export default function FollowUpList() {
       setClients(cRes.data || []);
     });
   }, []);
+
+  const handleTabChange = (key) => {
+    setClassification(key);
+    setSelectedIds([]);
+  };
 
   const openCreate = () => {
     setSelected(null);
@@ -101,7 +128,7 @@ export default function FollowUpList() {
       await API.delete(`/follow-ups/${selected._id}`);
       toast('Follow-up deleted');
       fetchData();
-    } catch (err) {
+    } catch {
       toast('Error deleting', 'error');
     }
   };
@@ -113,7 +140,7 @@ export default function FollowUpList() {
       setSelectedIds([]);
       setBulkConfirmOpen(false);
       fetchData();
-    } catch (err) {
+    } catch {
       toast('Error deleting', 'error');
     }
   };
@@ -126,11 +153,11 @@ export default function FollowUpList() {
 
   const handleComplete = async () => {
     try {
-      await API.put(`/follow-ups/${selected._id}`, { status: 'completed', completion_notes: completionNotes });
+      await API.put(`/follow-ups/${selected._id}/complete`, { completion_notes: completionNotes });
       toast('Follow-up marked complete');
       setCompletionModalOpen(false);
       fetchData();
-    } catch (err) {
+    } catch {
       toast('Error updating', 'error');
     }
   };
@@ -144,11 +171,11 @@ export default function FollowUpList() {
 
   const handleReschedule = async () => {
     try {
-      await API.put(`/follow-ups/${selected._id}`, { follow_up_date: rescheduleDate, follow_up_time: rescheduleTime });
+      await API.put(`/follow-ups/${selected._id}/reschedule`, { rescheduled_date: rescheduleDate, notes: rescheduleTime ? `Rescheduled to ${rescheduleTime}` : '' });
       toast('Follow-up rescheduled');
       setRescheduleModalOpen(false);
       fetchData();
-    } catch (err) {
+    } catch {
       toast('Error rescheduling', 'error');
     }
   };
@@ -185,7 +212,13 @@ export default function FollowUpList() {
       ),
     },
     { header: 'Time', render: (r) => r.follow_up_time || '-' },
-    { header: 'Notes', render: (r) => r.notes ? (r.notes.length > 40 ? r.notes.slice(0, 40) + '...' : r.notes) : '-' },
+    { header: 'Notes', render: (r) => (
+      <div className="text-sm">
+        {r.reason && <span className="font-semibold text-stone-800">{r.reason}</span>}
+        {r.reason && r.notes ? ' - ' : ''}
+        {r.notes ? (r.notes.length > 40 ? r.notes.slice(0, 40) + '...' : r.notes) : '-'}
+      </div>
+    )},
     { header: 'Status', render: (r) => <span className={statusColors[r.status]}>{r.status}</span> },
     {
       header: 'Action',
@@ -204,6 +237,13 @@ export default function FollowUpList() {
     },
   ];
 
+  const cardConfig = [
+    { key: 'due', label: 'Due Today', count: counts.due, bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', subtext: 'text-amber-600' },
+    { key: 'overdue', label: 'Overdue', count: counts.overdue, bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', subtext: 'text-red-600' },
+    { key: 'pending', label: 'Pending', count: counts.pending, bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700', subtext: 'text-blue-600' },
+    { key: 'completed', label: 'Completed', count: counts.completed, bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-700', subtext: 'text-green-600' },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -214,6 +254,37 @@ export default function FollowUpList() {
         <button onClick={openCreate} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">
           + Add Follow-up
         </button>
+      </div>
+
+      <div className="flex gap-2 mb-2">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => handleTabChange(tab.key)}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
+              classification === tab.key
+                ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/10'
+                : 'bg-white text-stone-600 hover:bg-stone-50 border border-stone-200'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        {cardConfig.map((card) => (
+          <button
+            key={card.key}
+            onClick={() => handleTabChange(card.key)}
+            className={`p-4 rounded-xl ${card.bg} border ${card.border} text-left cursor-pointer transition-all hover:shadow-md ${
+              classification === card.key ? 'ring-2 ring-stone-900/20' : ''
+            }`}
+          >
+            <p className={`text-2xl font-bold ${card.text}`}>{card.count}</p>
+            <p className={`text-xs ${card.subtext}`}>{card.label}</p>
+          </button>
+        ))}
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -229,7 +300,7 @@ export default function FollowUpList() {
         <input type="date" value={filters.date_to} onChange={(e) => setFilters({ ...filters, date_to: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" placeholder="To" />
       </div>
 
-      {data.filter((r) => isOverdue(r.follow_up_date, r.status)).length > 0 && (
+      {data.filter((r) => isOverdue(r.follow_up_date, r.status)).length > 0 && classification !== 'overdue' && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-center gap-3">
           <span className="w-2 h-2 rounded-full bg-red-500" />
           <p className="text-sm text-red-700 font-medium">{data.filter((r) => isOverdue(r.follow_up_date, r.status)).length} overdue follow-up(s) need attention</p>
@@ -340,3 +411,4 @@ export default function FollowUpList() {
     </div>
   );
 }
+

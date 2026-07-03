@@ -66,7 +66,7 @@ export default function SiteVisitList() {
       setClients(Array.isArray(cRes.data) ? cRes.data : []);
       setProperties(Array.isArray(pRes.data) ? pRes.data : []);
       setEmployees(Array.isArray(eRes.data) ? eRes.data : []);
-    } catch (err) { toast('Failed to load', 'error'); }
+    } catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, [filterStatus, filterExecutive, dateFrom, dateTo]);
@@ -82,7 +82,7 @@ export default function SiteVisitList() {
     try {
       const res = await API.get(`/property-keys?property=${propertyId}`);
       setAvailableKeys(Array.isArray(res.data) ? res.data : []);
-    } catch (err) { setAvailableKeys([]); }
+    } catch { setAvailableKeys([]); }
   };
 
   const keyStatusColor = (status) => {
@@ -103,11 +103,6 @@ export default function SiteVisitList() {
   };
 
   const openCreate = () => { setSelected(null); resetForm(); setModalOpen(true); };
-
-  const handlePropertyChange = (propertyId) => {
-    setForm({ ...form, property_id: propertyId, property_keys: [] });
-    fetchAvailableKeys(propertyId);
-  };
 
   const toggleKey = (keyId) => {
     const cur = form.property_keys || [];
@@ -134,7 +129,7 @@ export default function SiteVisitList() {
 
   const handleConfirm = async (row) => {
     try { await API.put(`/site-visits/${row._id}/confirm`); toast('Visit confirmed'); fetchData(); }
-    catch (err) { toast('Error', 'error'); }
+    catch { toast('Error', 'error'); }
   };
 
   const handleComplete = async (row) => {
@@ -150,7 +145,7 @@ export default function SiteVisitList() {
       toast('Visit completed');
       setOutcomeModal(false);
       fetchData();
-    } catch (err) { toast('Error', 'error'); }
+    } catch { toast('Error', 'error'); }
   };
 
   const openReschedule = (row) => {
@@ -166,7 +161,7 @@ export default function SiteVisitList() {
       toast('Visit rescheduled');
       setRescheduleModal(false);
       fetchData();
-    } catch (err) { toast('Error', 'error'); }
+    } catch { toast('Error', 'error'); }
   };
 
   const handleCancel = async () => {
@@ -174,7 +169,7 @@ export default function SiteVisitList() {
       await API.put(`/site-visits/${selected._id}/cancel`, { cancellation_reason: '' });
       toast('Visit cancelled');
       fetchData();
-    } catch (err) { toast('Error', 'error'); }
+    } catch { toast('Error', 'error'); }
   };
 
   const handleBulkDelete = async () => {
@@ -432,3 +427,4 @@ export default function SiteVisitList() {
     </div>
   );
 }
+

@@ -17,7 +17,7 @@ export default function Revenue() {
   const fetchData = async () => {
     setLoading(true);
     try { const [dRes, bRes] = await Promise.all([API.get('/revenue-summaries'), API.get('/branches')]); setData(dRes.data); setBranches(bRes.data); }
-    catch (err) { toast('Failed to load', 'error'); }
+    catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, []);
@@ -106,3 +106,4 @@ export default function Revenue() {
     </div>
   );
 }
+

@@ -21,7 +21,7 @@ export default function Expenses() {
   const fetchData = async () => {
     setLoading(true);
     try { const [dRes, bRes, pRes] = await Promise.all([API.get('/expenses'), API.get('/branches'), API.get('/interior-projects')]); setData(dRes.data); setBranches(bRes.data); setProjects(pRes.data); }
-    catch (err) { toast('Failed to load', 'error'); }
+    catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, []);
@@ -39,7 +39,7 @@ export default function Expenses() {
     } catch (err) { toast(err.response?.data?.message || 'Error', 'error'); }
   };
 
-  const handleDelete = async () => { try { await API.delete(`/expenses/${selected._id}`); toast('Expense deleted'); fetchData(); } catch (err) { toast('Error', 'error'); } };
+  const handleDelete = async () => { try { await API.delete(`/expenses/${selected._id}`); toast('Expense deleted'); fetchData(); } catch { toast('Error', 'error'); } };
 
   const columns = [
     { header: 'Category', accessor: 'category' },
@@ -75,3 +75,4 @@ export default function Expenses() {
     </div>
   );
 }
+

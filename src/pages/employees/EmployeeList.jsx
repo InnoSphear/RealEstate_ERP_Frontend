@@ -98,7 +98,7 @@ export default function EmployeeList() {
   };
 
   const handleDelete = async () => {
-    try { await API.delete(`/employees/${selected._id}`); toast('Employee deleted'); fetchData(); } catch (err) { toast('Error deleting employee', 'error'); }
+    try { await API.delete(`/employees/${selected._id}`); toast('Employee deleted'); fetchData(); } catch { toast('Error deleting employee', 'error'); }
   };
 
   const columns = [
@@ -172,3 +172,4 @@ export default function EmployeeList() {
     </div>
   );
 }
+

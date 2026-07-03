@@ -53,7 +53,7 @@ export default function Payments() {
       setClients(cRes.data);
       setBranches(bRes.data);
       setStats(sRes.data);
-    } catch (err) { toast('Failed to load', 'error'); }
+    } catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, [filterClient, filterStatus]);
@@ -121,7 +121,7 @@ export default function Payments() {
       await API.delete(`/payments/${selected._id}`);
       toast('Payment deleted');
       fetchData();
-    } catch (err) { toast('Error', 'error'); }
+    } catch { toast('Error', 'error'); }
   };
 
   const columns = [
@@ -245,3 +245,4 @@ export default function Payments() {
     </div>
   );
 }
+

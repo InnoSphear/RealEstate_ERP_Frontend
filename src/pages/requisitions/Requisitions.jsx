@@ -22,7 +22,7 @@ export default function Requisitions() {
   const fetchData = async () => {
     setLoading(true);
     try { const [dRes, pRes, uRes] = await Promise.all([API.get('/material-requisitions'), API.get('/interior-projects'), API.get('/users')]); setData(dRes.data); setProjects(pRes.data); setUsers(uRes.data); }
-    catch (err) { toast('Failed to load', 'error'); }
+    catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, []);
@@ -39,7 +39,7 @@ export default function Requisitions() {
     } catch (err) { toast(err.response?.data?.message || 'Error', 'error'); }
   };
 
-  const handleDelete = async () => { try { await API.delete(`/material-requisitions/${selected._id}`); toast('Requisition deleted'); fetchData(); } catch (err) { toast('Error', 'error'); } };
+  const handleDelete = async () => { try { await API.delete(`/material-requisitions/${selected._id}`); toast('Requisition deleted'); fetchData(); } catch { toast('Error', 'error'); } };
 
   const columns = [
     { header: 'Req #', accessor: 'req_number' },
@@ -74,3 +74,4 @@ export default function Requisitions() {
     </div>
   );
 }
+

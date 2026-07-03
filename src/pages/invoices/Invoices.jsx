@@ -47,7 +47,7 @@ export default function Invoices() {
       setBranches(bRes.data);
       setProjects(pRes.data);
       setSales(sRes.data);
-    } catch (err) { toast('Failed to load', 'error'); }
+    } catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, [filterStatus]);
@@ -65,7 +65,7 @@ export default function Invoices() {
     } catch (err) { toast(err.response?.data?.message || 'Error', 'error'); }
   };
 
-  const handleDelete = async () => { try { await API.delete(`/invoices/${selected._id}`); toast('Invoice deleted'); fetchData(); } catch (err) { toast('Error', 'error'); } };
+  const handleDelete = async () => { try { await API.delete(`/invoices/${selected._id}`); toast('Invoice deleted'); fetchData(); } catch { toast('Error', 'error'); } };
 
   const columns = [
     { header: 'Invoice #', accessor: 'invoice_number' },
@@ -118,3 +118,4 @@ export default function Invoices() {
     </div>
   );
 }
+

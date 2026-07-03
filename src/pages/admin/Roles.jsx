@@ -4,9 +4,11 @@ import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
+import { useAuth } from '../../contexts/AuthContext';
 import { HiPlus, HiPencil, HiTrash } from 'react-icons/hi2';
 
 export default function Roles() {
+  const { refreshUser } = useAuth();
   const [roles, setRoles] = useState([]);
   const [permissionsByModule, setPermissionsByModule] = useState({});
   const [loading, setLoading] = useState(true);
@@ -83,6 +85,7 @@ export default function Roles() {
       }
       setModalOpen(false);
       fetchData();
+      refreshUser();
     } catch (err) {
       toast(err.response?.data?.message || 'Error saving role', 'error');
     }
@@ -94,6 +97,7 @@ export default function Roles() {
       toast('Role deleted');
       setConfirmOpen(false);
       fetchData();
+      refreshUser();
     } catch (err) {
       toast(err.response?.data?.message || 'Error deleting role', 'error');
     }

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import API from '../../api/axios';
 import Modal from '../../components/Modal';
 import { toast } from '../../components/Toast';
-import { HiOutlineArrowLeft, HiOutlinePencilSquare, HiOutlineMapPin, HiOutlineBuildingOffice2, HiOutlineCalendarDays, HiOutlinePhoto, HiOutlineDocumentText, HiOutlinePlusCircle, HiOutlineCloudArrowDown } from 'react-icons/hi2';
+import { HiOutlineArrowLeft, HiOutlinePencilSquare, HiOutlineMapPin, HiOutlineBuildingOffice2, HiOutlineCalendarDays, HiOutlinePhoto, HiOutlineClipboardDocumentList, HiOutlinePlusCircle, HiOutlineCloudArrowDown } from 'react-icons/hi2';
 
 const statusBadge = (v) => {
   const map = { planning: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:ring-blue-800', ongoing: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:ring-emerald-800', completed: 'bg-green-50 text-green-700 ring-1 ring-green-200 dark:bg-green-900/20 dark:text-green-400 dark:ring-green-800', on_hold: 'bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:ring-yellow-800', cancelled: 'bg-red-50 text-red-700 ring-1 ring-red-200 dark:bg-red-900/20 dark:text-red-400 dark:ring-red-800' };
@@ -10,7 +11,8 @@ const statusBadge = (v) => {
 };
 
 export default function ProjectDetail() {
-  const id = window.location.pathname.split('/').pop();
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updateModal, setUpdateModal] = useState(false);
@@ -20,7 +22,7 @@ export default function ProjectDetail() {
   useEffect(() => {
     (async () => {
       try { const { data } = await API.get(`/projects/${id}`); setProject(data); }
-      catch (err) { toast('Failed to load project', 'error'); }
+      catch { toast('Failed to load project', 'error'); }
       finally { setLoading(false); }
     })();
   }, [id]);
@@ -65,8 +67,8 @@ export default function ProjectDetail() {
   return (
     <div className="space-y-6 dark:text-stone-100">
       <div className="flex items-center justify-between">
-        <button onClick={() => window.history.back()} className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white transition-colors"><HiOutlineArrowLeft size={16} /> Back</button>
-        <button onClick={() => { window.location.href = `/projects/${id}/edit`; }} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10 dark:bg-stone-700 dark:hover:bg-stone-600"><HiOutlinePencilSquare size={15} /> Edit</button>
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white transition-colors"><HiOutlineArrowLeft size={16} /> Back</button>
+        <button onClick={() => navigate(`/projects/${id}/edit`)} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10 dark:bg-stone-700 dark:hover:bg-stone-600"><HiOutlinePencilSquare size={15} /> Edit</button>
       </div>
 
       <div className="relative h-56 sm:h-72 lg:h-96 rounded-2xl overflow-hidden bg-stone-100 dark:bg-stone-700">
@@ -190,12 +192,12 @@ export default function ProjectDetail() {
             </div>
           </Section>
 
-          <Section title="Documents" icon={HiOutlineDocumentText}>
+          <Section title="Documents" icon={HiOutlineClipboardDocumentList}>
             {p.documents?.length ? (
               <div className="space-y-2">
                 {p.documents.map((doc, i) => (
                   <a key={i} href={doc.url || doc} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white transition-colors p-2 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-700">
-                    <HiOutlineDocumentText size={16} className="text-stone-400" />
+                    <HiOutlineClipboardDocumentList size={16} className="text-stone-400" />
                     <span className="flex-1 truncate">{doc.name || `Document ${i + 1}`}</span>
                     <HiOutlineCloudArrowDown size={14} className="text-stone-400" />
                   </a>
@@ -253,3 +255,4 @@ export default function ProjectDetail() {
     </div>
   );
 }
+

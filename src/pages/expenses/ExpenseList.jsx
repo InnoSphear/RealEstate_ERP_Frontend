@@ -40,7 +40,7 @@ export default function ExpenseList() {
       const qs = params.toString();
       const { data: res } = await API.get("/expenses" + (qs ? "?" + qs : ""));
       setData(res);
-    } catch (err) { toast('Failed to load', 'error'); }
+    } catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, [filterStatus, filterCategory, dateFrom, dateTo]);
@@ -76,12 +76,12 @@ export default function ExpenseList() {
 
   const handleApprove = async (row) => {
     try { await API.put("/expenses/" + row._id, { status: 'approved' }); toast('Expense approved'); fetchData(); }
-    catch (err) { toast('Error', 'error'); }
+    catch { toast('Error', 'error'); }
   };
 
   const handleReject = async (row) => {
     try { await API.put("/expenses/" + row._id, { status: 'rejected' }); toast('Expense rejected'); fetchData(); }
-    catch (err) { toast('Error', 'error'); }
+    catch { toast('Error', 'error'); }
   };
 
   const columns = [
@@ -199,3 +199,4 @@ export default function ExpenseList() {
     </div>
   );
 }
+

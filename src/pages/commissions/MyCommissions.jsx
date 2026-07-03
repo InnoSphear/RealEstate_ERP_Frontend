@@ -26,8 +26,7 @@ export default function MyCommissions() {
       const res = await API.get(`/commissions/my${params}`);
       setCommissions(res.data.commissions);
       setTotals(res.data.totals || []);
-    } catch (err) {
-      console.error('Failed to load commissions', err);
+    } catch { /* ignore fetch errors */
     } finally {
       setLoading(false);
     }

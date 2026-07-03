@@ -48,7 +48,7 @@ export default function Clients() {
     } catch (err) { toast(err.response?.data?.message || 'Error', 'error'); }
   };
 
-  const handleDelete = async () => { try { await API.delete(`/clients/${selected._id}`); toast('Client deleted'); fetchData(); } catch (err) { toast('Error deleting', 'error'); } };
+  const handleDelete = async () => { try { await API.delete(`/clients/${selected._id}`); toast('Client deleted'); fetchData(); } catch { toast('Error deleting', 'error'); } };
 
   const columns = [
     { header: 'Name', accessor: 'full_name' },
@@ -97,3 +97,4 @@ export default function Clients() {
     </div>
   );
 }
+

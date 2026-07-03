@@ -71,7 +71,7 @@ export default function CommissionList() {
         summaryMap[name].count++;
       });
       setSummary(Object.values(summaryMap));
-    } catch (err) { toast('Failed to load', 'error'); }
+    } catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, [filterStatus, filterSource, filterEmployee, filterType]);
@@ -451,3 +451,4 @@ export default function CommissionList() {
     </div>
   );
 }
+

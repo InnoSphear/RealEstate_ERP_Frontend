@@ -4,23 +4,23 @@ import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
 import {
-  HiOutlineDocumentText, HiOutlinePhoto, HiOutlineDocumentArrowDown,
+  HiOutlineClipboardDocumentList, HiOutlinePhoto, HiOutlineDocumentArrowDown,
   HiOutlineTrash, HiOutlineMagnifyingGlass, HiOutlineCloudArrowUp,
   HiOutlineFolder, HiOutlineDocument, HiOutlineTableCells,
 } from 'react-icons/hi2';
 
 const moduleTabs = [
   { key: '', label: 'All', icon: HiOutlineFolder },
-  { key: 'property', label: 'Properties', icon: HiOutlineDocumentText },
+  { key: 'property', label: 'Properties', icon: HiOutlineClipboardDocumentList },
   { key: 'client', label: 'Clients', icon: HiOutlineFolder },
   { key: 'employee', label: 'Employees', icon: HiOutlineFolder },
   { key: 'project', label: 'Projects', icon: HiOutlineFolder },
 ];
 
 const fileIconMap = {
-  pdf: HiOutlineDocumentText,
-  doc: HiOutlineDocumentText,
-  docx: HiOutlineDocumentText,
+  pdf: HiOutlineClipboardDocumentList,
+  doc: HiOutlineClipboardDocumentList,
+  docx: HiOutlineClipboardDocumentList,
   jpg: HiOutlinePhoto,
   jpeg: HiOutlinePhoto,
   png: HiOutlinePhoto,
@@ -136,7 +136,7 @@ export default function Documents() {
       await API.delete(`/documents/${selectedDoc._id}`);
       toast('Document deleted');
       fetchDocuments();
-    } catch (err) {
+    } catch {
       toast('Error deleting document', 'error');
     }
   };
@@ -228,7 +228,7 @@ export default function Documents() {
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-stone-200 luxury-shadow p-14 text-center">
           <div className="w-16 h-16 bg-stone-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <HiOutlineDocumentText className="w-8 h-8 text-stone-400" />
+            <HiOutlineClipboardDocumentList className="w-8 h-8 text-stone-400" />
           </div>
           <h3 className="text-base font-semibold text-stone-700 mb-1">No documents found</h3>
           <p className="text-sm text-stone-400">Upload a document to get started</p>
@@ -400,3 +400,4 @@ export default function Documents() {
     </div>
   );
 }
+

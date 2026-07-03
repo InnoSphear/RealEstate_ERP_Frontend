@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { HiOutlineArrowLeft, HiOutlinePencilSquare, HiOutlinePhone, HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineArrowPath } from 'react-icons/hi2';
+import { HiOutlineArrowLeft, HiOutlinePencilSquare, HiOutlinePhone, HiOutlineCheckCircle, HiOutlineArrowPath, HiOutlineCalendarDays } from 'react-icons/hi2';
 import API from '../../api/axios';
 import Modal from '../../components/Modal';
 import { toast } from '../../components/Toast';
@@ -20,7 +20,6 @@ const statusColors = {
 
 const pipelineStages = ['new', 'contacted', 'follow_up', 'site_visit', 'negotiation', 'won'];
 const qualStages = ['hot', 'warm', 'cold'];
-const allStages = [...pipelineStages, ...qualStages, 'lost'];
 
 const nextStages = {
   new: ['contacted', 'cold', 'lost'],
@@ -70,6 +69,12 @@ export default function LeadDetail() {
   const [users, setUsers] = useState([]);
   const [transferUserId, setTransferUserId] = useState('');
   const [form, setForm] = useState({});
+  const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
+  const [followUpForm, setFollowUpForm] = useState({ follow_up_date: '', follow_up_time: '', notes: '', reason: '', assigned_to: '' });
+  const [pipeFollowUpModal, setPipeFollowUpModal] = useState(false);
+  const [pipeFollowUpReason, setPipeFollowUpReason] = useState('');
+  const [lostReasonModalOpen, setLostReasonModalOpen] = useState(false);
+  const [lostReason, setLostReason] = useState('');
 
   const fetchLead = () => {
     setLoading(true);
@@ -97,7 +102,6 @@ export default function LeadDetail() {
           requirement: res.data.requirement || '',
           preferred_locations: res.data.preferred_locations || [],
           notes: res.data.notes || '',
-          lead_score: res.data.lead_score || 0,
         });
       })
       .catch(() => toast('Failed to load lead', 'error'))
@@ -146,6 +150,14 @@ export default function LeadDetail() {
   }, [convertModalOpen, conversionForm.transaction_type]);
 
   const handleQuickStatus = async (newStatus) => {
+    if (newStatus === 'lost') {
+      setLostReasonModalOpen(true);
+      return;
+    }
+    if (newStatus === 'follow_up') {
+      setPipeFollowUpModal(true);
+      return;
+    }
     try {
       await API.put(`/leads/${id}`, { status: newStatus });
       toast(`Status changed to ${newStatus.replace('_', ' ')}`);
@@ -222,6 +234,50 @@ export default function LeadDetail() {
     }
   };
 
+  const handleCreateFollowUp = async () => {
+    if (!followUpForm.follow_up_date || !followUpForm.assigned_to) return toast('Date and assignee are required', 'error');
+    try {
+      await API.post('/follow-ups', {
+        lead_id: id,
+        assigned_to: followUpForm.assigned_to,
+        follow_up_date: followUpForm.follow_up_date,
+        follow_up_time: followUpForm.follow_up_time || undefined,
+        notes: followUpForm.notes || undefined,
+        reason: followUpForm.reason || undefined,
+      });
+      toast('Follow-up created');
+      setFollowUpModalOpen(false);
+      setFollowUpForm({ follow_up_date: '', follow_up_time: '', notes: '', reason: '', assigned_to: '' });
+    } catch (err) {
+      toast(err.response?.data?.message || 'Error', 'error');
+    }
+  };
+
+  const handlePipeFollowUp = async () => {
+    try {
+      await API.put(`/leads/${id}`, { status: 'follow_up', follow_up_reason: pipeFollowUpReason || undefined });
+      toast('Status changed to Follow Up');
+      setPipeFollowUpModal(false);
+      setPipeFollowUpReason('');
+      fetchLead();
+    } catch (err) {
+      toast(err.response?.data?.message || 'Error', 'error');
+    }
+  };
+
+  const handleLostLead = async () => {
+    if (!lostReason.trim()) return toast('Please provide a reason for losing the lead', 'error');
+    try {
+      await API.put(`/leads/${id}`, { status: 'lost', lost_reason: lostReason });
+      toast('Lead marked as lost');
+      setLostReasonModalOpen(false);
+      setLostReason('');
+      fetchLead();
+    } catch (err) {
+      toast(err.response?.data?.message || 'Error', 'error');
+    }
+  };
+
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
   const formatTime = (d) => d ? new Date(d).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
 
@@ -257,12 +313,15 @@ export default function LeadDetail() {
               <span className={statusColors[lead.status] || statusColors.new}>{lead.status?.replace('_', ' ')}</span>
               {lead.converted_to_client && <span className="bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">Converted</span>}
             </div>
-            <p className="text-stone-500 mt-1">Lead ID: {lead.lead_id}</p>
+            <p className="text-stone-500 mt-1">Created {formatDate(lead.createdAt)} {formatTime(lead.createdAt)}</p>
           </div>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setCallNoteModalOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">
             <HiOutlinePhone size={15} /> Log Call
+          </button>
+          <button onClick={() => setFollowUpModalOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200">
+            <HiOutlineCalendarDays size={15} /> Follow-up
           </button>
           {!lead.converted_to_client && (
             <button onClick={() => setConvertModalOpen(true)} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200">
@@ -293,8 +352,8 @@ export default function LeadDetail() {
             <p className="text-sm text-stone-900 mt-1 capitalize">{lead.source || '-'}</p>
           </div>
           <div>
-            <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Lead Score</p>
-            <p className={`text-sm font-semibold mt-1 ${lead.lead_score > 60 ? 'text-emerald-600' : lead.lead_score > 30 ? 'text-amber-600' : 'text-red-600'}`}>{lead.lead_score}/100</p>
+            <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Latest Notes</p>
+            <p className="text-sm text-stone-700 mt-1 whitespace-pre-wrap">{lead.notes ? (lead.notes.length > 100 ? lead.notes.slice(0, 100) + '...' : lead.notes) : '-'}</p>
           </div>
           <div>
             <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Assigned To</p>
@@ -346,7 +405,7 @@ export default function LeadDetail() {
           </div>
           <div>
             <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Created</p>
-            <p className="text-sm text-stone-900 mt-1">{formatDate(lead.createdAt)}</p>
+            <p className="text-sm text-stone-900 mt-1">{formatDate(lead.createdAt)} {formatTime(lead.createdAt)}</p>
           </div>
           <div>
             <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Last Contacted</p>
@@ -392,7 +451,6 @@ export default function LeadDetail() {
                 {pipelineStages.map((stage, i) => {
                   const currentIndex = pipelineStages.indexOf(lead.status);
                   const stageIndex = pipelineStages.indexOf(stage);
-                  const isQual = qualStages.includes(lead.status);
                   const isCompleted = currentIndex > stageIndex;
                   const isCurrent = lead.status === stage;
                   const isReachable = nextStages[lead.status]?.includes(stage) || stage === lead.status;
@@ -478,6 +536,12 @@ export default function LeadDetail() {
               <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Converted to Client</p>
               <p className="text-sm text-stone-900 mt-1">{lead.converted_to_client ? `Yes (${lead.converted_client?.full_name || ''})` : 'No'}</p>
             </div>
+            {lead.lost_reason && (
+              <div>
+                <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Lost Reason</p>
+                <p className="text-sm text-stone-900 mt-1">{lead.lost_reason}</p>
+              </div>
+            )}
             {lead.conversion_details?.transaction_type && (
               <div>
                 <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Deal Type</p>
@@ -560,6 +624,7 @@ export default function LeadDetail() {
                 <div key={fu._id} className="flex items-center justify-between p-4 rounded-xl bg-stone-50">
                   <div>
                     <p className="text-sm text-stone-900 font-medium">{fu.notes || 'No notes'}</p>
+                    {fu.reason && <p className="text-xs text-stone-500 mt-0.5 italic">Reason: {fu.reason}</p>}
                     <p className="text-xs text-stone-400 mt-0.5">
                       {formatDate(fu.follow_up_date)} {fu.follow_up_time || ''} &middot; Assigned to {fu.assigned_to?.full_name || 'Unknown'}
                     </p>
@@ -584,11 +649,16 @@ export default function LeadDetail() {
             <p className="text-sm text-stone-400 text-center py-8">No call notes recorded</p>
           ) : (
             <div className="space-y-3">
-              {lead.call_notes.map((note, i) => (
-                <div key={i} className="p-4 rounded-xl bg-stone-50 border-l-4 border-stone-300">
-                  <p className="text-sm text-stone-700">{note}</p>
-                </div>
-              ))}
+              {lead.call_notes.map((note, i) => {
+                const text = typeof note === 'string' ? note : note.text;
+                const time = typeof note === 'object' && note.createdAt ? new Date(note.createdAt) : null;
+                return (
+                  <div key={i} className="p-4 rounded-xl bg-stone-50 border-l-4 border-stone-300">
+                    <p className="text-sm text-stone-700">{text}</p>
+                    {time && <p className="text-xs text-stone-400 mt-1">{time.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} {time.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -609,7 +679,7 @@ export default function LeadDetail() {
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Source</label><select className={inputClass + " appearance-none cursor-pointer"} value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })}>
               {['facebook','google','instagram','website','walk_in','referral','99acres','magicbricks','housing','other','social_media','call','ad'].map((s) => <option key={s} value={s}>{s.replace('_', ' ').charAt(0).toUpperCase() + s.replace('_', ' ').slice(1)}</option>)}
             </select></div>
-            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Lead Score (0-100)</label><input type="number" min={0} max={100} className={inputClass} value={form.lead_score} onChange={(e) => setForm({ ...form, lead_score: parseInt(e.target.value) || 0 })} /></div>
+            
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Budget</label><input type="number" className={inputClass} value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} /></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Property Type</label><input className={inputClass} value={form.property_type} onChange={(e) => setForm({ ...form, property_type: e.target.value })} /></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">City</label><input className={inputClass} value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
@@ -823,6 +893,72 @@ export default function LeadDetail() {
           <div className="flex justify-end gap-3">
             <button onClick={() => setTransferModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
             <button onClick={handleTransfer} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">Transfer</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={followUpModalOpen} onClose={() => setFollowUpModalOpen(false)} title="Schedule Follow-up" size="md">
+        <div className="space-y-5">
+          <div>
+            <label className="block text-sm font-semibold text-stone-700 mb-1.5">Follow-up Date *</label>
+            <input type="date" className={inputClass} value={followUpForm.follow_up_date} onChange={(e) => setFollowUpForm({ ...followUpForm, follow_up_date: e.target.value })} required />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-stone-700 mb-1.5">Follow-up Time</label>
+            <input type="time" className={inputClass} value={followUpForm.follow_up_time} onChange={(e) => setFollowUpForm({ ...followUpForm, follow_up_time: e.target.value })} />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-stone-700 mb-1.5">Assign To *</label>
+            <select className={inputClass + " appearance-none cursor-pointer"} value={followUpForm.assigned_to} onChange={(e) => setFollowUpForm({ ...followUpForm, assigned_to: e.target.value })} required>
+              <option value="">Select user</option>
+              {users.map((u) => <option key={u._id} value={u._id}>{u.full_name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-stone-700 mb-1.5">Reason</label>
+            <textarea className={inputClass} rows={2} value={followUpForm.reason} onChange={(e) => setFollowUpForm({ ...followUpForm, reason: e.target.value })} placeholder="Why this follow-up?" />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-stone-700 mb-1.5">Notes</label>
+            <textarea className={inputClass} rows={2} value={followUpForm.notes} onChange={(e) => setFollowUpForm({ ...followUpForm, notes: e.target.value })} placeholder="Additional notes..." />
+          </div>
+          <div className="flex justify-end gap-3">
+            <button onClick={() => setFollowUpModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all inline-flex items-center gap-2 cursor-pointer bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
+            <button onClick={handleCreateFollowUp} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all inline-flex items-center gap-2 cursor-pointer border-0 bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-900/10">Create Follow-up</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={pipeFollowUpModal} onClose={() => setPipeFollowUpModal(false)} title="Follow-up Reason" size="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-stone-600">Add a reason for this follow-up</p>
+          <textarea className={inputClass} rows={3} value={pipeFollowUpReason} onChange={(e) => setPipeFollowUpReason(e.target.value)} placeholder="Why are you following up?" />
+          <div className="flex justify-end gap-3">
+            <button onClick={() => setPipeFollowUpModal(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all inline-flex items-center gap-2 cursor-pointer bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
+            <button onClick={handlePipeFollowUp} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">Save & Update</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={lostReasonModalOpen} onClose={() => setLostReasonModalOpen(false)} title="Lost Lead Reason" size="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-stone-600">Please provide a reason for marking this lead as lost</p>
+          <select className={inputClass + " appearance-none cursor-pointer"} value={lostReason} onChange={(e) => setLostReason(e.target.value)}>
+            <option value="">Select a reason</option>
+            <option value="not_interested">Not Interested</option>
+            <option value="budget_issue">Budget Issue</option>
+            <option value="location_change">Location Changed</option>
+            <option value="found_elsewhere">Found Elsewhere</option>
+            <option value="no_response">No Response</option>
+            <option value="timing_issue">Timing Issue</option>
+            <option value="other">Other</option>
+          </select>
+          {lostReason === 'other' && (
+            <textarea className={inputClass} rows={2} value={lostReason === 'other' ? '' : lostReason} onChange={(e) => setLostReason(e.target.value)} placeholder="Please specify..." />
+          )}
+          <div className="flex justify-end gap-3">
+            <button onClick={() => setLostReasonModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all inline-flex items-center gap-2 cursor-pointer bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
+            <button onClick={handleLostLead} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all inline-flex items-center gap-2 cursor-pointer border-0 bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-900/10">Mark as Lost</button>
           </div>
         </div>
       </Modal>

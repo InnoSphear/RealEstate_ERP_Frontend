@@ -1,7 +1,7 @@
 {
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!assets/|api/|logo\\.jpeg|.*\\..*).*)",
       "destination": "/index.html"
     }
   ]

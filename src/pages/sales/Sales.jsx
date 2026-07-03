@@ -21,7 +21,7 @@ export default function Sales() {
   const fetchData = async () => {
     setLoading(true);
     try { const [dRes, lRes, cRes] = await Promise.all([API.get('/property-sales'), API.get('/property-listings'), API.get('/clients')]); setData(dRes.data); setListings(lRes.data); setClients(cRes.data); }
-    catch (err) { toast('Failed to load', 'error'); }
+    catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, []);
@@ -39,7 +39,7 @@ export default function Sales() {
     } catch (err) { toast(err.response?.data?.message || 'Error', 'error'); }
   };
 
-  const handleDelete = async () => { try { await API.delete(`/property-sales/${selected._id}`); toast('Sale deleted'); fetchData(); } catch (err) { toast('Error', 'error'); } };
+  const handleDelete = async () => { try { await API.delete(`/property-sales/${selected._id}`); toast('Sale deleted'); fetchData(); } catch { toast('Error', 'error'); } };
 
   const columns = [
     { header: 'Sale Code', accessor: 'sale_code' },
@@ -79,3 +79,4 @@ export default function Sales() {
     </div>
   );
 }
+

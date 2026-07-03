@@ -38,7 +38,7 @@ export default function VisitorList() {
       setData(dRes.data);
       setEmployees(eRes.data);
       setProperties(pRes.data);
-    } catch (err) { toast('Failed to load', 'error'); }
+    } catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, [filterType, dateFrom, dateTo]);
@@ -65,7 +65,7 @@ export default function VisitorList() {
       await API.put('/visitors/' + row._id, { check_out: new Date().toISOString() });
       toast('Visitor checked out');
       fetchData();
-    } catch (err) { toast('Error', 'error'); }
+    } catch { toast('Error', 'error'); }
   };
 
   const handleConvertToLead = async (row) => {
@@ -73,7 +73,7 @@ export default function VisitorList() {
       await API.post('/leads/from-visitor', { visitor_id: row._id });
       toast('Visitor converted to lead');
       fetchData();
-    } catch (err) { toast('Error', 'error'); }
+    } catch { toast('Error', 'error'); }
   };
 
   const columns = [
@@ -197,3 +197,4 @@ export default function VisitorList() {
     </div>
   );
 }
+

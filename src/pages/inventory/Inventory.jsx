@@ -20,7 +20,7 @@ export default function Inventory() {
       setData(dRes.data);
       setMaterials(mRes.data);
       setBranches(bRes.data);
-    } catch (err) { toast('Failed to load', 'error'); }
+    } catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, []);
@@ -68,3 +68,4 @@ export default function Inventory() {
     </div>
   );
 }
+

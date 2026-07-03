@@ -193,8 +193,7 @@ export default function Reports() {
       API.get('/reports/history')
         .then((res) => setHistory(res.data || []))
         .catch(() => {});
-    } catch (err) {
-      console.error('Report generation failed', err);
+    } catch { /* ignore generation errors */
     } finally {
       setGenerating(false);
     }

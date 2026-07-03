@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import API from '../../api/axios';
 import { toast } from '../../components/Toast';
-import { HiOutlineArrowLeft, HiOutlinePencilSquare, HiOutlineStar, HiOutlineMapPin, HiOutlineHomeModern, HiOutlinePhoto, HiOutlineDocumentText, HiOutlineKey, HiOutlineCalendarDays, HiOutlineCube, HiOutlineCurrencyDollar } from 'react-icons/hi2';
+import { useAuth } from '../../contexts/AuthContext';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { HiOutlineArrowLeft, HiOutlinePencilSquare, HiOutlineStar, HiOutlineMapPin, HiOutlineHomeModern, HiOutlinePhoto, HiOutlineClipboardDocumentList, HiOutlineKey, HiOutlineCalendarDays, HiOutlineCube, HiOutlineCurrencyDollar, HiOutlineTrash, HiOutlineUser } from 'react-icons/hi2';
 
 const badge = (classes, label) => (
   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${classes}`}>{label}</span>
@@ -12,23 +15,61 @@ const availabilityBadge = (v) => {
   return badge(map[v] || 'bg-gray-50 text-gray-700 ring-1 ring-gray-200', v?.replace(/_/g, ' '));
 };
 
+const unitTypeBadge = (v) => {
+  const colors = { '1RK': 'bg-purple-50 text-purple-700 ring-1 ring-purple-200', '1BHK': 'bg-blue-50 text-blue-700 ring-1 ring-blue-200', '2BHK': 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200', '2+1': 'bg-sky-50 text-sky-700 ring-1 ring-sky-200', '3BHK': 'bg-teal-50 text-teal-700 ring-1 ring-teal-200', '3+1': 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200', '4BHK': 'bg-amber-50 text-amber-700 ring-1 ring-amber-200', '4+1': 'bg-orange-50 text-orange-700 ring-1 ring-orange-200', '5BHK': 'bg-rose-50 text-rose-700 ring-1 ring-rose-200', Penthouse: 'bg-pink-50 text-pink-700 ring-1 ring-pink-200', Studio: 'bg-lime-50 text-lime-700 ring-1 ring-lime-200', Other: 'bg-gray-50 text-gray-700 ring-1 ring-gray-200' };
+  return badge(colors[v] || 'bg-gray-50 text-gray-700 ring-1 ring-gray-200', v);
+};
+
+const sizeBadge = (v) => {
+  const map = { small: 'bg-green-50 text-green-700 ring-1 ring-green-200', medium: 'bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200', large: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200', extra_large: 'bg-red-50 text-red-700 ring-1 ring-red-200' };
+  return badge(map[v] || 'bg-gray-50 text-gray-700 ring-1 ring-gray-200', v?.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()));
+};
+
 export default function PropertyDetail() {
-  const id = window.location.pathname.split('/').pop();
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [lightbox, setLightbox] = useState(null);
+  const [linkedClient, setLinkedClient] = useState(null);
+  const [removeClientConfirm, setRemoveClientConfirm] = useState(false);
+  const { hasRole } = useAuth();
+
+  useEffect(() => {
+    if (!property?._id) return;
+    if (property.client && typeof property.client === 'object') {
+      setLinkedClient(property.client);
+    } else {
+      API.get(`/clients?property=${property._id}`).then((res) => {
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          setLinkedClient(res.data[0]);
+        }
+      }).catch(() => {});
+    }
+  }, [property?._id, property?.client]);
 
   useEffect(() => {
     (async () => {
       try { const { data } = await API.get(`/properties/${id}`); setProperty(data); }
-      catch (err) { toast('Failed to load property', 'error'); }
+      catch { toast('Failed to load property', 'error'); }
       finally { setLoading(false); }
     })();
   }, [id]);
 
+  const handleRemoveClient = async () => {
+    try {
+      await API.put(`/properties/${id}/remove-client`);
+      toast('Client removed from property');
+      setLinkedClient(null);
+      setRemoveClientConfirm(false);
+    } catch (err) {
+      toast(err.response?.data?.message || 'Error removing client', 'error');
+    }
+  };
+
   const toggleFeatured = async () => {
     try { await API.patch(`/properties/${id}/featured`, { featured: !property.featured }); setProperty({ ...property, featured: !property.featured }); toast(property.featured ? 'Unfeatured' : 'Featured'); }
-    catch (err) { toast('Error', 'error'); }
+    catch { toast('Error', 'error'); }
   };
 
   if (loading) return <div className="flex items-center justify-center py-32"><div className="animate-spin rounded-full h-7 w-7 border-2 border-stone-900 border-t-transparent dark:border-white" /></div>;
@@ -55,10 +96,10 @@ export default function PropertyDetail() {
   return (
     <div className="space-y-6 dark:text-stone-100">
       <div className="flex items-center justify-between">
-        <button onClick={() => window.history.back()} className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white transition-colors"><HiOutlineArrowLeft size={16} /> Back</button>
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white transition-colors"><HiOutlineArrowLeft size={16} /> Back</button>
         <div className="flex items-center gap-2">
           <button onClick={toggleFeatured} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center gap-2 cursor-pointer ${p.featured ? 'bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:ring-yellow-800' : 'bg-white text-stone-600 hover:bg-stone-50 border border-stone-200 dark:bg-stone-700 dark:text-stone-300 dark:border-stone-600 dark:hover:bg-stone-600'}`}><HiOutlineStar size={15} />{p.featured ? 'Featured' : 'Set Featured'}</button>
-          <button onClick={() => { window.location.href = `/properties/${id}/edit`; }} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10 dark:bg-stone-700 dark:hover:bg-stone-600"><HiOutlinePencilSquare size={15} /> Edit</button>
+          <button onClick={() => navigate(`/properties/${id}/edit`)} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10 dark:bg-stone-700 dark:hover:bg-stone-600"><HiOutlinePencilSquare size={15} /> Edit</button>
         </div>
       </div>
 
@@ -69,15 +110,15 @@ export default function PropertyDetail() {
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {p.images.map((img, i) => (
-                    <div key={i} onClick={() => setLightbox(img)} className="relative aspect-video rounded-xl overflow-hidden cursor-pointer bg-stone-100 dark:bg-stone-700 group">
-                      <img src={img} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <div key={i} onClick={() => setLightbox(img?.url || img)} className="relative aspect-video rounded-xl overflow-hidden cursor-pointer bg-stone-100 dark:bg-stone-700 group">
+                      <img src={img?.url || img} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                     </div>
                   ))}
                 </div>
                 {lightbox && (
                   <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
-                    <img src={lightbox} alt="" className="max-w-full max-h-full rounded-2xl" />
+                    <img src={lightbox?.url || lightbox} alt="" className="max-w-full max-h-full rounded-2xl" />
                   </div>
                 )}
               </>
@@ -90,7 +131,18 @@ export default function PropertyDetail() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
               <DetailRow label="Property ID" value={p.property_id} />
               <DetailRow label="Created By" value={p.created_by?.full_name || '-'} />
+              <DetailRow label="Client" value={linkedClient ? (
+                <span className="flex items-center gap-2">
+                  <a href={`/clients/${linkedClient._id}`} className="text-blue-600 hover:text-blue-700 underline">{linkedClient.full_name}</a>
+                  {hasRole('admin') && (
+                    <button onClick={() => setRemoveClientConfirm(true)} className="p-1 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer" title="Remove client"><HiOutlineTrash size={14} /></button>
+                  )}
+                </span>
+              ) : '-'} />
               <DetailRow label="Type" value={p.property_type && (p.property_type.charAt(0).toUpperCase() + p.property_type.slice(1))} />
+              <DetailRow label="Unit Type" value={p.unit_type ? <span>{unitTypeBadge(p.unit_type)}</span> : null} />
+              <DetailRow label="Project Name" value={p.project_name} />
+              <DetailRow label="Size Category" value={p.size_category ? <span>{sizeBadge(p.size_category)}</span> : null} />
               <DetailRow label="Flat/Unit" value={p.flat_number} />
               <DetailRow label="Building" value={p.building_name} />
               <DetailRow label="Society" value={p.society_name} />
@@ -169,11 +221,11 @@ export default function PropertyDetail() {
           </Section>
 
           {p.documents?.length ? (
-            <Section title="Documents" icon={HiOutlineDocumentText}>
+          <Section title="Documents" icon={HiOutlineClipboardDocumentList}>
               <div className="space-y-2">
                 {p.documents.map((doc, i) => (
                   <a key={i} href={doc.url || doc} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white transition-colors p-2 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-700">
-                    <HiOutlineDocumentText size={16} className="text-stone-400" />
+                    <HiOutlineClipboardDocumentList size={16} className="text-stone-400" />
                     <span className="flex-1 truncate">{doc.name || `Document ${i + 1}`}</span>
                     <span className="text-xs text-stone-400">Download</span>
                   </a>
@@ -227,6 +279,8 @@ export default function PropertyDetail() {
           ) : null}
         </div>
       </div>
+      <ConfirmDialog isOpen={removeClientConfirm} onClose={() => setRemoveClientConfirm(false)} onConfirm={handleRemoveClient} title="Remove Client" message={`Are you sure you want to remove ${linkedClient?.full_name || 'this client'} from this property?`} />
     </div>
   );
 }
+

@@ -54,7 +54,7 @@ export default function InvoiceList() {
       setData(dRes.data);
       setClients(cRes.data);
       setProperties(pRes.data);
-    } catch (err) { toast('Failed to load', 'error'); }
+    } catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, [filterStatus, filterClient, dateFrom, dateTo]);
@@ -118,12 +118,12 @@ export default function InvoiceList() {
 
   const handleDelete = async () => {
     try { await API.delete(`/invoices/${selected._id}`); toast('Invoice deleted'); fetchData(); }
-    catch (err) { toast('Error', 'error'); }
+    catch { toast('Error', 'error'); }
   };
 
   const handleSend = async (row) => {
     try { await API.put(`/invoices/${row._id}`, { status: 'sent' }); toast('Invoice sent'); fetchData(); }
-    catch (err) { toast('Error', 'error'); }
+    catch { toast('Error', 'error'); }
   };
 
   const openPayment = (row) => {
@@ -371,3 +371,4 @@ export default function InvoiceList() {
     </div>
   );
 }
+

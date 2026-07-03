@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API from '../../api/axios';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
@@ -8,11 +9,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { HiOutlineSquares2X2, HiOutlineTableCells, HiOutlineMapPin, HiOutlineHomeModern, HiOutlineTrash } from 'react-icons/hi2';
 
 const propertyTypes = ['apartment', 'villa', 'plot', 'commercial', 'shop', 'office', 'warehouse', 'penthouse', 'other'];
+const unitTypes = ['1RK', '1BHK', '2BHK', '2+1', '3BHK', '3+1', '4BHK', '4+1', '5BHK', 'Penthouse', 'Studio', 'Other'];
+const sizeCategories = ['small', 'medium', 'large', 'extra_large'];
 const listingTypes = ['sale', 'rent', 'lease'];
 const availabilityOptions = ['available', 'sold', 'rented', 'under_contract', 'off_market'];
 const statusOptions = ['active', 'inactive', 'pending'];
 const furnishingOptions = ['unfurnished', 'semi-furnished', 'fully-furnished'];
 const possessionOptions = ['ready_to_move', 'under_construction', 'possession_after_6_months', 'possession_after_1_year', 'possession_after_2_years'];
+const projectNames = ['Dream Valley', 'O2 Valley', 'ACPTH', 'ACPTG', 'Low Rise', 'Verona Heights', 'Gaurs', 'ACP', 'Other'];
 
 const badge = (classes, label) => (
   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${classes}`}>{label}</span>
@@ -31,6 +35,7 @@ const statusBadge = (v) => {
 const emptyForm = () => ({
   owner_name: '', owner_contact: '', owner_email: '',
   flat_number: '', tower: '', building_name: '', society_name: '', location: '', city: '', state: '', pincode: '',
+  unit_type: 'Other', project_name: '',
   property_type: 'apartment', carpet_area: '', built_up_area: '', plot_area: '', bedrooms: '', bathrooms: '', balconies: '', floors: '', total_floors: '',
   furnishing_status: 'unfurnished', possession_status: 'ready_to_move',
   listing_type: 'sale', price_sale: '', rent_amount: '', rent_deposit: '', maintenance_amount: '',
@@ -39,7 +44,8 @@ const emptyForm = () => ({
 });
 
 export default function PropertyList() {
-  const { hasRole, user } = useAuth();
+  const { hasRole } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = hasRole('admin', 'manager');
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +56,7 @@ export default function PropertyList() {
   const [form, setForm] = useState(emptyForm());
   const [images, setImages] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [filters, setFilters] = useState({ property_type: '', listing_type: '', availability: '', status: '', city: '', society_name: '', tower: '', built_up_area_min: '', built_up_area_max: '', priceMin: '', priceMax: '', created_by_employee: '', date_from: '', date_to: '' });
+  const [filters, setFilters] = useState({ property_type: '', unit_type: '', project_name: '', size_category: '', listing_type: '', availability: '', status: '', city: '', society_name: '', tower: '', built_up_area_min: '', built_up_area_max: '', price_min: '', price_max: '', created_by_employee: '', date_from: '', date_to: '' });
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
@@ -73,7 +79,7 @@ export default function PropertyList() {
       setData(Array.isArray(propRes.data) ? propRes.data : propRes.data?.properties || []);
       setEmployees(Array.isArray(empRes.data) ? empRes.data : []);
     }
-    catch (err) { toast('Failed to load properties', 'error'); }
+    catch { toast('Failed to load properties', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, [filters, search]);
@@ -84,6 +90,7 @@ export default function PropertyList() {
     setForm({
       owner_name: row.owner_name || '', owner_contact: row.owner_contact || '', owner_email: row.owner_email || '',
       flat_number: row.flat_number || '', tower: row.tower || '', building_name: row.building_name || '', society_name: row.society_name || '', location: row.location || '', city: row.city || '', state: row.state || '', pincode: row.pincode || '',
+      unit_type: row.unit_type || 'Other', project_name: row.project_name || '',
       property_type: row.property_type || 'apartment', carpet_area: row.carpet_area || '', built_up_area: row.built_up_area || '', plot_area: row.plot_area || '', bedrooms: row.bedrooms || '', bathrooms: row.bathrooms || '', balconies: row.balconies || '', floors: row.floors || '', total_floors: row.total_floors || '',
       furnishing_status: row.furnishing_status || 'unfurnished', possession_status: row.possession_status || 'ready_to_move',
       listing_type: row.listing_type || 'sale', price_sale: row.price_sale || '', rent_amount: row.rent_amount || '', rent_deposit: row.rent_deposit || '', maintenance_amount: row.maintenance_amount || '',
@@ -112,7 +119,7 @@ export default function PropertyList() {
 
   const handleDelete = async () => {
     try { await API.delete(`/properties/${selected._id}`); toast('Property deleted'); fetchData(); }
-    catch (err) { toast('Error deleting property', 'error'); }
+    catch { toast('Error deleting property', 'error'); }
   };
 
   const handleBulkDelete = async () => {
@@ -131,10 +138,25 @@ export default function PropertyList() {
   };
 
   const columns = [
+    { header: '', render: (r) => {
+      const imgUrl = r.images?.length ? (r.images[0]?.url || r.images[0]) : null;
+      return imgUrl ? <img src={imgUrl} alt="" className="w-10 h-10 rounded-lg object-cover" /> : <div className="w-10 h-10 rounded-lg bg-stone-100 dark:bg-stone-700 flex items-center justify-center text-stone-300 dark:text-stone-500"><HiOutlineHomeModern size={16} /></div>;
+    }},
     { header: 'Property ID', accessor: 'property_id' },
     { header: 'Owner', render: (r) => r.owner_name || '-' },
     { header: 'Location', render: (r) => [r.flat_number, r.building_name, r.society_name, r.tower, r.location].filter(Boolean).join(', ') || '-' },
     { header: 'Type', render: (r) => r.property_type ? r.property_type.charAt(0).toUpperCase() + r.property_type.slice(1) : '-' },
+    { header: 'Unit Type', render: (r) => {
+      const colors = { '1RK': 'bg-purple-50 text-purple-700 ring-1 ring-purple-200', '1BHK': 'bg-blue-50 text-blue-700 ring-1 ring-blue-200', '2BHK': 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200', '2+1': 'bg-sky-50 text-sky-700 ring-1 ring-sky-200', '3BHK': 'bg-teal-50 text-teal-700 ring-1 ring-teal-200', '3+1': 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200', '4BHK': 'bg-amber-50 text-amber-700 ring-1 ring-amber-200', '4+1': 'bg-orange-50 text-orange-700 ring-1 ring-orange-200', '5BHK': 'bg-rose-50 text-rose-700 ring-1 ring-rose-200', Penthouse: 'bg-pink-50 text-pink-700 ring-1 ring-pink-200', Studio: 'bg-lime-50 text-lime-700 ring-1 ring-lime-200', Other: 'bg-gray-50 text-gray-700 ring-1 ring-gray-200' };
+      return r.unit_type ? badge(colors[r.unit_type] || 'bg-gray-50 text-gray-700 ring-1 ring-gray-200', r.unit_type) : '-';
+    }},
+    { header: 'Project', render: (r) => r.project_name || '-' },
+    { header: 'Size', render: (r) => {
+      if (r.carpet_area) return `${r.carpet_area} sqft`;
+      if (r.built_up_area) return `${r.built_up_area} sqft`;
+      if (r.plot_area) return `${r.plot_area} sqft`;
+      return '-';
+    }},
     { header: 'Listing', render: (r) => r.listing_type?.charAt(0).toUpperCase() + r.listing_type?.slice(1) || '-' },
     { header: 'Created By', render: (r) => r.created_by?.full_name || '-' },
     { header: 'Price / Rent', render: (r) => {
@@ -145,7 +167,7 @@ export default function PropertyList() {
     { header: 'Status', render: (r) => statusBadge(r.status) },
   ];
 
-  const navigateTo = (id) => { window.location.href = `/properties/${id}`; };
+  const navigateTo = (id) => { navigate(`/properties/${id}`); };
 
   return (
     <div className="space-y-6 dark:text-stone-100">
@@ -166,6 +188,18 @@ export default function PropertyList() {
           <option value="">All Types</option>
           {propertyTypes.map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
         </select>
+        <select value={filters.unit_type} onChange={(e) => setFilters({ ...filters, unit_type: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors dark:text-white">
+          <option value="">All Unit Types</option>
+          {unitTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <select value={filters.project_name} onChange={(e) => setFilters({ ...filters, project_name: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors dark:text-white">
+          <option value="">All Projects</option>
+          {projectNames.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <select value={filters.size_category} onChange={(e) => setFilters({ ...filters, size_category: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors dark:text-white">
+          <option value="">All Sizes</option>
+          {sizeCategories.map((t) => <option key={t} value={t}>{t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</option>)}
+        </select>
         <select value={filters.listing_type} onChange={(e) => setFilters({ ...filters, listing_type: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors dark:text-white">
           <option value="">All Listings</option>
           {listingTypes.map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
@@ -179,8 +213,8 @@ export default function PropertyList() {
         <input type="text" placeholder="City" value={filters.city} onChange={(e) => setFilters({ ...filters, city: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
         <input type="number" placeholder="Built-up Min" value={filters.built_up_area_min} onChange={(e) => setFilters({ ...filters, built_up_area_min: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
         <input type="number" placeholder="Built-up Max" value={filters.built_up_area_max} onChange={(e) => setFilters({ ...filters, built_up_area_max: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
-        <input type="number" placeholder="Min Price" value={filters.priceMin} onChange={(e) => setFilters({ ...filters, priceMin: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
-        <input type="number" placeholder="Max Price" value={filters.priceMax} onChange={(e) => setFilters({ ...filters, priceMax: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
+        <input type="number" placeholder="Min Price" value={filters.price_min} onChange={(e) => setFilters({ ...filters, price_min: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
+        <input type="number" placeholder="Max Price" value={filters.price_max} onChange={(e) => setFilters({ ...filters, price_max: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
         {isAdmin && (
           <>
             <select value={filters.created_by_employee} onChange={(e) => setFilters({ ...filters, created_by_employee: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors dark:text-white">
@@ -221,7 +255,7 @@ export default function PropertyList() {
             <div key={p._id} onClick={() => navigateTo(p._id)} className="bg-white dark:bg-stone-800 rounded-2xl border border-stone-200 dark:border-stone-700 luxury-shadow overflow-hidden cursor-pointer hover:shadow-lg transition-all group">
               <div className="relative h-48 bg-stone-100 dark:bg-stone-700 overflow-hidden">
                 {p.images?.length ? (
-                  <img src={p.images[0]} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <img src={p.images[0]?.url || p.images[0]} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 ) : (
                   <div className="flex items-center justify-center h-full text-stone-300 dark:text-stone-500"><HiOutlineHomeModern size={40} /></div>
                 )}
@@ -274,6 +308,13 @@ export default function PropertyList() {
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Property Type *</label><select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer dark:text-white" value={form.property_type} onChange={(e) => setForm({ ...form, property_type: e.target.value })} required>{propertyTypes.map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}</select></div>
+            <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Unit Type</label><select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer dark:text-white" value={form.unit_type} onChange={(e) => setForm({ ...form, unit_type: e.target.value })}>{unitTypes.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
+            <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Project Name</label>
+              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer dark:text-white" value={form.project_name} onChange={(e) => setForm({ ...form, project_name: e.target.value })}>
+                <option value="">Select project</option>
+                {projectNames.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
             <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Carpet Area (sqft)</label><input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" value={form.carpet_area} onChange={(e) => setForm({ ...form, carpet_area: e.target.value })} /></div>
             <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Built-up Area (sqft)</label><input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" value={form.built_up_area} onChange={(e) => setForm({ ...form, built_up_area: e.target.value })} /></div>
             <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Plot Area (sqft)</label><input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" value={form.plot_area} onChange={(e) => setForm({ ...form, plot_area: e.target.value })} /></div>
@@ -367,3 +408,4 @@ export default function PropertyList() {
     </div>
   );
 }
+

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HiOutlineArrowDownTray } from 'react-icons/hi2';
+
+
 import API from '../../api/axios';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
@@ -117,7 +118,7 @@ export default function RentalList() {
       await API.delete(`/rental-apartments/${selected._id}`);
       toast('Rental deleted');
       fetchData();
-    } catch (err) {
+    } catch {
       toast('Error deleting', 'error');
     }
   };
@@ -202,20 +203,20 @@ export default function RentalList() {
 
           <h4 className="text-sm font-semibold text-stone-800 border-b border-stone-100 pb-2 pt-2">Owner Details</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Owner Name *</label><input className={inputClass} value={form.owner.name} onChange={(e) => setForm({ ...form, owner: { ...form.owner, name: e.target.value } })} required /></div>
-            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Owner Contact *</label><input className={inputClass} value={form.owner.contact} onChange={(e) => setForm({ ...form, owner: { ...form.owner, contact: e.target.value } })} required /></div>
-            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Owner Email</label><input type="email" className={inputClass} value={form.owner.email} onChange={(e) => setForm({ ...form, owner: { ...form.owner, email: e.target.value } })} /></div>
-            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Owner Address</label><input className={inputClass} value={form.owner.address} onChange={(e) => setForm({ ...form, owner: { ...form.owner, address: e.target.value } })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Owner Name *</label><input className={inputClass} value={form.owner?.name || ''} onChange={(e) => setForm({ ...form, owner: { ...(form.owner || {}), name: e.target.value } })} required /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Owner Contact *</label><input className={inputClass} value={form.owner?.contact || ''} onChange={(e) => setForm({ ...form, owner: { ...(form.owner || {}), contact: e.target.value } })} required /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Owner Email</label><input type="email" className={inputClass} value={form.owner?.email || ''} onChange={(e) => setForm({ ...form, owner: { ...(form.owner || {}), email: e.target.value } })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Owner Address</label><input className={inputClass} value={form.owner?.address || ''} onChange={(e) => setForm({ ...form, owner: { ...(form.owner || {}), address: e.target.value } })} /></div>
           </div>
 
           <h4 className="text-sm font-semibold text-stone-800 border-b border-stone-100 pb-2 pt-2">Tenant Details</h4>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Tenant Name</label><input className={inputClass} value={form.tenant_info.name} onChange={(e) => setForm({ ...form, tenant_info: { ...form.tenant_info, name: e.target.value } })} /></div>
-            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Tenant Contact</label><input className={inputClass} value={form.tenant_info.contact} onChange={(e) => setForm({ ...form, tenant_info: { ...form.tenant_info, contact: e.target.value } })} /></div>
-            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Tenant Email</label><input type="email" className={inputClass} value={form.tenant_info.email} onChange={(e) => setForm({ ...form, tenant_info: { ...form.tenant_info, email: e.target.value } })} /></div>
-            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Aadhar Number</label><input className={inputClass} value={form.tenant_info.aadhar} onChange={(e) => setForm({ ...form, tenant_info: { ...form.tenant_info, aadhar: e.target.value } })} /></div>
-            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Move-in Date</label><input type="date" className={inputClass} value={form.tenant_info.move_in_date} onChange={(e) => setForm({ ...form, tenant_info: { ...form.tenant_info, move_in_date: e.target.value } })} /></div>
-            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Emergency Contact</label><input className={inputClass} value={form.tenant_info.emergency_contact} onChange={(e) => setForm({ ...form, tenant_info: { ...form.tenant_info, emergency_contact: e.target.value } })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Tenant Name</label><input className={inputClass} value={form.tenant_info?.name || ''} onChange={(e) => setForm({ ...form, tenant_info: { ...(form.tenant_info || {}), name: e.target.value } })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Tenant Contact</label><input className={inputClass} value={form.tenant_info?.contact || ''} onChange={(e) => setForm({ ...form, tenant_info: { ...(form.tenant_info || {}), contact: e.target.value } })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Tenant Email</label><input type="email" className={inputClass} value={form.tenant_info?.email || ''} onChange={(e) => setForm({ ...form, tenant_info: { ...(form.tenant_info || {}), email: e.target.value } })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Aadhar Number</label><input className={inputClass} value={form.tenant_info?.aadhar || ''} onChange={(e) => setForm({ ...form, tenant_info: { ...(form.tenant_info || {}), aadhar: e.target.value } })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Move-in Date</label><input type="date" className={inputClass} value={form.tenant_info?.move_in_date || ''} onChange={(e) => setForm({ ...form, tenant_info: { ...(form.tenant_info || {}), move_in_date: e.target.value } })} /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Emergency Contact</label><input className={inputClass} value={form.tenant_info?.emergency_contact || ''} onChange={(e) => setForm({ ...form, tenant_info: { ...(form.tenant_info || {}), emergency_contact: e.target.value } })} /></div>
           </div>
 
           <h4 className="text-sm font-semibold text-stone-800 border-b border-stone-100 pb-2 pt-2">Agreement Details</h4>
@@ -250,3 +251,4 @@ export default function RentalList() {
     </div>
   );
 }
+

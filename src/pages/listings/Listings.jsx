@@ -28,7 +28,7 @@ export default function Listings() {
       setData(dRes.data);
       setClients(cRes.data);
       setBranches(bRes.data);
-    } catch (err) { toast('Failed to load', 'error'); }
+    } catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, []);
@@ -46,7 +46,7 @@ export default function Listings() {
     } catch (err) { toast(err.response?.data?.message || 'Error', 'error'); }
   };
 
-  const handleDelete = async () => { try { await API.delete(`/property-listings/${selected._id}`); toast('Listing deleted'); fetchData(); } catch (err) { toast('Error', 'error'); } };
+  const handleDelete = async () => { try { await API.delete(`/property-listings/${selected._id}`); toast('Listing deleted'); fetchData(); } catch { toast('Error', 'error'); } };
 
   const columns = [
     { header: 'Code', accessor: 'listing_code' },
@@ -91,3 +91,4 @@ export default function Listings() {
     </div>
   );
 }
+

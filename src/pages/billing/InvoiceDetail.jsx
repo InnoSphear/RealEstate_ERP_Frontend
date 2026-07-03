@@ -40,7 +40,7 @@ export default function InvoiceDetail() {
       ]);
       setInvoice(iRes.data);
       setPayments(pRes.data);
-    } catch (err) { toast('Failed to load invoice', 'error'); }
+    } catch { toast('Failed to load invoice', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchInvoice(); }, [id]);
@@ -49,7 +49,7 @@ export default function InvoiceDetail() {
 
   const handleSendEmail = async () => {
     try { await API.post(`/invoices/${id}/send-email`); toast('Email sent'); }
-    catch (err) { toast('Error sending email', 'error'); }
+    catch { toast('Error sending email', 'error'); }
   };
 
   const handleRecordPayment = async (e) => {
@@ -72,7 +72,7 @@ export default function InvoiceDetail() {
 
   const handleMarkOverdue = async () => {
     try { await API.put(`/invoices/${id}`, { status: 'overdue' }); toast('Marked as overdue'); fetchInvoice(); }
-    catch (err) { toast('Error', 'error'); }
+    catch { toast('Error', 'error'); }
   };
 
   if (loading) {
@@ -288,3 +288,4 @@ export default function InvoiceDetail() {
     </div>
   );
 }
+

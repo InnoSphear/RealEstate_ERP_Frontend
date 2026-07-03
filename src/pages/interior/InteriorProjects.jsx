@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { HiOutlineDocumentArrowDown } from 'react-icons/hi2';
 import API from '../../api/axios';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
@@ -49,7 +50,7 @@ export default function InteriorProjects() {
       setClients(cRes.data);
       setBranches(bRes.data);
       setVendors(vRes.data);
-    } catch (err) { toast('Failed to load', 'error'); }
+    } catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, []);
@@ -135,7 +136,7 @@ export default function InteriorProjects() {
     } catch (err) { toast(err.response?.data?.message || 'Error', 'error'); }
   };
 
-  const handleDelete = async () => { try { await API.delete(`/interior-projects/${selected._id}`); toast('Project deleted'); fetchData(); } catch (err) { toast('Error', 'error'); } };
+  const handleDelete = async () => { try { await API.delete(`/interior-projects/${selected._id}`); toast('Project deleted'); fetchData(); } catch { toast('Error', 'error'); } };
 
   const columns = [
     { header: 'Flat ID', accessor: 'flat_id', render: (r) => <span className="font-medium text-stone-900">{r.flat_id || r.project_code || '-'}</span> },
@@ -160,7 +161,10 @@ export default function InteriorProjects() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h1 className="text-3xl font-bold text-stone-900 tracking-tight">Interior Projects</h1><p className="text-stone-500 mt-1">Flat-wise interior project management with financial tracking</p></div>
-        <button onClick={openCreate} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">+ Add Project</button>
+        <div className="flex gap-2">
+          <button onClick={() => { window.open(`/api/interior-projects/purchase-report?format=csv&token=${localStorage.getItem('token')}`, '_blank'); }} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center gap-2 cursor-pointer bg-white text-stone-600 hover:bg-stone-50 border border-stone-200"><HiOutlineDocumentArrowDown size={16} /> Purchase Report</button>
+          <button onClick={openCreate} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">+ Add Project</button>
+        </div>
       </div>
       <DataTable columns={columns} data={data} loading={loading} onView={(r) => navigate(`/interior-projects/${r._id}`)} onEdit={openEdit} onDelete={(r) => { setSelected(r); setConfirmOpen(true); }} />
       <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); if (isNew) navigate('/interior-projects', { replace: true }); }} title={selected ? 'Edit Project' : 'Create Project'} size="xl">
@@ -228,3 +232,4 @@ export default function InteriorProjects() {
     </div>
   );
 }
+

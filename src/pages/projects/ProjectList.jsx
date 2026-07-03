@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API from '../../api/axios';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
@@ -20,6 +21,7 @@ const emptyForm = () => ({
 });
 
 export default function ProjectList() {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('table');
@@ -40,7 +42,7 @@ export default function ProjectList() {
   const fetchData = async () => {
     setLoading(true);
     try { const { data: d } = await API.get(queryString()); setData(Array.isArray(d) ? d : d.projects || []); }
-    catch (err) { toast('Failed to load projects', 'error'); }
+    catch { toast('Failed to load projects', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, [filters]);
@@ -71,10 +73,10 @@ export default function ProjectList() {
 
   const handleDelete = async () => {
     try { await API.delete(`/projects/${selected._id}`); toast('Project deleted'); fetchData(); }
-    catch (err) { toast('Error deleting project', 'error'); }
+    catch { toast('Error deleting project', 'error'); }
   };
 
-  const navigateTo = (id) => { window.location.href = `/projects/${id}`; };
+  const navigateTo = (id) => { navigate(`/projects/${id}`); };
 
   const columns = [
     { header: 'Project Name', accessor: 'project_name' },
@@ -205,3 +207,4 @@ export default function ProjectList() {
     </div>
   );
 }
+

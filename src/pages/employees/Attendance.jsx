@@ -22,6 +22,16 @@ const statusOptions = ['present', 'absent', 'half_day', 'late'];
 
 const initialForm = { employee_id: '', date: new Date().toISOString().split('T')[0], status: 'present', check_in: '', check_out: '', notes: '' };
 
+const formatTime = (dateStr) => {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  let hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  return `${hours}:${minutes} ${ampm}`;
+};
+
 export default function Attendance() {
   const [data, setData] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -36,6 +46,8 @@ export default function Attendance() {
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   const [form, setForm] = useState(initialForm);
+  const [payrollSummary, setPayrollSummary] = useState(null);
+  const [summaryMonth, setSummaryMonth] = useState(new Date().toISOString().slice(0, 7));
 
   const fetchData = () => {
     setLoading(true);
@@ -52,8 +64,22 @@ export default function Attendance() {
     const qs = params.toString();
     API.get(`/attendance${qs ? `?${qs}` : ''}`).then((res) => setData(res.data)).catch(() => toast('Failed to load attendance', 'error')).finally(() => setLoading(false));
   };
+
+  const fetchPayrollSummary = () => {
+    const params = new URLSearchParams();
+    if (summaryMonth) {
+      params.append('from_date', `${summaryMonth}-01`);
+      const lastDay = new Date(summaryMonth.split('-')[0], summaryMonth.split('-')[1], 0).getDate();
+      params.append('to_date', `${summaryMonth}-${lastDay}`);
+    }
+    API.get(`/attendance/payroll-summary?${params.toString()}`)
+      .then((res) => setPayrollSummary(res.data))
+      .catch(() => {});
+  };
+
   useEffect(() => { fetchData(); }, [filterMonth, filterDept, filterApproval, filterFrom, filterTo]);
   useEffect(() => { API.get('/employees').then((res) => setEmployees(res.data)).catch(() => {}); }, []);
+  useEffect(() => { fetchPayrollSummary(); }, [summaryMonth]);
 
   const openCreate = () => { setSelected(null); setForm(initialForm); setModalOpen(true); };
 
@@ -70,6 +96,7 @@ export default function Attendance() {
       }
       setModalOpen(false);
       fetchData();
+      fetchPayrollSummary();
     } catch (err) { toast(err.response?.data?.message || 'Error saving attendance', 'error'); }
   };
 
@@ -107,25 +134,23 @@ export default function Attendance() {
   const columns = [
     { header: 'Employee', render: (r) => r.employee?.full_name || r.employee?.name || '-' },
     { header: 'Date', render: (r) => r.date ? new Date(r.date).toLocaleDateString() : '-' },
-    { header: 'Check In', render: (r) => r.check_in ? new Date(r.check_in).toLocaleTimeString() : '-' },
-    { header: 'Check Out', render: (r) => r.check_out ? new Date(r.check_out).toLocaleTimeString() : '-' },
+    { header: 'Check In', render: (r) => formatTime(r.check_in) },
+    { header: 'Check Out', render: (r) => formatTime(r.check_out) },
     { header: 'Status', render: (r) => <span className={statusColors[r.status]}>{r.status?.replace('_', ' ')}</span> },
     { header: 'Approval', render: (r) => <span className={approvalColors[r.approval_status]}>{r.approval_status?.replace('_', ' ')}</span> },
-    { header: 'Working Hours', render: (r) => {
-      if (r.check_in && r.check_out) {
-        const h = (new Date(r.check_out) - new Date(r.check_in)) / (1000 * 60 * 60);
-        return `${h.toFixed(1)}h`;
-      }
-      return '-';
-    }},
+    { header: 'Working Hours', render: (r) => r.working_hours != null && r.working_hours > 0 ? `${r.working_hours.toFixed(2)}h` : '-' },
+    { header: 'Overtime', render: (r) => r.overtime_hours != null && r.overtime_hours > 0 ? `${r.overtime_hours.toFixed(2)}h` : '-' },
   ];
 
   const presentCount = data.filter((r) => r.status === 'present').length;
   const absentCount = data.filter((r) => r.status === 'absent').length;
   const halfDayCount = data.filter((r) => r.status === 'half_day').length;
+  const lateCount = data.filter((r) => r.status === 'late').length;
   const pendingCount = data.filter((r) => r.approval_status === 'pending').length;
 
   const inputClass = "w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors";
+
+  const ps = payrollSummary || {};
 
   return (
     <div className="space-y-6">
@@ -137,11 +162,45 @@ export default function Attendance() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="bg-white rounded-2xl border border-stone-200 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-stone-900">Payroll Summary</h3>
+          <input type="month" value={summaryMonth} onChange={(e) => setSummaryMonth(e.target.value)} className="px-3 py-1.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10" />
+        </div>
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+          <div className="p-3 rounded-xl bg-blue-50 text-center">
+            <p className="text-lg font-bold text-blue-700">{(ps.total_working_hours || 0).toFixed(1)}</p>
+            <p className="text-xs text-blue-600 font-medium mt-0.5">Total Hours</p>
+          </div>
+          <div className="p-3 rounded-xl bg-purple-50 text-center">
+            <p className="text-lg font-bold text-purple-700">{(ps.total_overtime_hours || 0).toFixed(1)}</p>
+            <p className="text-xs text-purple-600 font-medium mt-0.5">Overtime</p>
+          </div>
+          <div className="p-3 rounded-xl bg-emerald-50 text-center">
+            <p className="text-lg font-bold text-emerald-700">{ps.total_days_present || 0}</p>
+            <p className="text-xs text-emerald-600 font-medium mt-0.5">Present</p>
+          </div>
+          <div className="p-3 rounded-xl bg-yellow-50 text-center">
+            <p className="text-lg font-bold text-yellow-700">{ps.total_days_late || 0}</p>
+            <p className="text-xs text-yellow-600 font-medium mt-0.5">Late</p>
+          </div>
+          <div className="p-3 rounded-xl bg-amber-50 text-center">
+            <p className="text-lg font-bold text-amber-700">{ps.total_half_days || 0}</p>
+            <p className="text-xs text-amber-600 font-medium mt-0.5">Half Days</p>
+          </div>
+          <div className="p-3 rounded-xl bg-red-50 text-center">
+            <p className="text-lg font-bold text-red-700">{ps.total_days_absent || 0}</p>
+            <p className="text-xs text-red-600 font-medium mt-0.5">Absent</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-5 gap-4">
         <div className="p-4 rounded-xl bg-emerald-50"><p className="text-lg font-bold text-emerald-700">{presentCount}</p><p className="text-xs text-emerald-600 font-medium mt-1">Present</p></div>
         <div className="p-4 rounded-xl bg-red-50"><p className="text-lg font-bold text-red-700">{absentCount}</p><p className="text-xs text-red-600 font-medium mt-1">Absent</p></div>
         <div className="p-4 rounded-xl bg-amber-50"><p className="text-lg font-bold text-amber-700">{halfDayCount}</p><p className="text-xs text-amber-600 font-medium mt-1">Half Day</p></div>
-        <div className="p-4 rounded-xl bg-yellow-50"><p className="text-lg font-bold text-yellow-700">{pendingCount}</p><p className="text-xs text-yellow-600 font-medium mt-1">Pending</p></div>
+        <div className="p-4 rounded-xl bg-yellow-50"><p className="text-lg font-bold text-yellow-700">{lateCount}</p><p className="text-xs text-yellow-600 font-medium mt-1">Late</p></div>
+        <div className="p-4 rounded-xl bg-stone-50"><p className="text-lg font-bold text-stone-700">{pendingCount}</p><p className="text-xs text-stone-600 font-medium mt-1">Pending</p></div>
       </div>
 
       <div className="flex flex-wrap gap-3">

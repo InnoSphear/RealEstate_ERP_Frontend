@@ -93,8 +93,48 @@ export default function MyLeaves() {
       </div>
 
       {balance && (
+        <div className="bg-white rounded-2xl border border-stone-200 p-5">
+          <h3 className="text-sm font-semibold text-stone-900 mb-3">Leave Balance (Annual)</h3>
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="p-4 rounded-xl bg-blue-50 text-center">
+              <p className="text-2xl font-bold text-blue-700">{balance.total_allowed || 0}</p>
+              <p className="text-xs text-blue-600 font-medium mt-1">Total</p>
+            </div>
+            <div className="p-4 rounded-xl bg-amber-50 text-center">
+              <p className="text-2xl font-bold text-amber-700">{balance.taken || 0}</p>
+              <p className="text-xs text-amber-600 font-medium mt-1">Used</p>
+            </div>
+            <div className="p-4 rounded-xl bg-emerald-50 text-center">
+              <p className="text-2xl font-bold text-emerald-700">{balance.remaining || 0}</p>
+              <p className="text-xs text-emerald-600 font-medium mt-1">Remaining</p>
+            </div>
+          </div>
+          <div className="w-full bg-stone-100 rounded-full h-3 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${balance.total_allowed > 0 ? Math.min((balance.taken / balance.total_allowed) * 100, 100) : 0}%`,
+                background: balance.remaining <= 1 ? 'linear-gradient(90deg, #f59e0b, #ef4444)' : 'linear-gradient(90deg, #10b981, #06b6d4)',
+              }}
+            />
+          </div>
+          <p className="text-xs text-stone-400 mt-1.5">{balance.taken} of {balance.total_allowed} leaves used</p>
+          {balance.leaves_by_type && Object.keys(balance.leaves_by_type).length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {Object.entries(balance.leaves_by_type).map(([type, count]) => (
+                <span key={type} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-stone-100 text-stone-600 capitalize">
+                  {type}: {count}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {balance && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {Object.entries(balance).map(([key, val]) => (
+          {Object.entries(balance).filter(([key]) => key !== 'total_allowed' && key !== 'taken' && key !== 'remaining' && key !== 'leaves_by_type').length === 0 && null}
+          {Object.entries(balance).filter(([key]) => key !== 'total_allowed' && key !== 'taken' && key !== 'remaining' && key !== 'leaves_by_type').map(([key, val]) => (
             <div key={key} className="bg-white rounded-2xl border border-stone-200 p-4">
               <p className="text-xs text-stone-500 capitalize">{key} Leave</p>
               <p className="text-2xl font-bold text-stone-900 mt-1">{val}</p>

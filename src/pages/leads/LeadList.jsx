@@ -42,24 +42,20 @@ const statuses = ['new', 'contacted', 'hot', 'warm', 'cold', 'follow_up', 'site_
 const sources = ['referral', 'website', 'social_media', 'walk_in', 'call', 'ad', '99acres', 'housing', 'nobroker', 'magicbricks', 'justdial', 'indiamart', 'flatdekho', 'olx'];
 const propertyTypes = ['apartment', 'villa', 'plot', 'commercial', 'office', 'warehouse'];
 
-function getScoreColor(score) {
-  if (!score && score !== 0) return '';
-  if (score <= 30) return 'bg-red-500';
-  if (score <= 60) return 'bg-yellow-500';
-  return 'bg-green-500';
-}
-
-function getScoreTextColor(score) {
-  if (!score && score !== 0) return 'text-stone-500';
-  if (score <= 30) return 'text-red-600';
-  if (score <= 60) return 'text-yellow-600';
-  return 'text-green-600';
+function getLatestNotes(r) {
+  if (r.notes) return r.notes.length > 60 ? r.notes.slice(0, 60) + '...' : r.notes;
+  if (r.call_notes && r.call_notes.length > 0) {
+    const last = r.call_notes[r.call_notes.length - 1];
+    const text = typeof last === 'string' ? last : last.text || '';
+    return text.length > 60 ? text.slice(0, 60) + '...' : text;
+  }
+  return '-';
 }
 
 export default function LeadList() {
   const navigate = useNavigate();
   const { hasRole } = useAuth();
-  const isAdmin = hasRole('admin', 'manager');
+  const isAdmin = hasRole('admin', 'manager', 'interior_manager', 'junior_interior_manager');
   const [data, setData] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -151,7 +147,7 @@ export default function LeadList() {
       const msg = err.response?.data?.message || 'Error';
       if (status === 409) {
         const dup = err.response?.data?.duplicate;
-        toast(msg + (dup ? ` (${dup.full_name} - ${dup.lead_id})` : ''), 'error');
+        toast(msg + (dup ? ` (${dup.full_name})` : ''), 'error');
       } else if (status === 403) {
         toast('You do not have permission to perform this action', 'error');
       } else {
@@ -165,7 +161,7 @@ export default function LeadList() {
       await API.delete(`/leads/${selected._id}`);
       toast('Lead deleted');
       fetchData();
-    } catch (err) {
+    } catch {
       toast('Error deleting', 'error');
     }
   };
@@ -263,13 +259,15 @@ export default function LeadList() {
     });
   };
 
+  const formatTime = (d) => d ? new Date(d).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+
   const columns = [
-    { header: 'ID', accessor: 'lead_id' },
     { header: 'Name', accessor: 'full_name' },
     { header: 'Mobile', accessor: 'mobile' },
     { header: 'Society', render: (r) => r.society || '-' },
     { header: 'Flat', render: (r) => r.flat_number || '-' },
     { header: 'Tower', render: (r) => r.tower || '-' },
+    { header: 'Notes', render: (r) => r.notes ? (r.notes.length > 50 ? r.notes.slice(0, 50) + '...' : r.notes) : '-' },
     { header: 'Key', render: (r) => r.key_available ? <span className="text-emerald-600 font-semibold">Yes</span> : '-' },
     { header: 'Size', render: (r) => r.flat_size ? `${r.flat_size} sqft` : '-' },
     {
@@ -281,20 +279,26 @@ export default function LeadList() {
       render: (r) => <span className={statusColors[r.status] || statusColors.new}>{r.status?.replace(/_/g, ' ')}</span>,
     },
     {
-      header: 'Score',
+      header: 'Latest Notes',
       render: (r) => (
-        <div className="flex items-center gap-2">
-          <div className="w-20 h-2 bg-stone-200 rounded-full overflow-hidden">
-            <div className={`h-full rounded-full transition-all ${getScoreColor(r.lead_score)}`} style={{ width: `${Math.min(r.lead_score || 0, 100)}%` }} />
-          </div>
-          <span className={`text-xs font-semibold ${getScoreTextColor(r.lead_score)}`}>{r.lead_score || 0}</span>
-        </div>
+        <span className="text-xs text-stone-600 max-w-[200px] block truncate" title={r.notes || (r.call_notes?.[r.call_notes?.length - 1]?.text || r.call_notes?.[r.call_notes?.length - 1])}>
+          {getLatestNotes(r)}
+        </span>
       ),
     },
     { header: 'Assigned To', render: (r) => r.assigned_to?.full_name || '-' },
     { header: 'Created By', render: (r) => r.created_by?.full_name || '-' },
-    { header: 'Next Follow Up', render: (r) => r.next_follow_up ? new Date(r.next_follow_up).toLocaleDateString() : '-' },
-    { header: 'Created', render: (r) => r.created_at ? new Date(r.created_at).toLocaleDateString() : '-' },
+    {
+      header: 'Next Follow Up',
+      render: (r) => {
+        if (!r.next_follow_up) return '-';
+        const d = new Date(r.next_follow_up);
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const isOverdue = d < today;
+        return <span className={isOverdue ? 'text-red-600 font-semibold' : 'text-stone-700'}>{d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>;
+      },
+    },
+    { header: 'Created Date/Time', render: (r) => r.createdAt ? `${new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} ${formatTime(r.createdAt)}` : '-' },
   ];
 
   return (
@@ -526,3 +530,4 @@ export default function LeadList() {
     </div>
   );
 }
+

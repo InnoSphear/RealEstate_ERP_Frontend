@@ -1,4 +1,4 @@
-export default function StatsCard({ title, value, icon: Icon, color = 'primary', subtitle }) {
+export default function StatsCard({ title, value, icon, color = 'primary', subtitle }) {
   const colors = {
     primary: 'bg-stone-50 text-stone-700',
     success: 'bg-emerald-50 text-emerald-700',
@@ -10,7 +10,7 @@ export default function StatsCard({ title, value, icon: Icon, color = 'primary',
   return (
     <div className="bg-white rounded-2xl border border-stone-200 luxury-shadow p-5 flex items-start gap-4 hover:luxury-shadow-md transition-all duration-300">
       <div className={`p-3 rounded-xl ${colors[color]}`}>
-        <Icon size={22} />
+        {typeof icon === 'function' ? icon({size: 22}) : icon}
       </div>
       <div className="min-w-0">
         <p className="text-xs font-semibold text-stone-400 uppercase tracking-widest">{title}</p>

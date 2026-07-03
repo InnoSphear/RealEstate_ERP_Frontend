@@ -1,12 +1,12 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   HiOutlineHome, HiOutlineUserGroup, HiOutlineUsers,
-  HiOutlineCube, HiOutlineClipboardDocumentList,
-  HiOutlineShoppingCart, HiOutlineDocumentText,
-  HiOutlineBanknotes, HiOutlineChartBar, HiOutlineCurrencyDollar,
+  HiOutlineCube,
+  HiOutlineShoppingCart,
+  HiOutlineChartBar, HiOutlineCurrencyDollar,
   HiOutlineCreditCard, HiOutlineReceiptPercent, HiOutlineTag,
-  HiOutlineBuildingOffice, HiOutlineWrenchScrewdriver,
+  HiOutlineBuildingOffice,
   HiOutlineChartPie, HiOutlineXMark, HiOutlineBars3,
   HiOutlineCog6Tooth, HiOutlinePhone, HiOutlineKey,
   HiOutlineMapPin, HiOutlineCalendar, HiOutlineFolder,
@@ -56,23 +56,28 @@ const menuGroups = [
     items: [
       { path: '/properties', label: 'Properties', icon: HiOutlineBuildingOffice, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager'], permission: 'properties' },
       { path: '/properties/keys', label: 'Key Mgmt', icon: HiOutlineKey, roles: ['admin', 'manager'], permission: 'property_keys' },
-      { path: '/projects', label: 'Projects', icon: HiOutlineWrenchScrewdriver, roles: ['admin', 'manager', 'sales_executive', 'interior_manager'], permission: 'projects' },
-      { path: '/rental-apartments', label: 'Rentals', icon: HiOutlineBuildingOffice2, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager'], permission: 'properties' },
-    ],
-  },
-  {
-    label: 'Operations',
-    items: [
-      { path: '/site-visits', label: 'Site Visits', icon: HiOutlineMapPin, roles: ['admin', 'manager', 'sales_executive'], permission: 'site_visits' },
-      { path: '/visitors', label: 'Visitors', icon: HiOutlineCube, roles: ['admin', 'manager', 'receptionist'], permission: 'visitors' },
     ],
   },
   {
     label: 'Interior',
     items: [
-      { path: '/interior', label: 'Dashboard', icon: HiOutlinePresentationChartBar, roles: ['admin', 'manager', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
-      { path: '/interior-projects', label: 'Projects', icon: HiOutlineCube, roles: ['admin', 'manager', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
-      { path: '/interior-invoices', label: 'Invoices', icon: HiOutlineReceiptPercent, roles: ['admin', 'manager', 'accounts', 'interior_manager'], permission: 'interior_invoices' },
+      { path: '/interior', label: 'Dashboard', icon: HiOutlineChartBar, roles: ['admin', 'manager', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
+      { path: '/interior-projects', label: 'Projects', icon: HiOutlineBuildingOffice2, roles: ['admin', 'manager', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
+      { path: '/interior-payments', label: 'Payments', icon: HiOutlineCreditCard, roles: ['admin', 'manager', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
+      { path: '/interior-invoices', label: 'Invoices', icon: HiOutlineReceiptPercent, roles: ['admin', 'manager', 'accounts', 'interior_manager'], permission: 'interior_projects' },
+      { path: '/estimates', label: 'Estimates', roles: ['admin', 'manager', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { path: '/visitors', label: 'Visitors', icon: HiOutlineCube, roles: ['admin', 'manager', 'receptionist'], permission: 'visitors' },
+    ],
+  },
+  {
+    label: 'Inventory',
+    items: [
+      { path: '/stock', label: 'Stock', roles: ['admin', 'manager', 'interior_manager', 'junior_interior_manager'] },
     ],
   },
   {
@@ -110,17 +115,25 @@ const menuGroups = [
 ];
 
 export default function Sidebar() {
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermission, loading } = useAuth();
+  const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
-
   const roleSlug = user?.role_slug || user?.role?.slug || '';
-  const roleName = user?.role?.name || '';
+
+  const isItemActive = (itemPath) => {
+    if (itemPath === '/dashboard') return location.pathname === '/dashboard';
+    if (itemPath === '/interior') return location.pathname.startsWith('/interior') && !location.pathname.startsWith('/interior-projects') && !location.pathname.startsWith('/interior-payments') && !location.pathname.startsWith('/interior-invoices');
+    if (itemPath === '/interior-projects') return location.pathname.startsWith('/interior-projects');
+    if (itemPath === '/interior-payments') return location.pathname.startsWith('/interior-payments');
+    if (itemPath === '/interior-invoices') return location.pathname.startsWith('/interior-invoices');
+    return location.pathname.startsWith(itemPath);
+  };
 
   const canShow = (item) => {
+    if (!user) return false;
     if (item.excludeRoles?.includes(roleSlug)) return false;
-    if (item.roles.includes(roleSlug)) return true;
-    if (roleName && item.roles.some(r => r === roleName.toLowerCase().replace(/\s+/g, '_'))) return true;
     if (item.permission && hasPermission(item.permission)) return true;
+    if (item.roles.includes(roleSlug)) return true;
     return false;
   };
 
@@ -130,6 +143,9 @@ export default function Sidebar() {
       items: group.items.filter(canShow),
     }))
     .filter((group) => group.items.length > 0);
+
+  if (loading) return null;
+  if (!user) return null;
 
   return (
     <>
@@ -151,24 +167,24 @@ export default function Sidebar() {
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-6">
+        <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-2">
           {filteredGroups.map((group) => (
-            <div key={group.label}>
-              <p className="px-3 text-[10px] font-semibold text-stone-400 uppercase tracking-[0.2em] mb-2.5">
+            <div key={group.label} className="space-y-0.5">
+              <div className="px-3 pt-3 pb-1.5 text-[10px] font-semibold text-stone-400 uppercase tracking-[0.2em]">
                 {group.label}
-              </p>
-              <div className="space-y-0.5">
+              </div>
+              <div className="space-y-0.5 px-1 pb-1">
                 {group.items.map((item) => (
                   <NavLink
                     key={item.path}
                     to={item.path}
                     end={item.path === '/dashboard' || item.path === '/interior'}
                     onClick={() => setCollapsed(true)}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${isActive ? 'bg-stone-900 text-white shadow-md shadow-stone-900/10' : 'text-stone-600 hover:bg-stone-50 hover:text-stone-900'}`
+                    className={() =>
+                      `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${isItemActive(item.path) ? 'bg-stone-900 text-white shadow-md shadow-stone-900/10' : 'text-stone-600 hover:bg-stone-50 hover:text-stone-900'}`
                     }
                   >
-                    <item.icon size={18} />
+                    {item.icon ? <item.icon size={18} /> : <span className="w-[18px]" aria-hidden="true" />}
                     <span>{item.label}</span>
                   </NavLink>
                 ))}

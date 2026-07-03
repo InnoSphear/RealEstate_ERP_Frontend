@@ -19,7 +19,7 @@ export default function Commissions() {
   const fetchData = async () => {
     setLoading(true);
     try { const [dRes, uRes, sRes] = await Promise.all([API.get('/commissions'), API.get('/users'), API.get('/property-sales')]); setData(dRes.data); setUsers(uRes.data); setSales(sRes.data); }
-    catch (err) { toast('Failed to load', 'error'); }
+    catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, []);
@@ -68,3 +68,4 @@ export default function Commissions() {
     </div>
   );
 }
+

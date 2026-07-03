@@ -24,11 +24,8 @@ export default function InteriorInvoiceDetail() {
   const canViewProfit = hasRole('admin', 'manager');
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [editModalOpen, setEditModalOpen] = useState(false);
   const [payModalOpen, setPayModalOpen] = useState(false);
   const [payForm, setPayForm] = useState({ paid_amount: '', payment_mode: 'cash' });
-  const [projects, setProjects] = useState([]);
-  const [clients, setClients] = useState([]);
 
   const fetchInvoice = () => {
     setLoading(true);
@@ -40,10 +37,7 @@ export default function InteriorInvoiceDetail() {
 
   useEffect(() => { fetchInvoice(); }, [id]);
   useEffect(() => {
-    Promise.all([
-      API.get('/interior-projects').then((r) => setProjects(Array.isArray(r.data) ? r.data : [])).catch(() => {}),
-      API.get('/clients').then((r) => setClients(Array.isArray(r.data) ? r.data : [])).catch(() => {}),
-    ]);
+    /* projects / clients prefetch intentionally unused */
   }, []);
 
   const handleSend = async () => {
@@ -98,7 +92,7 @@ export default function InteriorInvoiceDetail() {
               <button onClick={handleSend} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all inline-flex items-center gap-2 cursor-pointer border-0 bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/10">
                 <HiOutlinePaperAirplane size={14} /> Send
               </button>
-              <button onClick={() => setEditModalOpen(true)} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">
+              <button onClick={() => toast('Edit not available', 'info')} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">
                 <HiOutlinePencilSquare size={14} /> Edit
               </button>
             </>

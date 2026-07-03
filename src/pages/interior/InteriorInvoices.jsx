@@ -50,10 +50,6 @@ export default function InteriorInvoices() {
     expense_items: [],
   });
 
-  const recalcItems = (items) => items.map((item) => ({
-    ...item, amount: (parseFloat(item.quantity) || 1) * (parseFloat(item.rate) || 0),
-  }));
-
   const updateSaleItem = (idx, field, value) => {
     const items = [...form.sale_items];
     items[idx] = { ...items[idx], [field]: value };
@@ -107,7 +103,7 @@ export default function InteriorInvoices() {
       setStats(sRes.data || { total_invoices: 0, total_sale: 0, total_purchase: 0, total_expense: 0, total_profit: 0, total_paid: 0, total_due: 0 });
       setProjects(Array.isArray(pRes.data) ? pRes.data : []);
       setClients(Array.isArray(cRes.data) ? cRes.data : []);
-    } catch (err) { toast('Failed to load data', 'error'); }
+    } catch { toast('Failed to load data', 'error'); }
     finally { setLoading(false); }
   }, [filters]);
 
@@ -347,3 +343,4 @@ export default function InteriorInvoices() {
     </div>
   );
 }
+

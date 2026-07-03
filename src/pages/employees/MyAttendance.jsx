@@ -19,7 +19,7 @@ export default function MyAttendance() {
       const today = new Date().toISOString().split('T')[0];
       const todayRec = records.find((r) => r.date && r.date.split('T')[0] === today);
       setTodayRecord(todayRec || null);
-    } catch (err) {
+    } catch {
       toast('Failed to load attendance', 'error');
     } finally {
       setLoading(false);
@@ -174,3 +174,4 @@ export default function MyAttendance() {
     </div>
   );
 }
+

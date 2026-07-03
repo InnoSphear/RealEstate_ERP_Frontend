@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import API from '../../api/axios';
 import StatsCard from '../../components/StatsCard';
+import ActivityFeed from '../../components/ActivityFeed';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   HiOutlineUsers,
@@ -55,7 +56,7 @@ function trendEl(stats, key) {
 }
 
 export default function Dashboard() {
-  const { user, hasRole } = useAuth();
+  const { hasRole } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -168,21 +169,7 @@ function EmployeeDashboard({ stats }) {
         <div className="bg-white rounded-2xl border border-stone-200 p-6">
           <h3 className="text-base font-semibold text-stone-900 mb-5">My Recent Activity</h3>
           {recentActivities.length > 0 ? (
-            <div className="space-y-1">
-              {recentActivities.map((act) => (
-                <div key={act._id} className="flex items-start gap-3 py-2.5 px-3 rounded-xl hover:bg-stone-50 transition-colors -mx-3">
-                  <div className="p-2 rounded-lg bg-stone-100 text-stone-500 mt-0.5 shrink-0">
-                    <HiOutlineClock size={16} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-stone-800">{act.description || act.action}</p>
-                    <p className="text-xs text-stone-400 mt-0.5">
-                      {formatDate(act.createdAt)} {formatTime(act.createdAt)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ActivityFeed activities={recentActivities} showUser={false} />
           ) : (
             <p className="text-sm text-stone-400 text-center py-8">No recent activity</p>
           )}
@@ -334,22 +321,7 @@ function AdminDashboard({ stats }) {
         <div className="bg-white rounded-2xl border border-stone-200 p-6">
           <h3 className="text-base font-semibold text-stone-900 mb-5">Recent Activities</h3>
           {recentActivities.length > 0 ? (
-            <div className="space-y-1">
-              {recentActivities.map((act) => (
-                <div key={act._id} className="flex items-start gap-3 py-2.5 px-3 rounded-xl hover:bg-stone-50 transition-colors -mx-3">
-                  <div className="p-2 rounded-lg bg-stone-100 text-stone-500 mt-0.5 shrink-0">
-                    <HiOutlineClock size={16} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-stone-800">{act.description || act.message}</p>
-                    <p className="text-xs text-stone-400 mt-0.5">
-                      {act.user && <span className="font-medium text-stone-500">{act.user.full_name || act.user} · </span>}
-                      {formatDate(act.createdAt)} {formatTime(act.createdAt)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ActivityFeed activities={recentActivities} showUser={true} />
           ) : (
             <p className="text-sm text-stone-400 text-center py-8">No recent activities</p>
           )}

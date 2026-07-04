@@ -55,7 +55,8 @@ function getLatestNotes(r) {
 export default function LeadList() {
   const navigate = useNavigate();
   const { hasRole } = useAuth();
-  const isAdmin = hasRole('admin', 'manager', 'interior_manager', 'junior_interior_manager');
+  const canManage = hasRole('admin', 'manager', 'interior_manager', 'junior_interior_manager');
+  const canDelete = hasRole('admin', 'manager');
   const [data, setData] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -309,7 +310,7 @@ export default function LeadList() {
           <p className="text-stone-500 mt-1">Manage your leads and prospects</p>
         </div>
         <div className="flex gap-2">
-          {isAdmin && selectedIds.length > 0 && (
+          {canDelete && selectedIds.length > 0 && (
             <>
               <button onClick={() => { setBulkTransferTo(''); setBulkTransferModalOpen(true); }} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200">
                 Transfer ({selectedIds.length})
@@ -344,7 +345,7 @@ export default function LeadList() {
           <option value="">All Assignees</option>
           {users.map((u) => <option key={u._id} value={u._id}>{u.full_name}</option>)}
         </select>
-        {isAdmin && (
+        {canDelete && (
           <>
             <select value={filters.created_by_employee} onChange={(e) => setFilters({ ...filters, created_by_employee: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
               <option value="">All Creators</option>
@@ -367,12 +368,12 @@ export default function LeadList() {
         columns={columns}
         data={data}
         loading={loading}
-        selectable={isAdmin}
+        selectable={canDelete}
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
         onView={(r) => navigate(`/leads/${r._id}`)}
-        onEdit={isAdmin ? openEdit : null}
-        onDelete={isAdmin ? (r) => { setSelected(r); setConfirmOpen(true); } : null}
+        onEdit={canManage ? openEdit : null}
+        onDelete={canDelete ? (r) => { setSelected(r); setConfirmOpen(true); } : null}
       />
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={selected ? 'Edit Lead' : 'Create Lead'} size="xl">
@@ -474,7 +475,7 @@ export default function LeadList() {
           </div>
           <div className="flex justify-between items-center pt-2">
             <div>
-              {selected && isAdmin && (
+              {selected && canManage && (
                 <button type="button" onClick={() => openTransfer(selected)} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200">
                   Transfer to Sales
                 </button>

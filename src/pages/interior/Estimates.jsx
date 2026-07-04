@@ -9,7 +9,7 @@ const inputClass = "w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-whi
 
 export default function Estimates() {
   const [estimates, setEstimates] = useState([]);
-  const [clients, setClients] = useState([]);
+  const [leads, setLeads] = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -17,7 +17,7 @@ export default function Estimates() {
   const [selected, setSelected] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [form, setForm] = useState({
-    client: '', project: '', title: '', instructions: '', delivery_terms: '',
+    lead: '', project: '', title: '', instructions: '', delivery_terms: '',
     valid_until: '', items: [], tax_percent: 0, discount: 0, notes: '',
   });
 
@@ -25,11 +25,11 @@ export default function Estimates() {
     setLoading(true);
     Promise.all([
       API.get('/estimates'),
-      API.get('/clients'),
+      API.get('/leads'),
       API.get('/interior-projects'),
-    ]).then(([eRes, cRes, pRes]) => {
+    ]).then(([eRes, lRes, pRes]) => {
       setEstimates(eRes.data);
-      setClients(cRes.data);
+      setLeads(lRes.data);
       setProjects(pRes.data);
     }).catch(() => toast('Failed to load', 'error'))
       .finally(() => setLoading(false));
@@ -73,7 +73,7 @@ export default function Estimates() {
       });
       toast('Estimate created');
       setModalOpen(false);
-      setForm({ client: '', project: '', title: '', instructions: '', delivery_terms: '', valid_until: '', items: [], tax_percent: 0, discount: 0, notes: '' });
+      setForm({ lead: '', project: '', title: '', instructions: '', delivery_terms: '', valid_until: '', items: [], tax_percent: 0, discount: 0, notes: '' });
       fetchData();
     } catch (err) {
       toast(err.response?.data?.message || 'Error', 'error');
@@ -105,7 +105,7 @@ export default function Estimates() {
           <h1 className="text-3xl font-bold text-stone-900 tracking-tight">Estimates</h1>
           <p className="text-stone-500 mt-1">Create and manage project estimates with letterhead</p>
         </div>
-        <button onClick={() => { setForm({ client: '', project: '', title: '', instructions: '', delivery_terms: '', valid_until: '', items: [], tax_percent: 0, discount: 0, notes: '' }); setModalOpen(true); }} className="px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10"><HiOutlinePlus size={16} /> New Estimate</button>
+        <button onClick={() => { setForm({ lead: '', project: '', title: '', instructions: '', delivery_terms: '', valid_until: '', items: [], tax_percent: 0, discount: 0, notes: '' }); setModalOpen(true); }} className="px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10"><HiOutlinePlus size={16} /> New Estimate</button>
       </div>
 
       <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
@@ -123,7 +123,7 @@ export default function Estimates() {
                 <tr className="border-b border-stone-100 bg-stone-50/50">
                   <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">#</th>
                   <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Title</th>
-                  <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Client</th>
+                  <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Lead / Client</th>
                   <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Project</th>
                   <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase">Amount</th>
                   <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Status</th>
@@ -136,13 +136,13 @@ export default function Estimates() {
                   <tr key={est._id} className="border-b border-stone-100 hover:bg-stone-50/50 cursor-pointer" onClick={() => { setSelected(est); setViewModalOpen(true); }}>
                     <td className="px-4 py-3 font-mono text-xs text-stone-500">{est.estimate_number}</td>
                     <td className="px-4 py-3 font-medium text-stone-900">{est.title || 'Untitled'}</td>
-                    <td className="px-4 py-3 text-stone-700">{est.client?.full_name || '-'}</td>
+                    <td className="px-4 py-3 text-stone-700">{est.lead?.full_name || est.client?.full_name || '-'}</td>
                     <td className="px-4 py-3 text-stone-600">{est.project?.title || '-'}</td>
                     <td className="px-4 py-3 text-right font-mono font-medium text-stone-900">₹{(est.grand_total || 0).toLocaleString()}</td>
                     <td className="px-4 py-3"><span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[est.status] || statusColors.draft}`}>{est.status?.charAt(0).toUpperCase() + est.status?.slice(1)}</span></td>
                     <td className="px-4 py-3 text-stone-500">{formatDate(est.createdAt)}</td>
                     <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => { setSelected(est); setModalOpen(true); }} className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all"><HiOutlinePencilSquare size={15} /></button>
+                      <button onClick={() => { setSelected(est); setForm({ lead: est.lead?._id || '', project: est.project?._id || '', title: est.title || '', instructions: est.instructions || '', delivery_terms: est.delivery_terms || '', valid_until: est.valid_until ? est.valid_until.split('T')[0] : '', items: est.items?.map((i) => ({ ...i })) || [], tax_percent: est.tax_percent || 0, discount: est.discount || 0, notes: est.notes || '' }); setModalOpen(true); }} className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all"><HiOutlinePencilSquare size={15} /></button>
                       <button onClick={() => { setSelected(est); setConfirmOpen(true); }} className="p-1.5 rounded-lg text-stone-400 hover:text-red-500 hover:bg-red-50 transition-all"><HiOutlineTrash size={15} /></button>
                     </td>
                   </tr>
@@ -153,7 +153,7 @@ export default function Estimates() {
         )}
       </div>
 
-      <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); setSelected(null); }} title={selected ? 'Edit Estimate' : 'New Estimate'} size="xl">
+      <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); setSelected(null); setForm({ lead: '', project: '', title: '', instructions: '', delivery_terms: '', valid_until: '', items: [], tax_percent: 0, discount: 0, notes: '' }); }} title={selected ? 'Edit Estimate' : 'New Estimate'} size="xl">
         <form onSubmit={selected ? async (e) => {
           e.preventDefault();
           try {
@@ -172,10 +172,10 @@ export default function Estimates() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Title</label><input className={inputClass} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g., Kitchen Renovation Estimate" /></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Valid Until</label><input type="date" className={inputClass} value={form.valid_until} onChange={(e) => setForm({ ...form, valid_until: e.target.value })} /></div>
-            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Client</label>
-              <select className={`${inputClass} appearance-none cursor-pointer`} value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })}>
-                <option value="">Select client</option>
-                {clients.map((c) => <option key={c._id} value={c._id}>{c.full_name}</option>)}
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Lead</label>
+              <select className={`${inputClass} appearance-none cursor-pointer`} value={form.lead} onChange={(e) => setForm({ ...form, lead: e.target.value })}>
+                <option value="">Select lead</option>
+                {leads.map((l) => <option key={l._id} value={l._id}>{l.full_name} {l.mobile ? `(${l.mobile})` : ''}</option>)}
               </select>
             </div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Project</label>
@@ -253,9 +253,9 @@ export default function Estimates() {
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="font-semibold text-stone-900">{selected.client?.full_name || 'N/A'}</p>
-                  {selected.client?.phone && <p className="text-stone-500">{selected.client.phone}</p>}
-                  {selected.client?.email && <p className="text-stone-500">{selected.client.email}</p>}
+                  <p className="font-semibold text-stone-900">{selected.lead?.full_name || selected.client?.full_name || 'N/A'}</p>
+                  {(selected.lead?.mobile || selected.client?.phone) && <p className="text-stone-500">{selected.lead?.mobile || selected.client?.phone}</p>}
+                  {(selected.lead?.email || selected.client?.email) && <p className="text-stone-500">{selected.lead?.email || selected.client?.email}</p>}
                   {selected.project && <p className="text-stone-500 mt-1">Project: {selected.project.title}</p>}
                 </div>
                 <div className="text-right">

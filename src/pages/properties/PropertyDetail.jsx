@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import API from '../../api/axios';
+import Modal from '../../components/Modal';
 import { toast } from '../../components/Toast';
 import { useAuth } from '../../contexts/AuthContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
-import { HiOutlineArrowLeft, HiOutlinePencilSquare, HiOutlineStar, HiOutlineMapPin, HiOutlineHomeModern, HiOutlinePhoto, HiOutlineClipboardDocumentList, HiOutlineKey, HiOutlineCalendarDays, HiOutlineCube, HiOutlineCurrencyDollar, HiOutlineTrash, HiOutlineUser } from 'react-icons/hi2';
+import { HiOutlineArrowLeft, HiOutlinePencilSquare, HiOutlineStar, HiOutlineMapPin, HiOutlineHomeModern, HiOutlinePhoto, HiOutlineClipboardDocumentList, HiOutlineKey, HiOutlineCalendarDays, HiOutlineCube, HiOutlineCurrencyDollar, HiOutlineTrash, HiOutlineUser, HiOutlineArrowUpTray } from 'react-icons/hi2';
 
 const badge = (classes, label) => (
   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${classes}`}>{label}</span>
@@ -33,6 +34,9 @@ export default function PropertyDetail() {
   const [lightbox, setLightbox] = useState(null);
   const [linkedClient, setLinkedClient] = useState(null);
   const [removeClientConfirm, setRemoveClientConfirm] = useState(false);
+  const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [transferUserId, setTransferUserId] = useState('');
   const { hasRole } = useAuth();
 
   useEffect(() => {
@@ -54,6 +58,7 @@ export default function PropertyDetail() {
       catch { toast('Failed to load property', 'error'); }
       finally { setLoading(false); }
     })();
+    API.get('/users').then((res) => setUsers(Array.isArray(res.data) ? res.data : [])).catch(() => {});
   }, [id]);
 
   const handleRemoveClient = async () => {
@@ -64,6 +69,19 @@ export default function PropertyDetail() {
       setRemoveClientConfirm(false);
     } catch (err) {
       toast(err.response?.data?.message || 'Error removing client', 'error');
+    }
+  };
+
+  const handleTransfer = async () => {
+    if (!transferUserId) return;
+    try {
+      await API.put(`/properties/${id}/transfer`, { assigned_to: transferUserId });
+      toast('Property transferred');
+      setTransferModalOpen(false);
+      const { data } = await API.get(`/properties/${id}`);
+      setProperty(data);
+    } catch (err) {
+      toast(err.response?.data?.message || 'Transfer failed', 'error');
     }
   };
 
@@ -98,6 +116,9 @@ export default function PropertyDetail() {
       <div className="flex items-center justify-between">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white transition-colors"><HiOutlineArrowLeft size={16} /> Back</button>
         <div className="flex items-center gap-2">
+          {hasRole('admin', 'manager') && (
+            <button onClick={() => { setTransferUserId(''); setTransferModalOpen(true); }} className="px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer bg-white text-stone-600 hover:bg-stone-50 border border-stone-200 dark:bg-stone-700 dark:text-stone-300 dark:border-stone-600 dark:hover:bg-stone-600"><HiOutlineArrowUpTray size={15} /> Transfer</button>
+          )}
           <button onClick={toggleFeatured} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center gap-2 cursor-pointer ${p.featured ? 'bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:ring-yellow-800' : 'bg-white text-stone-600 hover:bg-stone-50 border border-stone-200 dark:bg-stone-700 dark:text-stone-300 dark:border-stone-600 dark:hover:bg-stone-600'}`}><HiOutlineStar size={15} />{p.featured ? 'Featured' : 'Set Featured'}</button>
           <button onClick={() => navigate(`/properties/${id}/edit`)} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10 dark:bg-stone-700 dark:hover:bg-stone-600"><HiOutlinePencilSquare size={15} /> Edit</button>
         </div>
@@ -279,6 +300,22 @@ export default function PropertyDetail() {
           ) : null}
         </div>
       </div>
+      <Modal isOpen={transferModalOpen} onClose={() => setTransferModalOpen(false)} title="Transfer Property" size="sm">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-stone-700 mb-1.5">Transfer to User *</label>
+            <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={transferUserId} onChange={(e) => setTransferUserId(e.target.value)}>
+              <option value="">Select user</option>
+              {users.map((u) => <option key={u._id} value={u._id}>{u.full_name}</option>)}
+            </select>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setTransferModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
+            <button onClick={handleTransfer} disabled={!transferUserId} className="px-5 py-2.5 rounded-xl text-sm font-semibold border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">Transfer</button>
+          </div>
+        </div>
+      </Modal>
+
       <ConfirmDialog isOpen={removeClientConfirm} onClose={() => setRemoveClientConfirm(false)} onConfirm={handleRemoveClient} title="Remove Client" message={`Are you sure you want to remove ${linkedClient?.full_name || 'this client'} from this property?`} />
     </div>
   );

@@ -4,6 +4,7 @@ import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
+import { useAuth } from '../../contexts/AuthContext';
 
 const tabs = [
   { key: '', label: 'All' },
@@ -22,6 +23,7 @@ const statusColors = {
 const followUpStatuses = ['pending', 'completed', 'missed'];
 
 export default function FollowUpList() {
+  const { hasRole } = useAuth();
   const [data, setData] = useState([]);
   const [users, setUsers] = useState([]);
   const [leads, setLeads] = useState([]);
@@ -311,13 +313,13 @@ export default function FollowUpList() {
         columns={columns}
         data={data}
         loading={loading}
-        selectable
+        selectable={hasRole('admin', 'manager')}
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
         onEdit={openEdit}
-        onDelete={(r) => { setSelected(r); setConfirmOpen(true); }}
+        onDelete={hasRole('admin', 'manager') ? (r) => { setSelected(r); setConfirmOpen(true); } : undefined}
       />
-      {selectedIds.length > 0 && (
+      {hasRole('admin', 'manager') && selectedIds.length > 0 && (
         <div className="flex items-center gap-3 px-4 py-3 bg-stone-50 rounded-xl border border-stone-200">
           <span className="text-sm text-stone-600 font-medium">{selectedIds.length} selected</span>
           <button onClick={() => { setBulkConfirmOpen(true); }} className="px-4 py-1.5 rounded-lg text-sm font-semibold bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-all cursor-pointer">Delete Selected</button>

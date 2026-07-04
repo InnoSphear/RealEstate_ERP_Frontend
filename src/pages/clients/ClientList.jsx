@@ -5,6 +5,7 @@ import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
+import { useAuth } from '../../contexts/AuthContext';
 
 const statusColors = {
   active: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
@@ -18,6 +19,7 @@ const statuses = ['active', 'inactive', 'blocked'];
 
 export default function ClientList() {
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
   const [data, setData] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -220,7 +222,7 @@ export default function ClientList() {
         loading={loading}
         onView={(r) => navigate(`/clients/${r._id}`)}
         onEdit={openEdit}
-        onDelete={(r) => { setSelected(r); setConfirmOpen(true); }}
+        onDelete={hasRole('admin', 'manager') ? (r) => { setSelected(r); setConfirmOpen(true); } : undefined}
       />
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={selected ? 'Edit Client' : 'Create Client'} size="xl">

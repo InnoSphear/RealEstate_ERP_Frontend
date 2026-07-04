@@ -37,9 +37,9 @@ const menuGroups = [
   {
     label: 'Employees',
     items: [
-      { path: '/employees', label: 'All Employees', icon: HiOutlineUserGroup, roles: ['admin', 'manager'], permission: 'employees' },
-      { path: '/employees/attendance', label: 'Attendance', icon: HiOutlineCalendar, roles: ['admin', 'manager'], permission: 'attendance' },
-      { path: '/employees/leaves', label: 'Leave Mgmt', icon: HiOutlineArrowRightOnRectangle, roles: ['admin', 'manager'] },
+      { path: '/employees', label: 'All Employees', icon: HiOutlineUserGroup, roles: ['admin', 'manager'], permission: 'employees', excludeRoles: ['interior_manager', 'junior_interior_manager'] },
+      { path: '/employees/attendance', label: 'Attendance', icon: HiOutlineCalendar, roles: ['admin', 'manager'], permission: 'attendance', excludeRoles: ['interior_manager', 'junior_interior_manager'] },
+      { path: '/employees/leaves', label: 'Leave Mgmt', icon: HiOutlineArrowRightOnRectangle, roles: ['admin', 'manager'], excludeRoles: ['interior_manager', 'junior_interior_manager'] },
     ],
   },
   {

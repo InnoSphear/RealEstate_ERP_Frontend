@@ -580,7 +580,7 @@ export default function InteriorProjectDetail() {
                     </tr>
                   </thead>
                   <tbody>
-                    {[...(project.payments || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((p, idx) => (
+                    {[...(project.payments || [])].sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date)).map((p, idx) => (
                       <tr key={p._id || idx} className="border-b border-stone-100 hover:bg-stone-50/50">
                         <td className="px-4 py-3 text-stone-500">{idx + 1}</td>
                         <td className="px-4 py-3 font-medium text-emerald-700">₹{(p.amount || 0).toLocaleString()}</td>
@@ -1135,7 +1135,7 @@ export default function InteriorProjectDetail() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[...(project.payments || [])].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)).map((p, idx) => (
+                  {[...(project.payments || [])].sort((a, b) => new Date(a.payment_date) - new Date(b.payment_date)).map((p, idx) => (
                     <tr key={p._id || idx} className="border-b border-stone-100">
                       <td className="px-3 py-2 text-stone-500">{idx + 1}</td>
                       <td className="px-3 py-2 text-stone-700">{p.payment_date ? formatDate(p.payment_date) : '-'}</td>
@@ -1175,7 +1175,7 @@ export default function InteriorProjectDetail() {
                 <HiOutlineArrowDownTray size={14} /> Download PDF
               </button>
             </div>
-            {[...(project.payments || [])].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)).map((p, pidx) => (
+            {[...(project.payments || [])].sort((a, b) => new Date(a.payment_date) - new Date(b.payment_date)).map((p, pidx) => (
               <div key={p._id || pidx} ref={pidx === 0 ? billRef : null} className="border border-stone-200 rounded-2xl p-8 bg-white mb-4">
                 <div className="flex items-center gap-4 border-b border-stone-200 pb-6 mb-6">
                   <img src={logo} alt="Shivam International" className="w-16 h-16 rounded-xl object-cover" />

@@ -17,9 +17,11 @@ export default function Estimates() {
   const [selected, setSelected] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [form, setForm] = useState({
-    lead: '', project: '', title: '', instructions: '', delivery_terms: '',
+    lead: '', project: '', full_name: '', mobile: '', email: '',
+    title: '', instructions: '', delivery_terms: '',
     valid_until: '', items: [], tax_percent: 0, discount: 0, notes: '',
   });
+  const leadsMap = Object.fromEntries(leads.map((l) => [l._id, l]));
 
   const fetchData = () => {
     setLoading(true);
@@ -73,7 +75,7 @@ export default function Estimates() {
       });
       toast('Estimate created');
       setModalOpen(false);
-      setForm({ lead: '', project: '', title: '', instructions: '', delivery_terms: '', valid_until: '', items: [], tax_percent: 0, discount: 0, notes: '' });
+      setForm({ lead: '', project: '', full_name: '', mobile: '', email: '', title: '', instructions: '', delivery_terms: '', valid_until: '', items: [], tax_percent: 0, discount: 0, notes: '' });
       fetchData();
     } catch (err) {
       toast(err.response?.data?.message || 'Error', 'error');
@@ -105,7 +107,7 @@ export default function Estimates() {
           <h1 className="text-3xl font-bold text-stone-900 tracking-tight">Estimates</h1>
           <p className="text-stone-500 mt-1">Create and manage project estimates with letterhead</p>
         </div>
-        <button onClick={() => { setForm({ lead: '', project: '', title: '', instructions: '', delivery_terms: '', valid_until: '', items: [], tax_percent: 0, discount: 0, notes: '' }); setModalOpen(true); }} className="px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10"><HiOutlinePlus size={16} /> New Estimate</button>
+        <button onClick={() => { setForm({ lead: '', project: '', full_name: '', mobile: '', email: '', title: '', instructions: '', delivery_terms: '', valid_until: '', items: [], tax_percent: 0, discount: 0, notes: '' }); setModalOpen(true); }} className="px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10"><HiOutlinePlus size={16} /> New Estimate</button>
       </div>
 
       <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
@@ -136,13 +138,13 @@ export default function Estimates() {
                   <tr key={est._id} className="border-b border-stone-100 hover:bg-stone-50/50 cursor-pointer" onClick={() => { setSelected(est); setViewModalOpen(true); }}>
                     <td className="px-4 py-3 font-mono text-xs text-stone-500">{est.estimate_number}</td>
                     <td className="px-4 py-3 font-medium text-stone-900">{est.title || 'Untitled'}</td>
-                    <td className="px-4 py-3 text-stone-700">{est.lead?.full_name || est.client?.full_name || '-'}</td>
+                    <td className="px-4 py-3 text-stone-700">{est.full_name || est.lead?.full_name || est.client?.full_name || '-'}</td>
                     <td className="px-4 py-3 text-stone-600">{est.project?.title || '-'}</td>
                     <td className="px-4 py-3 text-right font-mono font-medium text-stone-900">₹{(est.grand_total || 0).toLocaleString()}</td>
                     <td className="px-4 py-3"><span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[est.status] || statusColors.draft}`}>{est.status?.charAt(0).toUpperCase() + est.status?.slice(1)}</span></td>
                     <td className="px-4 py-3 text-stone-500">{formatDate(est.createdAt)}</td>
                     <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => { setSelected(est); setForm({ lead: est.lead?._id || '', project: est.project?._id || '', title: est.title || '', instructions: est.instructions || '', delivery_terms: est.delivery_terms || '', valid_until: est.valid_until ? est.valid_until.split('T')[0] : '', items: est.items?.map((i) => ({ ...i })) || [], tax_percent: est.tax_percent || 0, discount: est.discount || 0, notes: est.notes || '' }); setModalOpen(true); }} className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all"><HiOutlinePencilSquare size={15} /></button>
+                      <button onClick={() => { setSelected(est); setForm({ lead: est.lead?._id || '', project: est.project?._id || '', full_name: est.full_name || est.lead?.full_name || '', mobile: est.mobile || est.lead?.mobile || '', email: est.email || est.lead?.email || '', title: est.title || '', instructions: est.instructions || '', delivery_terms: est.delivery_terms || '', valid_until: est.valid_until ? est.valid_until.split('T')[0] : '', items: est.items?.map((i) => ({ ...i })) || [], tax_percent: est.tax_percent || 0, discount: est.discount || 0, notes: est.notes || '' }); setModalOpen(true); }} className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all"><HiOutlinePencilSquare size={15} /></button>
                       <button onClick={() => { setSelected(est); setConfirmOpen(true); }} className="p-1.5 rounded-lg text-stone-400 hover:text-red-500 hover:bg-red-50 transition-all"><HiOutlineTrash size={15} /></button>
                     </td>
                   </tr>
@@ -153,7 +155,7 @@ export default function Estimates() {
         )}
       </div>
 
-      <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); setSelected(null); setForm({ lead: '', project: '', title: '', instructions: '', delivery_terms: '', valid_until: '', items: [], tax_percent: 0, discount: 0, notes: '' }); }} title={selected ? 'Edit Estimate' : 'New Estimate'} size="xl">
+      <Modal isOpen={modalOpen} onClose={() => { setModalOpen(false); setSelected(null); setForm({ lead: '', project: '', full_name: '', mobile: '', email: '', title: '', instructions: '', delivery_terms: '', valid_until: '', items: [], tax_percent: 0, discount: 0, notes: '' }); }} title={selected ? 'Edit Estimate' : 'New Estimate'} size="xl">
         <form onSubmit={selected ? async (e) => {
           e.preventDefault();
           try {
@@ -173,7 +175,11 @@ export default function Estimates() {
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Title</label><input className={inputClass} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g., Kitchen Renovation Estimate" /></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Valid Until</label><input type="date" className={inputClass} value={form.valid_until} onChange={(e) => setForm({ ...form, valid_until: e.target.value })} /></div>
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Lead</label>
-              <select className={`${inputClass} appearance-none cursor-pointer`} value={form.lead} onChange={(e) => setForm({ ...form, lead: e.target.value })}>
+              <select className={`${inputClass} appearance-none cursor-pointer`} value={form.lead} onChange={(e) => {
+                const leadId = e.target.value;
+                const lead = leadsMap[leadId];
+                setForm({ ...form, lead: leadId, full_name: lead?.full_name || '', mobile: lead?.mobile || '', email: lead?.email || '' });
+              }}>
                 <option value="">Select lead</option>
                 {leads.map((l) => <option key={l._id} value={l._id}>{l.full_name} {l.mobile ? `(${l.mobile})` : ''}</option>)}
               </select>
@@ -184,6 +190,11 @@ export default function Estimates() {
                 {projects.map((p) => <option key={p._id} value={p._id}>{p.title} ({p.flat_id || p.project_code || '-'})</option>)}
               </select>
             </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Full Name</label><input className={inputClass} value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} placeholder="Auto-filled from lead" /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Mobile</label><input className={inputClass} value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} placeholder="Auto-filled from lead" /></div>
+            <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Email</label><input className={inputClass} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Auto-filled from lead" /></div>
           </div>
           <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Instructions / Scope</label><textarea className={inputClass} rows={3} value={form.instructions} onChange={(e) => setForm({ ...form, instructions: e.target.value })} placeholder="Describe what will be delivered..." /></div>
           <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Delivery Terms</label><textarea className={inputClass} rows={2} value={form.delivery_terms} onChange={(e) => setForm({ ...form, delivery_terms: e.target.value })} placeholder="Payment terms, delivery timeline..." /></div>
@@ -253,9 +264,9 @@ export default function Estimates() {
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="font-semibold text-stone-900">{selected.lead?.full_name || selected.client?.full_name || 'N/A'}</p>
-                  {(selected.lead?.mobile || selected.client?.phone) && <p className="text-stone-500">{selected.lead?.mobile || selected.client?.phone}</p>}
-                  {(selected.lead?.email || selected.client?.email) && <p className="text-stone-500">{selected.lead?.email || selected.client?.email}</p>}
+                  <p className="font-semibold text-stone-900">{selected.full_name || selected.lead?.full_name || selected.client?.full_name || 'N/A'}</p>
+                  {(selected.mobile || selected.lead?.mobile || selected.client?.phone) && <p className="text-stone-500">{selected.mobile || selected.lead?.mobile || selected.client?.phone}</p>}
+                  {(selected.email || selected.lead?.email || selected.client?.email) && <p className="text-stone-500">{selected.email || selected.lead?.email || selected.client?.email}</p>}
                   {selected.project && <p className="text-stone-500 mt-1">Project: {selected.project.title}</p>}
                 </div>
                 <div className="text-right">

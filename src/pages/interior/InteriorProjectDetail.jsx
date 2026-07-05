@@ -60,13 +60,13 @@ export default function InteriorProjectDetail() {
   const [editMilestoneId, setEditMilestoneId] = useState(null);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [editExpenseId, setEditExpenseId] = useState(null);
-  const [expenseForm, setExpenseForm] = useState({ expense_name: '', category: 'other', cost: '', paid_amount: '', payment_date: '', vendor: '', notes: '', project_ref_type: 'interior', project_ref_id: '' });
+  const [expenseForm, setExpenseForm] = useState({ expense_name: '', category: 'other', cost: '', paid_amount: '', payment_date: '', vendor: '', notes: '' });
   const [vendors, setVendors] = useState([]);
   const [materialModalOpen, setMaterialModalOpen] = useState(false);
-  const [materialForm, setMaterialForm] = useState({ item_name: '', cost: '', vendor: '', from_stock: false, stock_item: '' });
+  const [materialForm, setMaterialForm] = useState({ item_name: '', cost: '', vendor: '', purchaser_name: '', from_stock: false, stock_item: '' });
   const [vendorModalOpen, setVendorModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [paymentForm, setPaymentForm] = useState({ amount: '', payment_date: '', payment_mode: 'cash', transaction_id: '', notes: '' });
+  const [paymentForm, setPaymentForm] = useState({ amount: '', payment_date: '', payment_mode: 'cash', transaction_id: '', notes: '', payment_receiver_name: '' });
   const [billModalOpen, setBillModalOpen] = useState(false);
   const [billReceiptView, setBillReceiptView] = useState(false);
   const billRef = useRef(null);
@@ -397,7 +397,7 @@ export default function InteriorProjectDetail() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold text-stone-900">Materials</h3>
-            <button onClick={() => { setMaterialForm({ item_name: '', cost: '', vendor: '' }); setMaterialModalOpen(true); }} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10"><HiOutlinePlus size={14} /> Add Material</button>
+            <button onClick={() => { setMaterialForm({ item_name: '', cost: '', vendor: '', purchaser_name: '' }); setMaterialModalOpen(true); }} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10"><HiOutlinePlus size={14} /> Add Material</button>
           </div>
           {project.materials?.length ? (
             project.materials.map((mat, idx) => {
@@ -409,7 +409,9 @@ export default function InteriorProjectDetail() {
                     <div>
                       <h4 className="font-semibold text-stone-900">{mat.item_name}</h4>
                       <p className="text-sm text-stone-500 mt-0.5">Cost: ₹{(mat.cost || 0).toLocaleString()}</p>
+                      {mat.purchaser_name && <p className="text-xs text-stone-400 mt-0.5">Purchaser: {mat.purchaser_name}</p>}
                       {mat.vendor && <p className="text-xs text-stone-400 mt-0.5">Vendor: {mat.vendor?.name || 'Unknown'}</p>}
+                      {mat.created_by?.full_name && <p className="text-xs text-stone-400 mt-0.5">Added by: {mat.created_by.full_name} &middot; {mat.created_at ? new Date(mat.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</p>}
                       {mat.from_stock && <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 ring-1 ring-blue-200">From Stock</span>}
                     </div>
                     <div className="text-right flex items-center gap-2">
@@ -461,24 +463,36 @@ export default function InteriorProjectDetail() {
                     <div className="mt-3">
                       <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">Shop Bills</p>
                       <div className="flex flex-wrap gap-2">
-                        {mat.bill_photos.map((bill, bi) => (
-                          <div key={bi} className="relative group">
-                            <a href={bill.url} target="_blank" rel="noopener noreferrer">
-                              <img src={bill.url} alt="Bill" className="w-20 h-20 rounded-xl object-cover border border-stone-200 hover:ring-2 hover:ring-stone-900/20 transition-all" />
-                            </a>
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                try {
-                                  await API.delete(`/interior-projects/${id}/materials/${mat._id}/bill/${bill._id}`);
-                                  toast('Bill removed');
-                                  fetchProject();
-                                } catch { toast('Error removing bill', 'error'); }
-                              }}
-                              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                            >&times;</button>
-                          </div>
-                        ))}
+                        {mat.bill_photos.map((bill, bi) => {
+                          const isPdf = bill.url?.toLowerCase().endsWith('.pdf') || bill.name?.toLowerCase().endsWith('.pdf');
+                          return (
+                            <div key={bi} className="relative group">
+                              {isPdf ? (
+                                <a href={bill.url} target="_blank" rel="noopener noreferrer" className="w-20 h-20 rounded-xl border border-stone-200 bg-red-50 flex items-center justify-center text-xs font-semibold text-red-600 hover:ring-2 hover:ring-stone-900/20 transition-all">
+                                  PDF
+                                </a>
+                              ) : (
+                                <a href={bill.url} target="_blank" rel="noopener noreferrer">
+                                  <img src={bill.url} alt="Bill" className="w-20 h-20 rounded-xl object-cover border border-stone-200 hover:ring-2 hover:ring-stone-900/20 transition-all" />
+                                </a>
+                              )}
+                              <a href={bill.url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/30 rounded-xl transition-opacity">
+                                <span className="text-white text-xs font-semibold">View</span>
+                              </a>
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    await API.delete(`/interior-projects/${id}/materials/${mat._id}/bill/${bill._id}`);
+                                    toast('Bill removed');
+                                    fetchProject();
+                                  } catch { toast('Error removing bill', 'error'); }
+                                }}
+                                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                              >&times;</button>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -486,7 +500,7 @@ export default function InteriorProjectDetail() {
                   <div className="mt-3">
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/*,.pdf"
                       id={`bill-upload-${idx}`}
                       className="hidden"
                       onChange={async (e) => {
@@ -503,7 +517,7 @@ export default function InteriorProjectDetail() {
                       }}
                     />
                     <label htmlFor={`bill-upload-${idx}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer bg-white text-stone-600 hover:bg-stone-50 border border-stone-200 transition-all">
-                      <HiOutlineDocumentArrowDown size={14} /> Upload Bill
+                      <HiOutlineDocumentArrowDown size={14} /> Upload Bill (JPG/PNG/PDF)
                     </label>
                   </div>
 
@@ -542,7 +556,7 @@ export default function InteriorProjectDetail() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold text-stone-900 flex items-center gap-2"><HiOutlineBanknotes size={18} /> Client Payments</h3>
-            <button onClick={() => { setPaymentForm({ amount: '', payment_date: new Date().toISOString().split('T')[0], payment_mode: 'cash', transaction_id: '', notes: '' }); setPaymentModalOpen(true); }} className="px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10"><HiOutlinePlus size={14} /> Add Payment</button>
+            <button onClick={() => { setPaymentForm({ amount: '', payment_date: new Date().toISOString().split('T')[0], payment_mode: 'cash', transaction_id: '', notes: '', payment_receiver_name: '' }); setPaymentModalOpen(true); }} className="px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10"><HiOutlinePlus size={14} /> Add Payment</button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -576,6 +590,7 @@ export default function InteriorProjectDetail() {
                       <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Mode</th>
                       <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Txn ID</th>
                       <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Notes</th>
+                      <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Received By</th>
                       <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase">Actions</th>
                     </tr>
                   </thead>
@@ -587,7 +602,8 @@ export default function InteriorProjectDetail() {
                         <td className="px-4 py-3 text-stone-700">{p.payment_date ? formatDate(p.payment_date) : '-'}</td>
                         <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-full text-xs font-medium bg-stone-50 text-stone-600 ring-1 ring-stone-200 capitalize">{p.payment_mode || 'cash'}</span></td>
                         <td className="px-4 py-3 text-stone-600 font-mono text-xs">{p.transaction_id || '-'}</td>
-                        <td className="px-4 py-3 text-stone-500 max-w-[160px] truncate">{p.notes || '-'}</td>
+                        <td className="px-4 py-3 text-stone-500 max-w-[160px] truncate" title={p.notes || ''}>{p.notes || '-'}</td>
+                        <td className="px-4 py-3 text-stone-500 text-xs">{p.payment_receiver_name || p.received_by?.full_name || '-'}</td>
                         <td className="px-4 py-3 text-right">
                           <button onClick={() => { setConfirmAction(() => async () => { try { await API.delete(`/interior-projects/${id}/payments/${p._id}`); toast('Payment deleted'); fetchProject(); } catch { toast('Error', 'error'); } }); setConfirmOpen(true); }} className="p-1.5 rounded-lg text-stone-400 hover:text-red-500 hover:bg-red-50 transition-all"><HiOutlineTrash size={15} /></button>
                         </td>
@@ -783,7 +799,7 @@ export default function InteriorProjectDetail() {
         <div className="bg-white rounded-2xl border border-stone-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-stone-900 flex items-center gap-2"><HiOutlineCurrencyDollar size={18} /> Direct Expenses</h3>
-            <button onClick={() => { setEditExpenseId(null); setExpenseForm({ expense_name: '', category: 'other', cost: '', paid_amount: '', payment_date: '', vendor: '', notes: '', project_ref_type: 'interior', project_ref_id: '' }); setExpenseModalOpen(true); }} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10"><HiOutlinePlus size={14} /> Add Expense</button>
+            <button onClick={() => { setEditExpenseId(null); setExpenseForm({ expense_name: '', category: 'other', cost: '', paid_amount: '', payment_date: '', vendor: '', notes: '' }); setExpenseModalOpen(true); }} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10"><HiOutlinePlus size={14} /> Add Expense</button>
           </div>
           {(!project.direct_expenses || project.direct_expenses.length === 0) ? (
             <p className="text-sm text-stone-400 text-center py-8">No expenses recorded</p>
@@ -796,6 +812,7 @@ export default function InteriorProjectDetail() {
                     <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Category</th>
                     <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase">Cost</th>
                     <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase">Paid</th>
+                    <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase">Due</th>
                     <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Vendor</th>
                     <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Date</th>
                     <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Notes</th>
@@ -809,11 +826,16 @@ export default function InteriorProjectDetail() {
                       <td className="px-4 py-3"><span className="px-2 py-0.5 rounded-full text-xs font-medium bg-stone-50 text-stone-600 ring-1 ring-stone-200 capitalize">{exp.category || 'other'}</span></td>
                       <td className="px-4 py-3 text-right text-stone-700 font-mono">₹{(exp.cost || 0).toLocaleString()}</td>
                       <td className="px-4 py-3 text-right text-stone-700 font-mono">₹{(exp.paid_amount || 0).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right font-mono">
+                        <span className={`${((exp.cost || 0) - (exp.paid_amount || 0)) > 0 ? 'text-amber-700 font-semibold' : 'text-emerald-600'}`}>
+                          ₹{((exp.cost || 0) - (exp.paid_amount || 0)).toLocaleString()}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-stone-600">{exp.vendor || '-'}</td>
                       <td className="px-4 py-3 text-stone-500">{exp.payment_date ? formatDate(exp.payment_date) : '-'}</td>
                       <td className="px-4 py-3 text-stone-500 max-w-[160px] truncate">{exp.notes || '-'}</td>
                       <td className="px-4 py-3 text-right">
-                        <button onClick={() => { setEditExpenseId(exp._id); setExpenseForm({ expense_name: exp.expense_name, category: exp.category || 'other', cost: exp.cost || '', paid_amount: exp.paid_amount || '', payment_date: exp.payment_date ? exp.payment_date.split('T')[0] : '', vendor: exp.vendor || '', notes: exp.notes || '', project_ref_type: exp.project_ref_type || 'interior', project_ref_id: exp.project_ref_id || '' }); setExpenseModalOpen(true); }} className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all"><HiOutlinePencilSquare size={15} /></button>
+                        <button onClick={() => { setEditExpenseId(exp._id); setExpenseForm({ expense_name: exp.expense_name, category: exp.category || 'other', cost: exp.cost || '', paid_amount: exp.paid_amount || '', payment_date: exp.payment_date ? exp.payment_date.split('T')[0] : '', vendor: exp.vendor || '', notes: exp.notes || '' }); setExpenseModalOpen(true); }} className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-all"><HiOutlinePencilSquare size={15} /></button>
                         <button onClick={() => { setConfirmAction(() => async () => { try { await API.delete(`/interior-projects/${id}/expenses/${exp._id}`); toast('Expense deleted'); fetchProject(); } catch { toast('Error deleting expense', 'error'); } }); setConfirmOpen(true); }} className="p-1.5 rounded-lg text-stone-400 hover:text-red-500 hover:bg-red-50 transition-all"><HiOutlineTrash size={15} /></button>
                       </td>
                     </tr>
@@ -976,14 +998,6 @@ export default function InteriorProjectDetail() {
             <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Date</label><input type="date" className={inputClass} value={expenseForm.payment_date} onChange={(e) => setExpenseForm({ ...expenseForm, payment_date: e.target.value })} /></div>
           </div>
           <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Vendor</label><input className={inputClass} value={expenseForm.vendor} onChange={(e) => setExpenseForm({ ...expenseForm, vendor: e.target.value })} placeholder="Vendor name" /></div>
-          <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Map to Property</label>
-            <select className={`${inputClass} appearance-none cursor-pointer`} value={`${expenseForm.project_ref_type || 'interior'}|${expenseForm.project_ref_id || ''}`} onChange={(e) => {
-              const [type, id] = e.target.value.split('|');
-              setExpenseForm({ ...expenseForm, project_ref_type: type, project_ref_id: id || '' });
-            }}>
-              <option value="interior|">Same Interior Project</option>
-            </select>
-          </div>
           <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Notes</label><textarea className={inputClass} rows={2} value={expenseForm.notes} onChange={(e) => setExpenseForm({ ...expenseForm, notes: e.target.value })} /></div>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => { setExpenseModalOpen(false); setEditExpenseId(null); }} className="px-5 py-2.5 rounded-xl text-sm font-semibold ... bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
@@ -1086,6 +1100,7 @@ export default function InteriorProjectDetail() {
             </div>
           </div>
           <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Transaction ID</label><input className={inputClass} value={paymentForm.transaction_id} onChange={(e) => setPaymentForm({ ...paymentForm, transaction_id: e.target.value })} /></div>
+          <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Receiver Name</label><input className={inputClass} value={paymentForm.payment_receiver_name} onChange={(e) => setPaymentForm({ ...paymentForm, payment_receiver_name: e.target.value })} placeholder="Who received this payment?" /></div>
           <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Notes</label><textarea className={inputClass} rows={2} value={paymentForm.notes} onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })} /></div>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setPaymentModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold ... bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
@@ -1250,6 +1265,7 @@ export default function InteriorProjectDetail() {
               vendor: materialForm.from_stock ? undefined : (materialForm.vendor || undefined),
               from_stock: materialForm.from_stock,
               stock_item: materialForm.from_stock ? materialForm.stock_item : undefined,
+              purchaser_name: materialForm.purchaser_name || undefined,
             });
             toast('Material added');
             setMaterialModalOpen(false);
@@ -1258,11 +1274,11 @@ export default function InteriorProjectDetail() {
         }} className="space-y-4">
           <div className="flex items-center gap-4 mb-2">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="materialSource" checked={!materialForm.from_stock} onChange={() => setMaterialForm({ ...materialForm, from_stock: false, stock_item: '', item_name: '', cost: '' })} className="cursor-pointer" />
+              <input type="radio" name="materialSource" checked={!materialForm.from_stock} onChange={() => setMaterialForm({ ...materialForm, from_stock: false, stock_item: '', item_name: '', cost: '', purchaser_name: '' })} className="cursor-pointer" />
               <span className="text-sm font-medium text-stone-700">New Purchase</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="materialSource" checked={materialForm.from_stock} onChange={() => setMaterialForm({ ...materialForm, from_stock: true, vendor: '', item_name: '', cost: '' })} className="cursor-pointer" />
+              <input type="radio" name="materialSource" checked={materialForm.from_stock} onChange={() => setMaterialForm({ ...materialForm, from_stock: true, vendor: '', item_name: '', cost: '', purchaser_name: '' })} className="cursor-pointer" />
               <span className="text-sm font-medium text-stone-700">From Stock</span>
             </label>
           </div>
@@ -1293,6 +1309,7 @@ export default function InteriorProjectDetail() {
               </div>
             </>
           )}
+          <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Purchaser Name</label><input className={inputClass} value={materialForm.purchaser_name} onChange={(e) => setMaterialForm({ ...materialForm, purchaser_name: e.target.value })} placeholder="Who purchased this?" /></div>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setMaterialModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold ... bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
             <button type="submit" className="px-5 py-2.5 rounded-xl text-sm font-semibold ... border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">Add</button>

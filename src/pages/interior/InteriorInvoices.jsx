@@ -18,7 +18,8 @@ const statusBadge = (v) => {
     overdue: 'bg-red-50 text-red-700 ring-1 ring-red-200',
     cancelled: 'bg-stone-100 text-stone-400 ring-1 ring-stone-200',
   };
-  return <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${map[v] || map.draft}`}>{v ? v.charAt(0).toUpperCase() + v.slice(1) : '-'}</span>;
+  const statusStr = typeof v === 'string' ? v : '';
+  return <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${map[statusStr] || map.draft}`}>{statusStr ? statusStr.charAt(0).toUpperCase() + statusStr.slice(1) : '-'}</span>;
 };
 
 const profitClass = (v) => {

@@ -74,7 +74,7 @@ export default function InteriorPayments() {
     { header: 'Date', render: (r) => r.payment_date ? formatDate(r.payment_date) : '-' },
     { header: 'Mode', render: (r) => <span className="bg-stone-50 text-stone-700 ring-1 ring-stone-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize">{r.payment_mode?.replace(/_/g, ' ')}</span> },
     { header: 'Txn ID', render: (r) => r.transaction_id || '-' },
-    { header: 'Received By', render: (r) => r.received_by?.full_name || '-' },
+    { header: 'Received By', render: (r) => r.payment_receiver_name || r.received_by?.full_name || '-' },
   ];
 
   return (
@@ -110,7 +110,7 @@ export default function InteriorPayments() {
               <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Date</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.payment_date ? formatDate(viewPayment.payment_date) : '-'}</p></div>
               <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Mode</p><p className="text-sm font-medium text-stone-900 mt-1 capitalize">{viewPayment.payment_mode?.replace(/_/g, ' ')}</p></div>
               <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Transaction ID</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.transaction_id || '-'}</p></div>
-              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Received By</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.received_by?.full_name || '-'}</p></div>
+              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Received By</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.payment_receiver_name || viewPayment.received_by?.full_name || '-'}</p></div>
               <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Contract Amount</p><p className="text-sm font-medium text-stone-900 mt-1">₹{(viewPayment.contract_amount || 0).toLocaleString()}</p></div>
               <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Total Received</p><p className="text-sm font-medium text-stone-900 mt-1">₹{(viewPayment.received_amount || 0).toLocaleString()}</p></div>
               <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Balance</p><p className={`text-sm font-medium mt-1 ${(viewPayment.balance || 0) > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>₹{(viewPayment.balance || 0).toLocaleString()}</p></div>
@@ -200,7 +200,7 @@ export default function InteriorPayments() {
               )}
               <div className="text-center text-xs text-stone-400 mt-6 pt-4 border-t border-stone-100">
                 <p>This is a computer-generated receipt</p>
-                <p>Processed by: {viewPayment.received_by?.full_name || 'System'}</p>
+                <p>Processed by: {viewPayment.payment_receiver_name || viewPayment.received_by?.full_name || 'System'}</p>
               </div>
             </div>
           </div>

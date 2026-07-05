@@ -13,7 +13,7 @@ const statusColors = {
 };
 const statuses = ['pending', 'approved', 'paid', 'cancelled'];
 const commissionTypes = ['fixed', 'percentage'];
-const sourceOptions = ['sale', 'rent', 'service', 'referral', 'other'];
+const sourceOptions = ['sale', 'rent', 'service', 'brokerage', 'interior', 'referral', 'other'];
 const paymentModes = ['cash', 'upi', 'bank_transfer', 'cheque', 'card', 'other'];
 
 export default function CommissionList() {
@@ -21,6 +21,7 @@ export default function CommissionList() {
   const [employees, setEmployees] = useState([]);
   const [clients, setClients] = useState([]);
   const [properties, setProperties] = useState([]);
+  const [interiorProjects, setInteriorProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [paymentModal, setPaymentModal] = useState(false);
@@ -33,7 +34,8 @@ export default function CommissionList() {
   const [filterType, setFilterType] = useState('');
   const [form, setForm] = useState({
     employee_id: '', commission_type: 'fixed', commission_value: '', percentage_rate: '',
-    source: 'sale', source_description: '', client_id: '', property_id: '', amount_basis: ''
+    source: 'sale', source_description: '', client_id: '', property_id: '', amount_basis: '',
+    source_id: ''
   });
   const [payForm, setPayForm] = useState({
     payment_mode: 'cash', reference: '', upi_id: '', notes: '', amount: ''
@@ -49,17 +51,19 @@ export default function CommissionList() {
       if (filterEmployee) params.append('employee', filterEmployee);
       if (filterType) params.append('commission_type', filterType);
       const qs = params.toString();
-      const [dRes, eRes, cRes, pRes] = await Promise.all([
+      const [dRes, eRes, cRes, pRes, iRes] = await Promise.all([
         API.get(`/commissions${qs ? `?${qs}` : ''}`),
         API.get('/employees'),
         API.get('/clients'),
         API.get('/properties'),
+        API.get('/interior-projects'),
       ]);
       const commissions = Array.isArray(dRes.data) ? dRes.data : [];
       setData(commissions);
       setEmployees(Array.isArray(eRes.data) ? eRes.data : []);
       setClients(Array.isArray(cRes.data) ? cRes.data : []);
       setProperties(Array.isArray(pRes.data) ? pRes.data : []);
+      setInteriorProjects(Array.isArray(iRes.data) ? iRes.data : []);
       const summaryMap = {};
       commissions.forEach((c) => {
         const name = c.employee?.full_name || 'Unknown';
@@ -78,7 +82,8 @@ export default function CommissionList() {
 
   const resetForm = () => setForm({
     employee_id: '', commission_type: 'fixed', commission_value: '', percentage_rate: '',
-    source: 'sale', source_description: '', client_id: '', property_id: '', amount_basis: ''
+    source: 'sale', source_description: '', client_id: '', property_id: '', amount_basis: '',
+    source_id: ''
   });
 
   const openCreate = () => { setSelected(null); resetForm(); setModalOpen(true); };
@@ -95,6 +100,7 @@ export default function CommissionList() {
       client_id: row.client?._id || row.client || '',
       property_id: row.property?._id || row.property || '',
       amount_basis: row.amount_basis || '',
+      source_id: row.source_id || '',
     });
     setModalOpen(true);
   };
@@ -124,6 +130,7 @@ export default function CommissionList() {
         commission_value: form.commission_value !== '' ? Number(form.commission_value) : undefined,
         percentage_rate: form.percentage_rate !== '' ? Number(form.percentage_rate) : undefined,
         amount_basis: form.amount_basis !== '' ? Number(form.amount_basis) : undefined,
+        source_id: form.source_id || undefined,
       };
       if (selected) { await API.put(`/commissions/${selected._id}`, payload); toast('Commission updated'); }
       else { await API.post('/commissions', payload); toast('Commission created'); }
@@ -348,6 +355,15 @@ export default function CommissionList() {
                 {properties.map((p) => <option key={p._id} value={p._id}>{p.property_id} - {p.location}</option>)}
               </select>
             </div>
+            {form.source === 'interior' && (
+              <div>
+                <label className="block text-sm font-semibold text-stone-700 mb-1.5">Interior Project</label>
+                <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.source_id} onChange={(e) => setForm({ ...form, source_id: e.target.value })}>
+                  <option value="">Select interior project</option>
+                  {interiorProjects.map((p) => <option key={p._id} value={p._id}>{p.title} - {p.client_id?.full_name || ''}</option>)}
+                </select>
+              </div>
+            )}
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>

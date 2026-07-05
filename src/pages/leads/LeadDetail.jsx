@@ -644,18 +644,29 @@ export default function LeadDetail() {
 
       {activeTab === 'Call Notes' && (
         <div className="bg-white rounded-2xl border border-stone-200 p-6">
-          <h3 className="text-base font-semibold text-stone-900 mb-4">Call Notes</h3>
+          <h3 className="text-base font-semibold text-stone-900 mb-4">Call Logs</h3>
           {(!lead.call_notes || lead.call_notes.length === 0) ? (
-            <p className="text-sm text-stone-400 text-center py-8">No call notes recorded</p>
+            <p className="text-sm text-stone-400 text-center py-8">No call logs recorded</p>
           ) : (
-            <div className="space-y-3">
-              {lead.call_notes.map((note, i) => {
+            <div className="space-y-0">
+              {[...lead.call_notes].reverse().map((note, i) => {
                 const text = typeof note === 'string' ? note : note.text;
                 const time = typeof note === 'object' && note.createdAt ? new Date(note.createdAt) : null;
+                const userName = typeof note === 'object' && note.created_by?.full_name;
                 return (
-                  <div key={i} className="p-4 rounded-xl bg-stone-50 border-l-4 border-stone-300">
-                    <p className="text-sm text-stone-700">{text}</p>
-                    {time && <p className="text-xs text-stone-400 mt-1">{time.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} {time.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>}
+                  <div key={i} className="flex gap-4 pb-4 relative">
+                    <div className="flex flex-col items-center">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-stone-100 text-stone-600">
+                        {userName ? userName.charAt(0).toUpperCase() : 'U'}
+                      </div>
+                      {i < lead.call_notes.length - 1 && <div className="w-px flex-1 bg-stone-200 mt-1" />}
+                    </div>
+                    <div className="flex-1 pb-4">
+                      <p className="text-sm text-stone-900 font-medium">{text}</p>
+                      <p className="text-xs text-stone-400 mt-0.5">
+                        {userName || 'Unknown'} &middot; {time ? time.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' + time.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}
+                      </p>
+                    </div>
                   </div>
                 );
               })}

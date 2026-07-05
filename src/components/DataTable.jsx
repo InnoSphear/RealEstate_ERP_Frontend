@@ -91,7 +91,7 @@ export default function DataTable({
                   <input
                     type="checkbox"
                     checked={data.length > 0 && selectedIds.length === data.length}
-                    indeterminate={selectedIds.length > 0 && selectedIds.length < data.length}
+                    indeterminate={selectedIds.length > 0 && selectedIds.length < data.length ? true : undefined}
                     onChange={(e) => onSelectionChange?.(e.target.checked ? data.map((r) => r._id) : [])}
                     className="rounded border-stone-300 text-stone-900 focus:ring-stone-900 cursor-pointer"
                   />

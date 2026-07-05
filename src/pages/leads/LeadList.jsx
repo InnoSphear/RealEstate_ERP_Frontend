@@ -519,8 +519,14 @@ export default function LeadList() {
 
       <Modal isOpen={importModalOpen} onClose={() => setImportModalOpen(false)} title="Import Leads from Excel" size="sm">
         <div className="space-y-4">
-          <p className="text-sm text-stone-600">Upload an Excel file (.xlsx, .xls) with lead data</p>
-          <input type="file" accept=".xlsx,.xls" onChange={handleImport} className="w-full text-sm text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-stone-900 file:text-white hover:file:bg-stone-800 file:cursor-pointer cursor-pointer" />
+          <p className="text-sm text-stone-600">Upload an Excel (.xlsx, .xls) or CSV file with lead data</p>
+          <div className="text-xs text-stone-500 bg-stone-50 rounded-xl p-3 space-y-1">
+            <p className="font-medium text-stone-700 mb-1">Required columns:</p>
+            <code className="block">Name, Mobile, Source</code>
+            <p className="font-medium text-stone-700 mt-2 mb-1">Optional columns:</p>
+            <code className="block">Email, Alternate Mobile, Address, City, State, Pincode, Requirement, Budget, Property Type, Preferred Locations, Society, Flat Number, Tower, Flat Size, Key Available, Notes, Status</code>
+          </div>
+          <input type="file" accept=".xlsx,.xls,.csv" onChange={handleImport} className="w-full text-sm text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-stone-900 file:text-white hover:file:bg-stone-800 file:cursor-pointer cursor-pointer" />
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setImportModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
           </div>

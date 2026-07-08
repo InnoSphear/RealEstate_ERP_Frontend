@@ -7,6 +7,8 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const getRoleSlug = (data) => data.role?.slug || data.role_slug;
+
   const refreshUser = useCallback(async () => {
     try {
       const res = await API.get('/auth/me');
@@ -14,7 +16,7 @@ export function AuthProvider({ children }) {
         ...res.data,
         branch: res.data.branch_id || res.data.branch,
         tenant: res.data.tenant,
-        role_slug: res.data.role_slug,
+        role_slug: getRoleSlug(res.data),
       };
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
@@ -34,8 +36,9 @@ export function AuthProvider({ children }) {
       }
       try {
         const parsed = JSON.parse(stored);
-        setUser(parsed);
-        return parsed;
+        const fixed = { ...parsed, role_slug: getRoleSlug(parsed) };
+        setUser(fixed);
+        return fixed;
       } catch {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -53,7 +56,8 @@ export function AuthProvider({ children }) {
     if (token && stored) {
       try {
         const parsed = JSON.parse(stored);
-        setUser(parsed);
+        const fixed = { ...parsed, role_slug: getRoleSlug(parsed) };
+        setUser(fixed);
         refreshUser().finally(() => setLoading(false));
       } catch {
         localStorage.removeItem('token');
@@ -68,13 +72,14 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const { data } = await API.post('/auth/login', { email, password });
+    const roleSlug = getRoleSlug(data);
     const userData = {
       _id: data._id,
       full_name: data.full_name,
       email: data.email,
       phone: data.phone,
       role: data.role,
-      role_slug: data.role_slug,
+      role_slug: roleSlug,
       tenant: data.tenant,
       profile_photo: data.profile_photo,
       branch: data.branch,
@@ -106,24 +111,25 @@ export function AuthProvider({ children }) {
 
   const hasRole = (...roles) => {
     if (!user) return false;
-    return roles.includes(user.role_slug);
+    const slug = user.role_slug || user.role?.slug;
+    return roles.includes(slug);
   };
 
   const hasPermission = (module, action = 'read') => {
     if (!user) return false;
-    if (user.role_slug === 'admin') return true;
-    if (user.role_slug === 'manager') return true;
+    const slug = user.role_slug || user.role?.slug;
+    if (slug === 'admin') return true;
+    if (slug === 'manager') return true;
     const perms = user.role?.permissions;
     if (!perms || perms.length === 0) return false;
-    if (typeof perms[0] === 'string') {
-      return true;
-    }
+    if (typeof perms[0] === 'string') return false;
     return perms.some(p => p?.module === module && p?.action === action);
   };
 
   const hasAnyPermission = (module, actions = []) => {
     if (!user) return false;
-    if (user.role_slug === 'admin') return true;
+    const slug = user.role_slug || user.role?.slug;
+    if (slug === 'admin') return true;
     return actions.some(action => hasPermission(module, action));
   };
 

@@ -41,6 +41,8 @@ export default function ClientDetail() {
   const [billView, setBillView] = useState(false);
   const [billPayment, setBillPayment] = useState(null);
   const [paymentReasonCustom, setPaymentReasonCustom] = useState('');
+  const [dues, setDues] = useState([]);
+  const [duesLoading, setDuesLoading] = useState(false);
 
   const fetchClient = () => {
     setLoading(true);
@@ -201,6 +203,18 @@ export default function ClientDetail() {
       toast('Failed to load payments', 'error');
     } finally {
       setPaymentsLoading(false);
+    }
+  };
+
+  const fetchDues = async () => {
+    setDuesLoading(true);
+    try {
+      const res = await API.get(`/client-dues/by-client/${id}`);
+      setDues(Array.isArray(res.data) ? res.data : []);
+    } catch {
+      toast('Failed to load dues', 'error');
+    } finally {
+      setDuesLoading(false);
     }
   };
 
@@ -566,11 +580,12 @@ export default function ClientDetail() {
         </div>
       </Modal>
 
-      <Modal isOpen={paymentModalOpen} onClose={() => { setPaymentModalOpen(false); setBillView(false); setBillPayment(null); }} title={billView && billPayment ? `Bill - ${billPayment.payment_number || ''}` : `Payments - ${client?.full_name || ''}`} size={billView || paymentView === 'complete_bill' ? '2xl' : 'xl'}>
+      <Modal isOpen={paymentModalOpen} onClose={() => { setPaymentModalOpen(false); setBillView(false); setBillPayment(null); }} title={billView && billPayment ? `Bill - ${billPayment.payment_number || ''}` : `Payments - ${client?.full_name || ''}`} size={billView || paymentView === 'complete_bill' || paymentView === 'dues' ? '2xl' : 'xl'}>
         <div className="flex gap-2 mb-4 border-b border-stone-200 pb-4">
-          <button onClick={() => setPaymentView('new')} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${paymentView === 'new' ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/10' : 'bg-white text-stone-600 hover:bg-stone-50 border border-stone-200'}`}>New Payment</button>
+          <button onClick={() => { setPaymentView('new'); fetchDues(); }} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${paymentView === 'new' ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/10' : 'bg-white text-stone-600 hover:bg-stone-50 border border-stone-200'}`}>New Payment</button>
           <button onClick={() => { setPaymentView('history'); fetchPayments(); }} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${paymentView === 'history' ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/10' : 'bg-white text-stone-600 hover:bg-stone-50 border border-stone-200'}`}>Payment History</button>
           <button onClick={() => { setPaymentView('complete_bill'); fetchPayments(); }} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${paymentView === 'complete_bill' ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/10' : 'bg-white text-stone-600 hover:bg-stone-50 border border-stone-200'}`}>Complete Bill</button>
+          <button onClick={() => { setPaymentView('dues'); fetchDues(); }} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${paymentView === 'dues' ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/10' : 'bg-white text-stone-600 hover:bg-stone-50 border border-stone-200'}`}>Due Payments</button>
         </div>
 
         {billView && billPayment ? (
@@ -668,6 +683,19 @@ export default function ClientDetail() {
           </div>
         ) : paymentView === 'new' ? (
           <div className="space-y-4">
+            {dues.filter(d => d.status !== 'paid' && d.status !== 'waived').length > 0 && (
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
+                <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider mb-2">Pending Dues</p>
+                <div className="space-y-1.5">
+                  {dues.filter(d => d.status !== 'paid' && d.status !== 'waived').map(d => (
+                    <div key={d._id} className="flex justify-between text-sm">
+                      <span className="text-amber-700">{d.reason || 'Due'}{d.due_date ? ` (due ${new Date(d.due_date).toLocaleDateString('en-IN')})` : ''}</span>
+                      <span className="font-semibold text-amber-900">{formatCurrency(d.remaining)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Reason</label>
               <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={paymentForm.reason} onChange={(e) => setPaymentForm({ ...paymentForm, reason: e.target.value })}>
@@ -821,6 +849,53 @@ export default function ClientDetail() {
                     <p className="text-stone-400 mt-1">This is a computer-generated statement</p>
                   </div>
                 </div>
+              </div>
+            )}
+            <div className="mt-4 pt-4 border-t border-stone-100 flex justify-end">
+              <button type="button" onClick={() => setPaymentModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Close</button>
+            </div>
+          </div>
+        ) : paymentView === 'dues' ? (
+          <div>
+            {duesLoading ? (
+              <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-7 w-7 border-2 border-stone-900 border-t-transparent" /></div>
+            ) : dues.length === 0 ? (
+              <p className="text-sm text-stone-400 text-center py-8">No due payments for this client</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-stone-200">
+                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">#</th>
+                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Amount</th>
+                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Paid</th>
+                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Remaining</th>
+                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Reason</th>
+                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Due Date</th>
+                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dues.map((d, i) => (
+                      <tr key={d._id} className="border-b border-stone-100 hover:bg-stone-50">
+                        <td className="py-3 px-2 text-stone-700 font-medium">{i + 1}</td>
+                        <td className="py-3 px-2 font-semibold text-stone-900">{formatCurrency(d.amount)}</td>
+                        <td className="py-3 px-2 text-stone-700">{d.paid_amount ? formatCurrency(d.paid_amount) : '-'}</td>
+                        <td className="py-3 px-2 text-stone-700">{d.remaining ? formatCurrency(d.remaining) : '-'}</td>
+                        <td className="py-3 px-2 text-stone-600">{d.reason || '-'}</td>
+                        <td className="py-3 px-2 text-stone-600 text-xs">{d.due_date ? new Date(d.due_date).toLocaleDateString('en-IN') : '-'}</td>
+                        <td className="py-3 px-2">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            d.status === 'paid' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' :
+                            d.status === 'partial' ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' :
+                            d.status === 'waived' ? 'bg-stone-50 text-stone-700 ring-1 ring-stone-200' :
+                            'bg-red-50 text-red-700 ring-1 ring-red-200'
+                          }`}>{d.status}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
             <div className="mt-4 pt-4 border-t border-stone-100 flex justify-end">

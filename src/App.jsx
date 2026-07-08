@@ -103,16 +103,16 @@ export default function App() {
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="change-password" element={<ChangePassword />} />
 
-              <Route path="admin/tenants" element={<ProtectedRoute roles={['admin']}><Tenants /></ProtectedRoute>} />
-              <Route path="admin/tenants/:id" element={<ProtectedRoute roles={['admin']}><TenantDetail /></ProtectedRoute>} />
-              <Route path="admin/users" element={<ProtectedRoute roles={['admin', 'manager']}><Users /></ProtectedRoute>} />
-              <Route path="admin/roles" element={<ProtectedRoute roles={['admin']}><Roles /></ProtectedRoute>} />
-              <Route path="admin/permissions" element={<ProtectedRoute roles={['admin']}><Permissions /></ProtectedRoute>} />
+              <Route path="admin/tenants" element={<ProtectedRoute roles={['admin']} permission="tenants"><Tenants /></ProtectedRoute>} />
+              <Route path="admin/tenants/:id" element={<ProtectedRoute roles={['admin']} permission="tenants"><TenantDetail /></ProtectedRoute>} />
+              <Route path="admin/users" element={<ProtectedRoute roles={['admin', 'manager']} permission="users"><Users /></ProtectedRoute>} />
+              <Route path="admin/roles" element={<ProtectedRoute roles={['admin']} permission="roles"><Roles /></ProtectedRoute>} />
+              <Route path="admin/permissions" element={<ProtectedRoute roles={['admin']} permission="roles"><Permissions /></ProtectedRoute>} />
               <Route path="admin/branches" element={<ProtectedRoute roles={['admin']}><Branches /></ProtectedRoute>} />
 
-              <Route path="employees" element={<ProtectedRoute roles={['admin', 'manager']}><EmployeeList /></ProtectedRoute>} />
-              <Route path="employees/:id" element={<ProtectedRoute roles={['admin', 'manager']}><EmployeeDetail /></ProtectedRoute>} />
-              <Route path="employees/attendance" element={<ProtectedRoute roles={['admin', 'manager']}><Attendance /></ProtectedRoute>} />
+              <Route path="employees" element={<ProtectedRoute roles={['admin', 'manager']} permission="employees"><EmployeeList /></ProtectedRoute>} />
+              <Route path="employees/:id" element={<ProtectedRoute roles={['admin', 'manager']} permission="employees"><EmployeeDetail /></ProtectedRoute>} />
+              <Route path="employees/attendance" element={<ProtectedRoute roles={['admin', 'manager']} permission="attendance"><Attendance /></ProtectedRoute>} />
               <Route path="my-attendance" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager']}><MyAttendance /></ProtectedRoute>} />
               <Route path="my-leaves" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager']}><MyLeaves /></ProtectedRoute>} />
               <Route path="employees/leaves" element={<ProtectedRoute roles={['admin', 'manager']}><LeaveManagement /></ProtectedRoute>} />
@@ -128,13 +128,13 @@ export default function App() {
 
               <Route path="properties" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager']} permission="properties"><PropertyList /></ProtectedRoute>} />
               <Route path="properties/:id" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager']} permission="properties"><PropertyDetail /></ProtectedRoute>} />
-              <Route path="properties/keys" element={<ProtectedRoute roles={['admin', 'manager']}><PropertyKeyList /></ProtectedRoute>} />
+              <Route path="properties/keys" element={<ProtectedRoute roles={['admin', 'manager']} permission="property_keys"><PropertyKeyList /></ProtectedRoute>} />
 
               <Route path="projects" element={<ProtectedRoute roles={['admin', 'manager', 'sales_executive', 'interior_manager']}><ProjectList /></ProtectedRoute>} />
               <Route path="projects/:id" element={<ProtectedRoute roles={['admin', 'manager', 'sales_executive', 'interior_manager']}><ProjectDetail /></ProtectedRoute>} />
 
               <Route path="site-visits" element={<ProtectedRoute roles={['admin', 'manager', 'sales_executive', 'junior_interior_manager']} permission="site_visits"><SiteVisitList /></ProtectedRoute>} />
-              <Route path="visitors" element={<ProtectedRoute roles={['admin', 'manager', 'receptionist']}><VisitorList /></ProtectedRoute>} />
+              <Route path="visitors" element={<ProtectedRoute roles={['admin', 'manager', 'receptionist']} permission="visitors"><VisitorList /></ProtectedRoute>} />
               <Route path="interior" element={<ProtectedRoute roles={['admin', 'manager', 'interior_manager', 'junior_interior_manager']} permission="interior_projects"><InteriorDashboard /></ProtectedRoute>} />
               <Route path="interior-projects" element={<ProtectedRoute roles={['admin', 'manager', 'interior_manager', 'junior_interior_manager']} permission="interior_projects"><InteriorProjects /></ProtectedRoute>} />
               <Route path="interior-projects/new" element={<ProtectedRoute roles={['admin', 'manager', 'interior_manager', 'junior_interior_manager']} permission="interior_projects"><InteriorProjects /></ProtectedRoute>} />
@@ -146,20 +146,20 @@ export default function App() {
               <Route path="rental-apartments" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager']}><RentalList /></ProtectedRoute>} />
               <Route path="rental-apartments/:id" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager']}><RentalDetail /></ProtectedRoute>} />
 
-              <Route path="invoices" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']}><InvoiceList /></ProtectedRoute>} />
-              <Route path="invoices/:id" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']}><InvoiceDetail /></ProtectedRoute>} />
-              <Route path="payments" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']}><PaymentList /></ProtectedRoute>} />
-              <Route path="commissions" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']}><CommissionList /></ProtectedRoute>} />
-              <Route path="my-commissions" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager']}><MyCommissions /></ProtectedRoute>} />
-              <Route path="income" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']}><IncomeList /></ProtectedRoute>} />
-              <Route path="expenses" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']}><ExpenseList /></ProtectedRoute>} />
-              <Route path="vendors" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']}><VendorList /></ProtectedRoute>} />
+              <Route path="invoices" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']} permission="invoices"><InvoiceList /></ProtectedRoute>} />
+              <Route path="invoices/:id" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']} permission="invoices"><InvoiceDetail /></ProtectedRoute>} />
+              <Route path="payments" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']} permission="payments"><PaymentList /></ProtectedRoute>} />
+              <Route path="commissions" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']} permission="commissions"><CommissionList /></ProtectedRoute>} />
+              <Route path="my-commissions" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager']} permission="commissions"><MyCommissions /></ProtectedRoute>} />
+              <Route path="income" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']} permission="income"><IncomeList /></ProtectedRoute>} />
+              <Route path="expenses" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']} permission="expenses"><ExpenseList /></ProtectedRoute>} />
+              <Route path="vendors" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']} permission="vendors"><VendorList /></ProtectedRoute>} />
               <Route path="materials" element={<ProtectedRoute roles={['admin', 'manager', 'interior_manager', 'junior_interior_manager']}><Materials /></ProtectedRoute>} />
               <Route path="stock" element={<ProtectedRoute roles={['admin', 'manager', 'interior_manager', 'junior_interior_manager']}><StockList /></ProtectedRoute>} />
 
-              <Route path="activity" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager']}><MyActivity /></ProtectedRoute>} />
+              <Route path="activity" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager']} permission="activity_logs"><MyActivity /></ProtectedRoute>} />
               <Route path="documents" element={<ProtectedRoute roles={['admin', 'manager', 'sales_executive', 'accounts', 'interior_manager']}><Documents /></ProtectedRoute>} />
-              <Route path="reports" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']}><Reports /></ProtectedRoute>} />
+              <Route path="reports" element={<ProtectedRoute roles={['admin', 'manager', 'accounts']} permission="reports"><Reports /></ProtectedRoute>} />
               <Route path="settings" element={<ProtectedRoute roles={['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager']}><Settings /></ProtectedRoute>} />
             </Route>
 

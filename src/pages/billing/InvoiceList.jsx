@@ -5,6 +5,8 @@ import Modal from '../../components/Modal';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { toast } from '../../components/Toast';
 
+const formatCurrency = (n) => n ? `₹${Number(n).toLocaleString()}` : '-';
+
 const statusColors = {
   draft: 'bg-stone-50 text-stone-700 ring-1 ring-stone-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
   sent: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
@@ -29,6 +31,8 @@ export default function InvoiceList() {
   const [filterClient, setFilterClient] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [clientDues, setClientDues] = useState([]);
+  const [duesLoading, setDuesLoading] = useState(false);
   const [form, setForm] = useState({
     client_id: '', property_id: '', invoice_type: 'sale', issue_date: new Date().toISOString().split('T')[0],
     due_date: '', items: [{ description: '', quantity: 1, rate: 0, amount: 0 }],
@@ -36,6 +40,15 @@ export default function InvoiceList() {
     payment_mode: '', notes: '', terms: ''
   });
   const [paymentForm, setPaymentForm] = useState({ amount: '', payment_date: new Date().toISOString().split('T')[0], payment_mode: 'cash', reference_no: '' });
+
+  const fetchDues = async () => {
+    setDuesLoading(true);
+    try {
+      const res = await API.get('/client-dues');
+      setClientDues(Array.isArray(res.data) ? res.data : []);
+    } catch { /* silent */ }
+    finally { setDuesLoading(false); }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -57,6 +70,7 @@ export default function InvoiceList() {
     } catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
+  useEffect(() => { fetchDues(); }, []);
   useEffect(() => { fetchData(); }, [filterStatus, filterClient, dateFrom, dateTo]);
 
   const calcItems = (items) => items.map((item) => ({ ...item, amount: (Number(item.quantity) || 0) * (Number(item.rate) || 0) }));
@@ -181,6 +195,46 @@ export default function InvoiceList() {
         <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" />
         <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" />
       </div>
+
+      {clientDues.filter(d => d.status !== 'paid' && d.status !== 'waived').length > 0 && (
+        <div className="bg-white rounded-2xl border border-stone-200 luxury-shadow overflow-hidden">
+          <div className="p-4 border-b border-stone-100">
+            <h3 className="text-sm font-semibold text-stone-900">Client Dues</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-stone-100 bg-stone-50/50">
+                  <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Client</th>
+                  <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Reason</th>
+                  <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase">Amount</th>
+                  <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase">Paid</th>
+                  <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase">Remaining</th>
+                  <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Due Date</th>
+                  <th className="px-4 py-3 text-left font-semibold text-stone-500 text-xs uppercase">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clientDues.filter(d => d.status !== 'paid' && d.status !== 'waived').map((d) => (
+                  <tr key={d._id} className="border-b border-stone-100 hover:bg-stone-50/50">
+                    <td className="px-4 py-3 font-medium text-stone-900">{d.client?.full_name || '-'}</td>
+                    <td className="px-4 py-3 text-stone-600">{d.reason || '-'}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-stone-900">{formatCurrency(d.amount)}</td>
+                    <td className="px-4 py-3 text-right text-stone-700">{d.paid_amount ? formatCurrency(d.paid_amount) : '-'}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-red-700">{formatCurrency(d.remaining)}</td>
+                    <td className="px-4 py-3 text-stone-600">{d.due_date ? new Date(d.due_date).toLocaleDateString('en-IN') : '-'}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        d.status === 'partial' ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' : 'bg-red-50 text-red-700 ring-1 ring-red-200'
+                      }`}>{d.status}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <DataTable
         columns={columns}

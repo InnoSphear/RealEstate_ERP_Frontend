@@ -78,11 +78,13 @@ export default function PaymentList() {
   const [dateTo, setDateTo] = useState('');
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
-    client_id: '', invoice_id: '', amount: '', security_deposit: '', brokerage: '',
+    client_id: '', invoice_id: '', amount: '', payment_reason: '', payment_status: 'paid',
     payment_date: new Date().toISOString().split('T')[0],
-    payment_mode: 'cash', purchaser_name: '', utr_number: '', reference_number: '', transaction_id: '',
+    payment_mode: 'cash', purchaser_name: '', paid_by: '', credited_to: '', remarks: '',
+    utr_number: '', reference_number: '', transaction_id: '',
     bank_name: '', cheque_number: '', cheque_date: '', notes: ''
   });
+  const [paymentReasonsList, setPaymentReasonsList] = useState([]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -94,23 +96,26 @@ export default function PaymentList() {
       if (dateFrom) params.append('date_from', dateFrom);
       if (dateTo) params.append('date_to', dateTo);
       const qs = params.toString();
-      const [dRes, iRes, cRes] = await Promise.all([
+      const [dRes, iRes, cRes, reasonsRes] = await Promise.all([
         API.get(`/payments${qs ? `?${qs}` : ''}`),
         API.get('/invoices'),
         API.get('/clients'),
+        API.get('/payments/reasons'),
       ]);
       setData(dRes.data);
       setInvoices(iRes.data);
       setClients(cRes.data);
+      if (reasonsRes.data) setPaymentReasonsList(Array.isArray(reasonsRes.data) ? reasonsRes.data : []);
     } catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, [filterStatus, filterMode, filterClient, dateFrom, dateTo]);
 
   const resetForm = () => setForm({
-    client_id: '', invoice_id: '', amount: '', security_deposit: '', brokerage: '',
+    client_id: '', invoice_id: '', amount: '', payment_reason: '', payment_status: 'paid',
     payment_date: new Date().toISOString().split('T')[0],
-    payment_mode: 'cash', purchaser_name: '', utr_number: '', reference_number: '', transaction_id: '',
+    payment_mode: 'cash', purchaser_name: '', paid_by: '', credited_to: '', remarks: '',
+    utr_number: '', reference_number: '', transaction_id: '',
     bank_name: '', cheque_number: '', cheque_date: '', notes: ''
   });
 
@@ -132,12 +137,16 @@ export default function PaymentList() {
       const payload = {
         ...form,
         amount: Number(form.amount),
-        security_deposit: form.security_deposit ? Number(form.security_deposit) : 0,
-        brokerage: form.brokerage ? Number(form.brokerage) : 0,
         client_id: form.client_id || undefined,
         utr_number: form.utr_number || undefined,
         purchaser_name: form.purchaser_name || undefined,
       };
+      if (form.payment_status === 'due') {
+        payload.payment_mode = undefined;
+        payload.paid_by = undefined;
+        payload.credited_to = undefined;
+        payload.reference_number = undefined;
+      }
       if (selected) { await API.put(`/payments/${selected._id}`, payload); toast('Payment updated'); }
       else { await API.post('/payments', payload); toast('Payment created'); }
       setModalOpen(false);
@@ -172,15 +181,19 @@ export default function PaymentList() {
   const columns = [
     { header: 'Payment #', accessor: 'payment_number' },
     { header: 'Client', render: (r) => r.client_id?.full_name || r.client_id?.name || '-' },
-    { header: 'Payer', render: (r) => r.purchaser_name || '-' },
-    { header: 'Invoice', render: (r) => r.invoice_id?.invoice_number || '-' },
+    { header: 'Reason', render: (r) => r.payment_reason || r.reason || '-' },
     { header: 'Amount', render: (r) => r.amount ? `₹${r.amount.toLocaleString()}` : '-' },
-    { header: 'Security Deposit', render: (r) => r.security_deposit ? `₹${r.security_deposit.toLocaleString()}` : '-' },
-    { header: 'Brokerage', render: (r) => r.brokerage ? `₹${r.brokerage.toLocaleString()}` : '-' },
     { header: 'Date', render: (r) => r.payment_date ? new Date(r.payment_date).toLocaleDateString() : '-' },
-    { header: 'Mode', render: (r) => <span className="bg-stone-50 text-stone-700 ring-1 ring-stone-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize">{r.payment_mode?.replace(/_/g, ' ')}</span> },
-    { header: 'Status', render: (r) => <span className={statusColors[r.status]}>{r.status}</span> },
-    { header: 'UTR/Ref', render: (r) => r.utr_number || r.reference_number || '-' },
+    { header: 'Status', render: (r) => {
+      const isPaid = r.payment_status === 'paid' || r.status === 'completed';
+      return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isPaid ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'}`}>{isPaid ? 'Paid' : 'Due'}</span>;
+    }},
+    { header: 'Mode', render: (r) => {
+      const isPaid = r.payment_status === 'paid' || r.status === 'completed';
+      return isPaid ? <span className="bg-stone-50 text-stone-700 ring-1 ring-stone-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize">{r.payment_mode?.replace(/_/g, ' ') || '-'}</span> : <span className="text-xs text-stone-400">-</span>;
+    }},
+    { header: 'Ref No', render: (r) => r.reference_number || r.utr_number || '-' },
+    { header: 'Paid By', render: (r) => r.paid_by || r.purchaser_name || '-' },
   ];
 
   return (
@@ -213,12 +226,15 @@ export default function PaymentList() {
         <form onSubmit={handleSave} className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Purchaser Name</label>
-              <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.purchaser_name} onChange={(e) => setForm({ ...form, purchaser_name: e.target.value })} placeholder="Who made the payment" />
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Reason</label>
+              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.payment_reason} onChange={(e) => setForm({ ...form, payment_reason: e.target.value })}>
+                <option value="">Select reason</option>
+                {paymentReasonsList.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Invoice *</label>
-              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.invoice_id} onChange={(e) => handleInvoiceChange(e.target.value)} required>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Invoice</label>
+              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.invoice_id} onChange={(e) => handleInvoiceChange(e.target.value)}>
                 <option value="">Select invoice</option>
                 {invoices.map((inv) => <option key={inv._id} value={inv._id}>{inv.invoice_number} - ₹{(inv.due_amount || inv.total_amount || 0).toLocaleString()}</option>)}
               </select>
@@ -226,7 +242,7 @@ export default function PaymentList() {
             <div>
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Client</label>
               <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.client_id} onChange={(e) => setForm({ ...form, client_id: e.target.value })}>
-                <option value="">Auto from invoice</option>
+                <option value="">Select client</option>
                 {clients.map((c) => <option key={c._id} value={c._id}>{c.full_name || c.name}</option>)}
               </select>
             </div>
@@ -235,61 +251,53 @@ export default function PaymentList() {
               <input type="number" step="0.01" min="0" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Security Deposit (₹)</label>
-              <input type="number" step="0.01" min="0" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.security_deposit} onChange={(e) => setForm({ ...form, security_deposit: e.target.value })} placeholder="Goes to flat owner" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Brokerage (₹)</label>
-              <input type="number" step="0.01" min="0" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.brokerage} onChange={(e) => setForm({ ...form, brokerage: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Date *</label>
-              <input type="date" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.payment_date} onChange={(e) => setForm({ ...form, payment_date: e.target.value })} required />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Mode *</label>
-              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.payment_mode} onChange={(e) => setForm({ ...form, payment_mode: e.target.value })} required>
-                {paymentModes.map((m) => <option key={m} value={m}>{m.replace(/_/g, ' ')}</option>)}
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Status</label>
+              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.payment_status} onChange={(e) => setForm({ ...form, payment_status: e.target.value })}>
+                <option value="paid">Paid</option>
+                <option value="due">Due</option>
               </select>
             </div>
-            {form.payment_mode === 'bank_transfer' && (
-              <div>
-                <label className="block text-sm font-semibold text-stone-700 mb-1.5">UTR Number</label>
-                <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.utr_number} onChange={(e) => setForm({ ...form, utr_number: e.target.value })} placeholder="Bank transfer UTR" />
-              </div>
-            )}
             <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Reference Number</label>
-              <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.reference_number} onChange={(e) => setForm({ ...form, reference_number: e.target.value })} placeholder="Cheque/Ref no." />
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Date</label>
+              <input type="date" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.payment_date} onChange={(e) => setForm({ ...form, payment_date: e.target.value })} />
             </div>
-            {form.payment_mode === 'bank_transfer' && (
+            {form.payment_status === 'paid' && (
               <>
                 <div>
-                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Transaction ID</label>
-                  <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.transaction_id} onChange={(e) => setForm({ ...form, transaction_id: e.target.value })} />
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Mode</label>
+                  <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.payment_mode} onChange={(e) => setForm({ ...form, payment_mode: e.target.value })}>
+                    <option value="cash">Cash</option>
+                    <option value="upi">UPI</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="card">Card</option>
+                    <option value="other">Other</option>
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Bank Name</label>
-                  <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.bank_name} onChange={(e) => setForm({ ...form, bank_name: e.target.value })} />
-                </div>
-              </>
-            )}
-            {form.payment_mode === 'cheque' && (
-              <>
-                <div>
-                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Cheque Number</label>
-                  <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.cheque_number} onChange={(e) => setForm({ ...form, cheque_number: e.target.value })} />
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Reference Number</label>
+                  <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.reference_number} onChange={(e) => setForm({ ...form, reference_number: e.target.value })} placeholder="UTR/Cheque/Ref no." />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Cheque Date</label>
-                  <input type="date" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.cheque_date} onChange={(e) => setForm({ ...form, cheque_date: e.target.value })} />
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Person Who Made Payment</label>
+                  <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.paid_by || form.purchaser_name} onChange={(e) => setForm({ ...form, paid_by: e.target.value, purchaser_name: e.target.value })} placeholder="Name of the person" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Credited To</label>
+                  <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.credited_to} onChange={(e) => setForm({ ...form, credited_to: e.target.value })}>
+                    <option value="">Select</option>
+                    <option value="Company Account">Company Account</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Employee">Employee</option>
+                    <option value="Bank Account">Bank Account</option>
+                  </select>
                 </div>
               </>
             )}
           </div>
           <div>
-            <label className="block text-sm font-semibold text-stone-700 mb-1.5">Notes</label>
-            <textarea className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            <label className="block text-sm font-semibold text-stone-700 mb-1.5">Remarks</label>
+            <textarea className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" rows={2} value={form.remarks || form.notes} onChange={(e) => setForm({ ...form, remarks: e.target.value, notes: e.target.value })} />
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
@@ -310,62 +318,37 @@ export default function PaymentList() {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Client</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.client_id?.full_name || viewPayment.client_id?.name || '-'}</p></div>
-              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Purchaser</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.purchaser_name || '-'}</p></div>
+              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Reason</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.payment_reason || viewPayment.reason || '-'}</p></div>
               <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Amount</p><p className="text-sm font-medium text-stone-900 mt-1">₹{viewPayment.amount?.toLocaleString()}</p></div>
-              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Security Deposit</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.security_deposit ? `₹${viewPayment.security_deposit.toLocaleString()}` : '-'}</p></div>
-              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Brokerage</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.brokerage ? `₹${viewPayment.brokerage.toLocaleString()}` : '-'}</p></div>
+              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Payment Status</p>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-1 ${(viewPayment.payment_status === 'paid' || viewPayment.status === 'completed') ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'}`}>
+                  {viewPayment.payment_status === 'paid' || viewPayment.status === 'completed' ? 'Paid' : 'Due'}
+                </span>
+              </div>
               <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Date</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.payment_date ? new Date(viewPayment.payment_date).toLocaleDateString() : '-'}</p></div>
-              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Mode</p><p className="text-sm font-medium text-stone-900 mt-1 capitalize">{viewPayment.payment_mode?.replace(/_/g, ' ')}</p></div>
-              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Status</p><span className={statusColors[viewPayment.status]}>{viewPayment.status}</span></div>
+              {(viewPayment.payment_status === 'paid' || viewPayment.status === 'completed') && (
+                <>
+                  <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Mode</p><p className="text-sm font-medium text-stone-900 mt-1 capitalize">{viewPayment.payment_mode?.replace(/_/g, ' ') || '-'}</p></div>
+                  <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Reference No</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.reference_number || viewPayment.utr_number || '-'}</p></div>
+                  <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Paid By</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.paid_by || viewPayment.purchaser_name || '-'}</p></div>
+                  <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Credited To</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.credited_to || '-'}</p></div>
+                </>
+              )}
               <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Invoice</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.invoice_id?.invoice_number || '-'}</p></div>
-              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">UTR Number</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.utr_number || '-'}</p></div>
-              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Reference</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.reference_number || '-'}</p></div>
               <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Processed By</p><p className="text-sm font-medium text-stone-900 mt-1">{viewPayment.processed_by?.full_name || '-'}</p></div>
             </div>
 
-            {viewPayment.receipt_screenshot && (
+            {viewPayment.remarks && (
+              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-1">Remarks</p><p className="text-sm text-stone-700 bg-stone-50 rounded-xl px-4 py-3">{viewPayment.remarks}</p></div>
+            )}
+
+            {(viewPayment.payment_status === 'paid' || viewPayment.status === 'completed') && viewPayment.receipt_screenshot && (
               <div>
                 <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-2">Receipt Screenshot</p>
                 <a href={viewPayment.receipt_screenshot} target="_blank" rel="noopener noreferrer">
                   <img src={viewPayment.receipt_screenshot} alt="Receipt" className="max-h-48 rounded-xl border border-stone-200 object-contain bg-stone-50" />
                 </a>
               </div>
-            )}
-
-            <div>
-              <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-2">Receipt Upload</p>
-              <label className="flex items-center gap-3 px-4 py-3 rounded-xl border border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:bg-stone-100 transition-colors">
-                <span className="text-sm text-stone-500">{uploading ? 'Uploading...' : 'Choose receipt file'}</span>
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  className="hidden"
-                  disabled={uploading}
-                  onChange={(e) => {
-                    if (e.target.files[0]) handleReceiptUpload(viewPayment._id, e.target.files[0]);
-                    e.target.value = '';
-                  }}
-                />
-              </label>
-            </div>
-
-            {viewPayment.reference_docs?.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-2">Reference Documents</p>
-                <div className="space-y-1.5">
-                  {viewPayment.reference_docs.map((doc, i) => (
-                    <a key={i} href={doc.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-stone-700 hover:text-stone-900 bg-stone-50 rounded-lg px-3 py-2 hover:bg-stone-100 transition-colors">
-                      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                      <span className="truncate">{doc.name}</span>
-                      {doc.type && <span className="text-xs text-stone-400 uppercase shrink-0">.{doc.type}</span>}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {viewPayment.notes && (
-              <div><p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-1">Notes</p><p className="text-sm text-stone-700 bg-stone-50 rounded-xl px-4 py-3">{viewPayment.notes}</p></div>
             )}
 
             <div>
@@ -407,16 +390,10 @@ export default function PaymentList() {
               </button>
             </div>
             <div ref={billRef} className="border border-stone-200 rounded-2xl p-8 bg-white">
-              <div className="flex items-center gap-4 border-b border-stone-200 pb-6 mb-6">
-                <img src={logo} alt="Shivam International" className="w-16 h-16 rounded-xl object-cover" />
-                <div>
-                  <h2 className="text-xl font-bold text-stone-900">Shivam International</h2>
-                  <p className="text-xs text-stone-500">Real Estate & Interior Solutions</p>
-                </div>
-                <div className="ml-auto text-right">
-                  <h3 className="text-lg font-bold text-stone-900">PAYMENT RECEIPT</h3>
-                  <p className="text-xs text-stone-400">Receipt #{viewPayment.payment_number}</p>
-                </div>
+              <div className="text-center border-b border-stone-200 pb-6 mb-6">
+                <h2 className="text-xl font-bold text-stone-900">Payment Receipt</h2>
+                <h3 className="text-lg font-bold text-stone-900 mt-3 uppercase tracking-wider">PAYMENT RECEIPT</h3>
+                <p className="text-xs text-stone-400">Receipt #{viewPayment.receipt_number || viewPayment.payment_number}</p>
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm mb-6">
                 <div>
@@ -425,12 +402,12 @@ export default function PaymentList() {
                 </div>
                 <div className="text-right">
                   <p className="text-stone-400 text-xs">Payment Mode</p>
-                  <p className="font-semibold text-stone-900 capitalize">{viewPayment.payment_mode?.replace(/_/g, ' ')}</p>
+                  <p className="font-semibold text-stone-900 capitalize">{viewPayment.payment_mode?.replace(/_/g, ' ') || 'N/A'}</p>
                 </div>
               </div>
               <div className="border-t border-stone-100 pt-4 mb-4">
                 <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">Received From</h3>
-                <p className="text-base font-bold text-stone-900">{viewPayment.purchaser_name || viewPayment.client_id?.full_name || '-'}</p>
+                <p className="text-base font-bold text-stone-900">{viewPayment.paid_by || viewPayment.purchaser_name || viewPayment.client_id?.full_name || '-'}</p>
                 {viewPayment.client_id?.mobile && <p className="text-sm text-stone-500">{viewPayment.client_id.mobile}</p>}
               </div>
               <table className="w-full text-sm mb-6">
@@ -442,30 +419,18 @@ export default function PaymentList() {
                 </thead>
                 <tbody>
                   <tr className="border-b border-stone-100">
-                    <td className="py-3 text-stone-700">Payment Amount</td>
+                    <td className="py-3 text-stone-700">{viewPayment.payment_reason || viewPayment.reason || 'Payment Amount'}</td>
                     <td className="py-3 text-right font-semibold text-stone-900">{viewPayment.amount?.toLocaleString()}</td>
                   </tr>
-                  {viewPayment.security_deposit > 0 && (
-                    <tr className="border-b border-stone-100">
-                      <td className="py-3 text-stone-700">Security Deposit (refundable)</td>
-                      <td className="py-3 text-right font-semibold text-stone-900">{viewPayment.security_deposit?.toLocaleString()}</td>
-                    </tr>
-                  )}
-                  {viewPayment.brokerage > 0 && (
-                    <tr className="border-b border-stone-100">
-                      <td className="py-3 text-stone-700">Brokerage / Commission</td>
-                      <td className="py-3 text-right font-semibold text-stone-900">{viewPayment.brokerage?.toLocaleString()}</td>
-                    </tr>
-                  )}
                   <tr>
                     <td className="py-3 text-sm font-bold text-stone-900">Total Amount</td>
-                    <td className="py-3 text-right text-base font-bold text-stone-900">₹{((viewPayment.amount || 0) + (viewPayment.security_deposit || 0) + (viewPayment.brokerage || 0)).toLocaleString()}</td>
+                    <td className="py-3 text-right text-base font-bold text-stone-900">₹{(viewPayment.amount || 0).toLocaleString()}</td>
                   </tr>
                 </tbody>
               </table>
-              {viewPayment.utr_number && (
+              {viewPayment.reference_number && (
                 <div className="text-xs text-stone-400 border-t border-stone-100 pt-4">
-                  <p>UTR: {viewPayment.utr_number}</p>
+                  <p>Ref: {viewPayment.reference_number}</p>
                 </div>
               )}
               <div className="text-center text-xs text-stone-400 mt-6 pt-4 border-t border-stone-100">

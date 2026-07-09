@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { NavLink } from 'react-router-dom';
 import API from '../../api/axios';
 import StatsCard from '../../components/StatsCard';
 import ActivityFeed from '../../components/ActivityFeed';
 import { useAuth } from '../../contexts/AuthContext';
+import { useRefreshOnFocus } from '../../hooks/useRefreshOnFocus';
 import {
   HiOutlineUsers,
   HiOutlineFire,
@@ -63,12 +64,16 @@ export default function Dashboard() {
 
   const isEmployee = !hasRole('admin', 'manager');
 
-  useEffect(() => {
+  const fetchStats = useCallback(() => {
     API.get('/dashboard/stats')
       .then((res) => setStats(res.data))
       .catch((err) => setError(err?.response?.data?.message || 'Failed to load dashboard data'))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { fetchStats(); }, [fetchStats]);
+
+  useRefreshOnFocus(fetchStats, 60000);
 
   if (loading) {
     return (

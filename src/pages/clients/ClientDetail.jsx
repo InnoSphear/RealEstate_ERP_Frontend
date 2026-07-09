@@ -37,12 +37,15 @@ export default function ClientDetail() {
   const [followUpForm, setFollowUpForm] = useState({ follow_up_date: '', follow_up_time: '', notes: '', reason: '', assigned_to: '' });
   const [newNoteText, setNewNoteText] = useState('');
   const [paymentView, setPaymentView] = useState('new');
-  const [paymentForm, setPaymentForm] = useState({ reason: '', amount: '', security_deposit: '', brokerage: '', payment_mode: 'cash', reference_number: '', purchaser_name: '', credited_to: '', notes: '' });
+  const [paymentForm, setPaymentForm] = useState({ payment_reason: '', amount: '', payment_status: 'paid', payment_mode: 'cash', reference_number: '', paid_by: '', credited_to: '', payment_date: new Date().toISOString().split('T')[0], remarks: '' });
   const [billView, setBillView] = useState(false);
   const [billPayment, setBillPayment] = useState(null);
-  const [paymentReasonCustom, setPaymentReasonCustom] = useState('');
+  const [billData, setBillData] = useState(null);
   const [dues, setDues] = useState([]);
   const [duesLoading, setDuesLoading] = useState(false);
+  const [receiptView, setReceiptView] = useState(false);
+  const [receiptData, setReceiptData] = useState(null);
+  const [paymentReasonsList, setPaymentReasonsList] = useState([]);
 
   const fetchClient = () => {
     setLoading(true);
@@ -82,6 +85,7 @@ export default function ClientDetail() {
       setAllProperties(props.filter((p) => !p.client || p.client?._id === id));
     }).catch(() => {});
     API.get('/employees').then((res) => setEmployees(res.data)).catch(() => {});
+    API.get('/payments/reasons').then((res) => setPaymentReasonsList(Array.isArray(res.data) ? res.data : [])).catch(() => {});
   }, [id]);
 
   useEffect(() => {
@@ -164,28 +168,27 @@ export default function ClientDetail() {
   };
 
   const handleCreatePayment = async () => {
-    if (!paymentForm.amount || !paymentForm.payment_mode) return toast('Amount and payment mode required', 'error');
+    if (!paymentForm.amount) return toast('Amount required', 'error');
+    if (paymentForm.payment_status === 'paid' && !paymentForm.payment_mode) return toast('Payment mode required for paid payments', 'error');
     try {
       const payload = {
         client_id: id,
         amount: Number(paymentForm.amount),
-        payment_mode: paymentForm.payment_mode,
-        reference_number: paymentForm.reference_number || undefined,
-        purchaser_name: paymentForm.purchaser_name || undefined,
-        credited_to: paymentForm.credited_to || undefined,
-        notes: paymentForm.notes || undefined,
+        payment_reason: paymentForm.payment_reason || undefined,
+        payment_status: paymentForm.payment_status,
+        payment_date: paymentForm.payment_date || undefined,
+        remarks: paymentForm.remarks || undefined,
       };
-      if (paymentForm.reason === 'Other') {
-        payload.reason = paymentReasonCustom;
-      } else {
-        payload.reason = paymentForm.reason;
+      if (paymentForm.payment_status === 'paid') {
+        payload.payment_mode = paymentForm.payment_mode;
+        payload.reference_number = paymentForm.reference_number || undefined;
+        payload.paid_by = paymentForm.paid_by || undefined;
+        payload.credited_to = paymentForm.credited_to || undefined;
+        payload.purchaser_name = paymentForm.paid_by || undefined;
       }
-      payload.security_deposit = paymentForm.security_deposit ? Number(paymentForm.security_deposit) : 0;
-      payload.brokerage = paymentForm.brokerage ? Number(paymentForm.brokerage) : 0;
       await API.post('/payments', payload);
       toast('Payment created');
-      setPaymentForm({ reason: '', amount: '', security_deposit: '', brokerage: '', payment_mode: 'cash', reference_number: '', purchaser_name: '', credited_to: '', notes: '' });
-      setPaymentReasonCustom('');
+      setPaymentForm({ payment_reason: '', amount: '', payment_status: 'paid', payment_mode: 'cash', reference_number: '', paid_by: '', credited_to: '', payment_date: new Date().toISOString().split('T')[0], remarks: '' });
       setPaymentView('history');
       const res = await API.get(`/payments/by-client/${id}`);
       setPayments(Array.isArray(res.data) ? res.data : []);
@@ -203,6 +206,25 @@ export default function ClientDetail() {
       toast('Failed to load payments', 'error');
     } finally {
       setPaymentsLoading(false);
+    }
+  };
+
+  const fetchBillData = async () => {
+    try {
+      const res = await API.get(`/payments/client-bill/${id}`);
+      setBillData(res.data);
+    } catch {
+      toast('Failed to load bill data', 'error');
+    }
+  };
+
+  const fetchPaymentReceipt = async (paymentId) => {
+    try {
+      const res = await API.get(`/payments/${paymentId}/receipt`);
+      setReceiptData(res.data);
+      setReceiptView(true);
+    } catch {
+      toast('Failed to load receipt', 'error');
     }
   };
 
@@ -580,180 +602,224 @@ export default function ClientDetail() {
         </div>
       </Modal>
 
-      <Modal isOpen={paymentModalOpen} onClose={() => { setPaymentModalOpen(false); setBillView(false); setBillPayment(null); }} title={billView && billPayment ? `Bill - ${billPayment.payment_number || ''}` : `Payments - ${client?.full_name || ''}`} size={billView || paymentView === 'complete_bill' || paymentView === 'dues' ? '2xl' : 'xl'}>
+      <Modal isOpen={paymentModalOpen} onClose={() => { setPaymentModalOpen(false); setBillView(false); setBillPayment(null); setReceiptView(false); setReceiptData(null); }} title={billView && billPayment ? `Bill - ${billPayment.payment_number || ''}` : receiptView ? `Receipt - ${receiptData?.payment?.receipt_number || ''}` : `Payments - ${client?.full_name || ''}`} size={billView || receiptView || paymentView === 'complete_bill' || paymentView === 'dues' ? '2xl' : 'xl'}>
         <div className="flex gap-2 mb-4 border-b border-stone-200 pb-4">
-          <button onClick={() => { setPaymentView('new'); fetchDues(); }} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${paymentView === 'new' ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/10' : 'bg-white text-stone-600 hover:bg-stone-50 border border-stone-200'}`}>New Payment</button>
+          <button onClick={() => { setPaymentView('new'); }} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${paymentView === 'new' ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/10' : 'bg-white text-stone-600 hover:bg-stone-50 border border-stone-200'}`}>New Payment</button>
           <button onClick={() => { setPaymentView('history'); fetchPayments(); }} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${paymentView === 'history' ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/10' : 'bg-white text-stone-600 hover:bg-stone-50 border border-stone-200'}`}>Payment History</button>
-          <button onClick={() => { setPaymentView('complete_bill'); fetchPayments(); }} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${paymentView === 'complete_bill' ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/10' : 'bg-white text-stone-600 hover:bg-stone-50 border border-stone-200'}`}>Complete Bill</button>
+          <button onClick={() => { setPaymentView('complete_bill'); fetchPayments(); fetchBillData(); }} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${paymentView === 'complete_bill' ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/10' : 'bg-white text-stone-600 hover:bg-stone-50 border border-stone-200'}`}>Complete Bill</button>
           <button onClick={() => { setPaymentView('dues'); fetchDues(); }} className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${paymentView === 'dues' ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/10' : 'bg-white text-stone-600 hover:bg-stone-50 border border-stone-200'}`}>Due Payments</button>
         </div>
 
-        {billView && billPayment ? (
+        {receiptView && receiptData ? (
           <div className="space-y-4">
             <style>{`
               @media print {
+                @page { size: A4; margin: 12mm; }
                 body * { visibility: hidden; }
-                #single-bill-print, #single-bill-print * { visibility: visible; }
-                #single-bill-print { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; margin: 0; }
-                #single-bill-print .no-print { display: none !important; }
-                @page { margin: 12mm; }
+                #receipt-print, #receipt-print * { visibility: visible; }
+                #receipt-print { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
+                .no-print { display: none !important; }
               }
             `}</style>
             <div className="flex gap-2 no-print">
-              <button onClick={() => setBillView(false)} className="px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors cursor-pointer">← Back to Payments</button>
+              <button onClick={() => setReceiptView(false)} className="px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors cursor-pointer">← Back</button>
               <button onClick={() => window.print()} className="px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 bg-stone-900 text-white hover:bg-stone-800 transition-colors cursor-pointer border-0">🖨 Print Receipt</button>
             </div>
-            <div id="single-bill-print">
-              <div className="border-2 border-stone-900 rounded-2xl p-8 bg-white">
-                <div className="text-center border-b-2 border-stone-900 pb-5 mb-6">
-                  <h1 className="text-3xl font-bold text-stone-900 tracking-tight">SHIVAM INTERNATIONAL</h1>
-                  <p className="text-sm text-stone-500 mt-1">Real Estate & Interior Solutions</p>
-                  <h2 className="text-lg font-bold text-stone-800 mt-3 uppercase tracking-wider">PAYMENT RECEIPT</h2>
-                  <p className="text-xs text-stone-400 mt-1">Receipt #{billPayment.payment_number || billPayment._id?.slice(-8)}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm mb-5">
-                  <div>
-                    <p className="text-stone-400 text-xs uppercase tracking-wider">Date</p>
-                    <p className="font-semibold text-stone-900">{billPayment.payment_date ? new Date(billPayment.payment_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}</p>
-                    <p className="text-stone-400 text-xs uppercase tracking-wider mt-3">Payment Mode</p>
-                    <p className="font-semibold text-stone-900 capitalize">{billPayment.payment_mode?.replace(/_/g, ' ')}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-stone-400 text-xs uppercase tracking-wider">Receipt Date</p>
-                    <p className="font-semibold text-stone-900">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                    <p className="text-stone-400 text-xs uppercase tracking-wider mt-3">Transaction ID</p>
-                    <p className="font-semibold text-stone-900">{billPayment.utr_number || billPayment.transaction_id || '-'}</p>
-                  </div>
-                </div>
-                <div className="border-t border-stone-200 pt-4 mb-5">
-                  <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Received From</p>
-                  <p className="text-lg font-bold text-stone-900">{billPayment.purchaser_name || client?.full_name || '-'}</p>
-                  <p className="text-sm text-stone-600">{client?.mobile || ''} {client?.email ? `| ${client.email}` : ''}</p>
-                </div>
-                {billPayment.reason && (
-                  <div className="mb-4">
-                    <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">Reason / Purpose</p>
-                    <p className="text-sm font-semibold text-stone-800 px-3 py-2 bg-stone-50 rounded-lg">{billPayment.reason}</p>
-                  </div>
+            <div id="receipt-print" className="bg-white" style={{ fontFamily: 'Arial, sans-serif', maxWidth: '210mm', margin: '0 auto', padding: '20mm 15mm' }}>
+              <div style={{ textAlign: 'center', borderBottom: '2px solid #1e293b', paddingBottom: '15px', marginBottom: '20px' }}>
+                {receiptData.tenant?.company_logo && (
+                  <img src={receiptData.tenant.company_logo} alt="Company Logo" style={{ maxHeight: '60px', width: 'auto', objectFit: 'contain', marginBottom: '8px' }} />
                 )}
-                <table className="w-full text-sm mb-5">
-                  <thead>
-                    <tr className="border-b-2 border-stone-900">
-                      <th className="text-left py-2.5 text-stone-700 font-bold text-xs uppercase">Description</th>
-                      <th className="text-right py-2.5 text-stone-700 font-bold text-xs uppercase">Amount (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b border-stone-100">
-                      <td className="py-3 text-stone-700">{billPayment.reason || 'Payment Amount'}</td>
-                      <td className="py-3 text-right font-semibold text-stone-900">{billPayment.amount?.toLocaleString()}</td>
-                    </tr>
-                    {billPayment.security_deposit > 0 && (
-                      <tr className="border-b border-stone-100">
-                        <td className="py-3 text-stone-700">Security Deposit <span className="text-xs text-stone-400">(refundable to tenant)</span></td>
-                        <td className="py-3 text-right font-semibold text-stone-900">{billPayment.security_deposit?.toLocaleString()}</td>
-                      </tr>
-                    )}
-                    {billPayment.brokerage > 0 && (
-                      <tr className="border-b border-stone-100">
-                        <td className="py-3 text-stone-700">Brokerage / Commission</td>
-                        <td className="py-3 text-right font-semibold text-stone-900">{billPayment.brokerage?.toLocaleString()}</td>
-                      </tr>
-                    )}
-                    <tr className="border-b-2 border-stone-900">
-                      <td className="py-3 font-bold text-stone-900 text-base">Total Amount</td>
-                      <td className="py-3 text-right font-bold text-stone-900 text-base">
-                        ₹{((billPayment.amount || 0) + (billPayment.security_deposit || 0) + (billPayment.brokerage || 0)).toLocaleString()}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-                {billPayment.notes && (
-                  <div className="text-xs text-stone-500 mb-4 italic">
-                    <p>Notes: {billPayment.notes}</p>
-                  </div>
+                <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', margin: '4px 0' }}>{receiptData.tenant?.company_name || 'Company Name'}</h1>
+                {receiptData.tenant?.company_address && (
+                  <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0' }}>{receiptData.tenant.company_address}</p>
                 )}
-                <div className="text-center text-xs text-stone-400 mt-6 pt-4 border-t border-stone-200">
-                  <p className="text-stone-500 font-semibold">SHIVAM INTERNATIONAL</p>
-                  <p>Processed by: {billPayment.processed_by?.full_name || 'System'}</p>
-                  <p className="mt-1">This is a computer-generated receipt &bull; Valid without signature</p>
+                <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0' }}>+91 98991 46931 | 9891075835</p>
+                <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b', marginTop: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>PAYMENT RECEIPT</h2>
+                <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Receipt #: {receiptData.payment?.receipt_number || receiptData.payment?.payment_number || 'N/A'}</p>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', fontSize: '13px' }}>
+                <div>
+                  <p style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px 0' }}>Received From</p>
+                  <p style={{ fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{receiptData.payment?.purchaser_name || receiptData.payment?.paid_by || receiptData.client?.full_name || client?.full_name || 'N/A'}</p>
+                  <p style={{ color: '#64748b', margin: '2px 0' }}>{client?.mobile || ''}</p>
                 </div>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px 0' }}>Date</p>
+                  <p style={{ fontWeight: '600', color: '#1e293b', margin: 0 }}>{receiptData.payment?.payment_date ? new Date(receiptData.payment.payment_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}</p>
+                </div>
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', marginBottom: '20px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #1e293b' }}>
+                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 'bold', color: '#475569', fontSize: '11px', textTransform: 'uppercase' }}>Description</th>
+                    <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 'bold', color: '#475569', fontSize: '11px', textTransform: 'uppercase' }}>Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '10px 8px', color: '#334155' }}>{receiptData.payment?.payment_reason || receiptData.payment?.reason || 'Payment'}</td>
+                    <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>{(receiptData.payment?.amount || 0).toLocaleString()}</td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr style={{ borderTop: '2px solid #1e293b', background: '#f8fafc' }}>
+                    <td style={{ padding: '10px 8px', fontWeight: 'bold', color: '#1e293b', fontSize: '14px' }}>Total Amount</td>
+                    <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', fontSize: '14px' }}>₹{(receiptData.payment?.amount || 0).toLocaleString()}</td>
+                  </tr>
+                </tfoot>
+              </table>
+              {receiptData.payment?.payment_status === 'paid' && (
+                <div style={{ fontSize: '12px', color: '#475569', marginBottom: '15px' }}>
+                  <p style={{ margin: '4px 0' }}><strong>Payment Mode:</strong> {receiptData.payment.payment_mode?.replace(/_/g, ' ') || 'N/A'}</p>
+                  {receiptData.payment.reference_number && <p style={{ margin: '4px 0' }}><strong>Reference No:</strong> {receiptData.payment.reference_number}</p>}
+                  {receiptData.payment.paid_by && <p style={{ margin: '4px 0' }}><strong>Paid By:</strong> {receiptData.payment.paid_by}</p>}
+                  {receiptData.payment.credited_to && <p style={{ margin: '4px 0' }}><strong>Credited To:</strong> {receiptData.payment.credited_to}</p>}
+                </div>
+              )}
+              <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0' }}><strong>Received By:</strong> {receiptData.payment?.processed_by?.full_name || receiptData.payment?.created_by?.full_name || 'System'}</p>
+              {receiptData.payment?.remarks && (
+                <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0', fontStyle: 'italic' }}>Remarks: {receiptData.payment.remarks}</p>
+              )}
+              <div style={{ marginTop: '30px', paddingTop: '15px', borderTop: '1px solid #e2e8f0' }}>
+                <p style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px 0' }}>Authorized Signature</p>
+                <div style={{ width: '200px', height: '50px', border: '1px dashed #94a3b8', borderRadius: '4px', marginTop: '4px' }} />
+              </div>
+              <div style={{ textAlign: 'center', fontSize: '10px', color: '#94a3b8', marginTop: '20px', paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
+                <p style={{ margin: '2px 0' }}>This is a computer-generated receipt &bull; Valid without signature</p>
+              </div>
+            </div>
+          </div>
+        ) : billView && billPayment ? (
+          <div className="space-y-4">
+            <style>{`
+              @media print {
+                @page { size: A4; margin: 12mm; }
+                body * { visibility: hidden; }
+                #single-bill-print, #single-bill-print * { visibility: visible; }
+                #single-bill-print { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
+                .no-print { display: none !important; }
+              }
+            `}</style>
+            <div className="flex gap-2 no-print">
+              <button onClick={() => setBillView(false)} className="px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 bg-stone-100 text-stone-700 hover:bg-stone-200 transition-colors cursor-pointer">← Back</button>
+              <button onClick={() => window.print()} className="px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 bg-stone-900 text-white hover:bg-stone-800 transition-colors cursor-pointer border-0">🖨 Print Bill</button>
+            </div>
+            <div id="single-bill-print" className="bg-white" style={{ fontFamily: 'Arial, sans-serif', maxWidth: '210mm', margin: '0 auto', padding: '20mm 15mm' }}>
+              <div style={{ textAlign: 'center', borderBottom: '2px solid #1e293b', paddingBottom: '15px', marginBottom: '20px' }}>
+                <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', margin: '4px 0' }}>{billPayment.tenantData?.company_name || billPayment._id ? 'Company Name' : 'Company Name'}</h1>
+                <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0' }}>+91 98991 46931 | 9891075835</p>
+                <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b', marginTop: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>PAYMENT BILL</h2>
+                <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Bill #: {billPayment.payment_number || billPayment._id?.slice(-8)}</p>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', fontSize: '13px' }}>
+                <div>
+                  <p style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px 0' }}>Bill To</p>
+                  <p style={{ fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{client?.full_name || ''}</p>
+                  <p style={{ color: '#64748b', margin: '2px 0' }}>{client?.mobile || ''}</p>
+                  <p style={{ color: '#64748b', margin: '2px 0' }}>{client?.email || ''}</p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px 0' }}>Date</p>
+                  <p style={{ fontWeight: '600', color: '#1e293b', margin: 0 }}>
+                    {billPayment.payment_date ? new Date(billPayment.payment_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                  </p>
+                  <p style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '8px' }}>Payment Mode</p>
+                  <p style={{ fontWeight: '600', color: '#1e293b', margin: 0, textTransform: 'capitalize' }}>{billPayment.payment_mode?.replace(/_/g, ' ') || 'N/A'}</p>
+                </div>
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', marginBottom: '20px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #1e293b' }}>
+                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 'bold', color: '#475569', fontSize: '11px', textTransform: 'uppercase' }}>Description</th>
+                    <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 'bold', color: '#475569', fontSize: '11px', textTransform: 'uppercase' }}>Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '10px 8px', color: '#334155' }}>{billPayment.payment_reason || billPayment.reason || 'Payment Amount'}</td>
+                    <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>{(billPayment.amount || 0).toLocaleString()}</td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr style={{ borderTop: '2px solid #1e293b', background: '#f8fafc' }}>
+                    <td style={{ padding: '10px 8px', fontWeight: 'bold', color: '#1e293b', fontSize: '14px' }}>Total Amount</td>
+                    <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', fontSize: '14px' }}>₹{(billPayment.amount || 0).toLocaleString()}</td>
+                  </tr>
+                </tfoot>
+              </table>
+              <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0' }}><strong>Received By:</strong> {billPayment.processed_by?.full_name || 'System'}</p>
+              <div style={{ marginTop: '30px', paddingTop: '15px', borderTop: '1px solid #e2e8f0' }}>
+                <p style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px 0' }}>Authorized Signature</p>
+                <div style={{ width: '200px', height: '50px', border: '1px dashed #94a3b8', borderRadius: '4px', marginTop: '4px' }} />
+              </div>
+              <div style={{ textAlign: 'center', fontSize: '10px', color: '#94a3b8', marginTop: '20px', paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
+                <p style={{ margin: '2px 0' }}>This is a computer-generated bill &bull; Valid without signature</p>
               </div>
             </div>
           </div>
         ) : paymentView === 'new' ? (
           <div className="space-y-4">
-            {dues.filter(d => d.status !== 'paid' && d.status !== 'waived').length > 0 && (
-              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
-                <p className="text-xs font-semibold text-amber-800 uppercase tracking-wider mb-2">Pending Dues</p>
-                <div className="space-y-1.5">
-                  {dues.filter(d => d.status !== 'paid' && d.status !== 'waived').map(d => (
-                    <div key={d._id} className="flex justify-between text-sm">
-                      <span className="text-amber-700">{d.reason || 'Due'}{d.due_date ? ` (due ${new Date(d.due_date).toLocaleDateString('en-IN')})` : ''}</span>
-                      <span className="font-semibold text-amber-900">{formatCurrency(d.remaining)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
             <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Reason</label>
-              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={paymentForm.reason} onChange={(e) => setPaymentForm({ ...paymentForm, reason: e.target.value })}>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Reason</label>
+              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={paymentForm.payment_reason} onChange={(e) => setPaymentForm({ ...paymentForm, payment_reason: e.target.value })}>
                 <option value="">Select reason</option>
-                <option value="Token Advance">Token Advance</option>
-                <option value="Security Deposit">Security Deposit</option>
-                <option value="Police Verification">Police Verification</option>
-                <option value="Rent Agreement Cost">Rent Agreement Cost</option>
-                <option value="Advance Rent">Advance Rent</option>
-                <option value="Welcome Charge">Welcome Charge</option>
-                <option value="Brokerage">Brokerage</option>
-                <option value="Other">Other</option>
+                {paymentReasonsList.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
-            {paymentForm.reason === 'Other' && (
-              <div>
-                <label className="block text-sm font-semibold text-stone-700 mb-1.5">Custom Reason</label>
-                <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={paymentReasonCustom} onChange={(e) => setPaymentReasonCustom(e.target.value)} placeholder="Enter custom reason" />
-              </div>
-            )}
             <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Amount *</label>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Amount (₹) *</label>
               <input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={paymentForm.amount} onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })} required />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Security Deposit (₹)</label>
-              <input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={paymentForm.security_deposit} onChange={(e) => setPaymentForm({ ...paymentForm, security_deposit: e.target.value })} placeholder="Goes to flat owner" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Brokerage (₹)</label>
-              <input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={paymentForm.brokerage} onChange={(e) => setPaymentForm({ ...paymentForm, brokerage: e.target.value })} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Mode *</label>
-              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={paymentForm.payment_mode} onChange={(e) => setPaymentForm({ ...paymentForm, payment_mode: e.target.value })}>
-                <option value="cash">Cash</option>
-                <option value="cheque">Cheque</option>
-                <option value="bank_transfer">Bank Transfer</option>
-                <option value="upi">UPI</option>
-                <option value="credit_card">Credit Card</option>
-                <option value="debit_card">Debit Card</option>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Status</label>
+              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={paymentForm.payment_status} onChange={(e) => setPaymentForm({ ...paymentForm, payment_status: e.target.value })}>
+                <option value="paid">Paid</option>
+                <option value="due">Due</option>
               </select>
             </div>
+
+            {paymentForm.payment_status === 'paid' && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Mode</label>
+                  <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={paymentForm.payment_mode} onChange={(e) => setPaymentForm({ ...paymentForm, payment_mode: e.target.value })}>
+                    <option value="cash">Cash</option>
+                    <option value="upi">UPI</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="card">Card</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Reference Number</label>
+                  <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={paymentForm.reference_number} onChange={(e) => setPaymentForm({ ...paymentForm, reference_number: e.target.value })} placeholder="UTR / Cheque / Transaction ID" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Person Who Made Payment</label>
+                  <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={paymentForm.paid_by} onChange={(e) => setPaymentForm({ ...paymentForm, paid_by: e.target.value })} placeholder="Name of the person" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Credited To</label>
+                  <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={paymentForm.credited_to} onChange={(e) => setPaymentForm({ ...paymentForm, credited_to: e.target.value })}>
+                    <option value="">Select</option>
+                    <option value="Company Account">Company Account</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Employee">Employee</option>
+                    <option value="Bank Account">Bank Account</option>
+                  </select>
+                </div>
+              </>
+            )}
+
             <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Reference Number</label>
-              <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={paymentForm.reference_number} onChange={(e) => setPaymentForm({ ...paymentForm, reference_number: e.target.value })} placeholder="UTR / Cheque / Transaction ID" />
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Date</label>
+              <input type="date" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={paymentForm.payment_date} onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })} />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Purchaser Name</label>
-              <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={paymentForm.purchaser_name} onChange={(e) => setPaymentForm({ ...paymentForm, purchaser_name: e.target.value })} placeholder="Name of the person making payment" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Credited To</label>
-              <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={paymentForm.credited_to} onChange={(e) => setPaymentForm({ ...paymentForm, credited_to: e.target.value })} placeholder="Account / Person credited" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Notes</label>
-              <textarea className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" rows={2} value={paymentForm.notes} onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })} />
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Remarks (Optional)</label>
+              <textarea className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" rows={2} value={paymentForm.remarks} onChange={(e) => setPaymentForm({ ...paymentForm, remarks: e.target.value })} />
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button type="button" onClick={() => setPaymentModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
@@ -764,12 +830,11 @@ export default function ClientDetail() {
           <div>
             <style>{`
               @media print {
+                @page { size: A4; margin: 15mm; }
                 body * { visibility: hidden; }
                 #complete-bill, #complete-bill * { visibility: visible; }
                 #complete-bill { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
                 #complete-bill .no-print { display: none !important; }
-                #complete-bill .bill-body { border: none !important; border-radius: 0 !important; padding: 20px !important; }
-                @page { margin: 15mm; }
               }
             `}</style>
             {paymentsLoading ? (
@@ -777,77 +842,97 @@ export default function ClientDetail() {
             ) : payments.length === 0 ? (
               <p className="text-sm text-stone-400 text-center py-8">No payments recorded for this client</p>
             ) : (
-              <div id="complete-bill" className="space-y-4">
-                <div className="flex justify-end no-print">
-                  <button onClick={() => window.print()} className="px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10 border-0">🖨 Print Bill</button>
+              <div id="complete-bill" className="bg-white" style={{ fontFamily: 'Arial, sans-serif', maxWidth: '210mm', margin: '0 auto', padding: '15mm' }}>
+                <div className="no-print" style={{ textAlign: 'right', marginBottom: '10px' }}>
+                  <button onClick={() => window.print()} style={{ padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', border: 'none', background: '#1e293b', color: 'white', cursor: 'pointer' }}>🖨 Print Bill</button>
                 </div>
-                <div className="bill-body border border-stone-200 rounded-2xl p-8 bg-white">
-                  <div className="text-center border-b-2 border-stone-900 pb-4 mb-6">
-                    <h1 className="text-3xl font-bold text-stone-900 tracking-tight">SHIVAM INTERNATIONAL</h1>
-                    <p className="text-sm text-stone-500 mt-1">Real Estate & Interior Solutions</p>
-
-                    <h2 className="text-lg font-bold text-stone-800 mt-3 uppercase tracking-wider">Complete Payment Statement</h2>
+                <div style={{ textAlign: 'center', borderBottom: '2px solid #1e293b', paddingBottom: '15px', marginBottom: '20px' }}>
+                  {billData?.tenant?.company_logo && (
+                    <img src={billData.tenant.company_logo} alt="Logo" style={{ maxHeight: '60px', width: 'auto', objectFit: 'contain', marginBottom: '8px' }} />
+                  )}
+                  <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{billData?.tenant?.company_name || 'Company Name'}</h1>
+                  {billData?.tenant?.company_address && (
+                    <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0' }}>{billData.tenant.company_address}</p>
+                  )}
+                  <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0' }}>+91 98991 46931 | 9891075835</p>
+                  <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b', marginTop: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Complete Payment Statement</h2>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontSize: '13px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                  <div>
+                    <p style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px 0' }}>Bill To</p>
+                    <p style={{ fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{client?.full_name || ''}</p>
+                    <p style={{ color: '#64748b', margin: '2px 0' }}>{client?.mobile || ''}</p>
+                    <p style={{ color: '#64748b', margin: '2px 0' }}>{client?.email || ''}</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm mb-4 pb-4 border-b border-stone-200">
-                    <div>
-                      <p className="text-stone-400 text-xs uppercase">Bill To</p>
-                      <p className="font-bold text-stone-900">{client?.full_name || ''}</p>
-                      <p className="text-stone-600">{client?.mobile || ''}</p>
-                      <p className="text-stone-600">{client?.email || ''}</p>
-                      {client?.address && <p className="text-stone-600 text-xs mt-1">{client.address}</p>}
-                    </div>
-                    <div className="text-right">
-                      <p className="text-stone-400 text-xs uppercase">Statement Date</p>
-                      <p className="font-semibold text-stone-900">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                      <p className="text-stone-400 text-xs uppercase mt-2">Client ID</p>
-                      <p className="font-semibold text-stone-900">{client?.client_id || client?._id?.slice(-8) || ''}</p>
-                    </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px 0' }}>Statement Date</p>
+                    <p style={{ fontWeight: '600', color: '#1e293b', margin: 0 }}>{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                   </div>
-                  <div className="overflow-x-auto mb-6">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b-2 border-stone-900">
-                          <th className="text-left py-2.5 px-2 text-stone-700 font-bold text-xs uppercase">S.No</th>
-                          <th className="text-left py-2.5 px-2 text-stone-700 font-bold text-xs uppercase">Date</th>
-                          <th className="text-left py-2.5 px-2 text-stone-700 font-bold text-xs uppercase">Description</th>
-                          <th className="text-right py-2.5 px-2 text-stone-700 font-bold text-xs uppercase">Amount (₹)</th>
-                          <th className="text-right py-2.5 px-2 text-stone-700 font-bold text-xs uppercase">Security Deposit</th>
-                          <th className="text-right py-2.5 px-2 text-stone-700 font-bold text-xs uppercase">Brokerage</th>
-                          <th className="text-right py-2.5 px-2 text-stone-700 font-bold text-xs uppercase">Total</th>
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '15px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #1e293b', background: '#f1f5f9' }}>
+                      <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>#</th>
+                      <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Date</th>
+                      <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Reason</th>
+                      <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Amount</th>
+                      <th style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Status</th>
+                      <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Mode</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payments.map((p, i) => {
+                      const isPaid = p.payment_status === 'paid' || p.status === 'completed';
+                      return (
+                        <tr key={p._id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                          <td style={{ padding: '8px 6px', color: '#64748b' }}>{i + 1}</td>
+                          <td style={{ padding: '8px 6px', color: '#334155', fontSize: '11px' }}>{p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</td>
+                          <td style={{ padding: '8px 6px', color: '#334155' }}>{p.payment_reason || p.reason || 'Payment'}</td>
+                          <td style={{ padding: '8px 6px', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>₹{(p.amount || 0).toLocaleString()}</td>
+                          <td style={{ padding: '8px 6px', textAlign: 'center' }}>
+                            <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: '600', background: isPaid ? '#dcfce7' : '#fef3c7', color: isPaid ? '#166534' : '#92400e' }}>
+                              {isPaid ? 'Paid' : 'Due'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '8px 6px', textAlign: 'right', color: '#64748b', fontSize: '11px', textTransform: 'capitalize' }}>{isPaid ? (p.payment_mode?.replace(/_/g, ' ') || '-') : '-'}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {payments.map((p, i) => {
-                          const total = (p.amount || 0) + (p.security_deposit || 0) + (p.brokerage || 0);
-                          return (
-                            <tr key={p._id} className="border-b border-stone-100">
-                              <td className="py-2.5 px-2 text-stone-700 font-medium">{i + 1}</td>
-                              <td className="py-2.5 px-2 text-stone-600 text-xs">{p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</td>
-                              <td className="py-2.5 px-2 text-stone-700 text-sm">{p.reason || 'Payment'}</td>
-                              <td className="py-2.5 px-2 text-right font-semibold text-stone-900">{p.amount?.toLocaleString()}</td>
-                              <td className="py-2.5 px-2 text-right text-stone-700">{p.security_deposit ? p.security_deposit.toLocaleString() : '-'}</td>
-                              <td className="py-2.5 px-2 text-right text-stone-700">{p.brokerage ? p.brokerage.toLocaleString() : '-'}</td>
-                              <td className="py-2.5 px-2 text-right font-bold text-stone-900">₹{total.toLocaleString()}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                      <tfoot>
-                        <tr className="border-t-2 border-stone-900 font-bold">
-                          <td colSpan="3" className="py-3 px-2 text-stone-800 text-sm uppercase">Total</td>
-                          <td className="py-3 px-2 text-right text-stone-900">₹{payments.reduce((s, p) => s + (p.amount || 0), 0).toLocaleString()}</td>
-                          <td className="py-3 px-2 text-right text-stone-900">₹{payments.reduce((s, p) => s + (p.security_deposit || 0), 0).toLocaleString()}</td>
-                          <td className="py-3 px-2 text-right text-stone-900">₹{payments.reduce((s, p) => s + (p.brokerage || 0), 0).toLocaleString()}</td>
-                          <td className="py-3 px-2 text-right text-stone-900">₹{payments.reduce((s, p) => s + (p.amount || 0) + (p.security_deposit || 0) + (p.brokerage || 0), 0).toLocaleString()}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                  <div className="text-center text-xs text-stone-400 mt-6 pt-4 border-t border-stone-200">
-                    <p className="text-stone-500 font-semibold">SHIVAM INTERNATIONAL</p>
-                    <p>Generated on {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-                    <p className="text-stone-400 mt-1">This is a computer-generated statement</p>
-                  </div>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ borderTop: '2px solid #1e293b', background: '#f8fafc' }}>
+                      <td colSpan={2} style={{ padding: '10px 6px' }}></td>
+                      <td style={{ padding: '10px 6px', fontWeight: 'bold', color: '#1e293b', fontSize: '13px' }}>Total</td>
+                      <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', fontSize: '13px' }}>₹{payments.reduce((s, p) => s + (p.amount || 0), 0).toLocaleString()}</td>
+                      <td colSpan={2}></td>
+                    </tr>
+                    <tr style={{ background: '#f0fdf4' }}>
+                      <td colSpan={2}></td>
+                      <td style={{ padding: '6px', fontWeight: '600', color: '#166534', fontSize: '12px' }}>Total Paid</td>
+                      <td style={{ padding: '6px', textAlign: 'right', fontWeight: '600', color: '#166534', fontSize: '12px' }}>₹{payments.filter(p => p.payment_status === 'paid' || p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0).toLocaleString()}</td>
+                      <td colSpan={2}></td>
+                    </tr>
+                    <tr style={{ background: '#fef3c7' }}>
+                      <td colSpan={2}></td>
+                      <td style={{ padding: '6px', fontWeight: '600', color: '#92400e', fontSize: '12px' }}>Total Due</td>
+                      <td style={{ padding: '6px', textAlign: 'right', fontWeight: '600', color: '#92400e', fontSize: '12px' }}>₹{payments.filter(p => p.payment_status === 'due').reduce((s, p) => s + (p.amount || 0), 0).toLocaleString()}</td>
+                      <td colSpan={2}></td>
+                    </tr>
+                    <tr style={{ borderTop: '2px solid #1e293b' }}>
+                      <td colSpan={2}></td>
+                      <td style={{ padding: '10px 6px', fontWeight: 'bold', color: '#1e293b', fontSize: '14px' }}>Balance</td>
+                      <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', fontSize: '14px' }}>
+                        ₹{(payments.filter(p => p.payment_status === 'due').reduce((s, p) => s + (p.amount || 0), 0)).toLocaleString()}
+                      </td>
+                      <td colSpan={2}></td>
+                    </tr>
+                  </tfoot>
+                </table>
+                {billData?.summary?.remarks && (
+                  <p style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>Remarks: {billData.summary.remarks}</p>
+                )}
+                <div style={{ textAlign: 'center', fontSize: '10px', color: '#94a3b8', marginTop: '20px', paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
+                  <p style={{ margin: '2px 0' }}>This is a computer-generated statement</p>
                 </div>
               </div>
             )}
@@ -914,32 +999,43 @@ export default function ClientDetail() {
                   <thead>
                     <tr className="border-b border-stone-200">
                       <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">#</th>
+                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Reason</th>
                       <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Amount</th>
-                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Security Deposit</th>
-                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Brokerage</th>
-                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Date & Time</th>
+                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Status</th>
+                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Date</th>
                       <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Mode</th>
-                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Transaction ID</th>
+                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Ref No</th>
                       <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Received By</th>
-                      <th className="text-right py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Bill</th>
+                      <th className="text-right py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Receipt</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {payments.map((p, i) => (
-                      <tr key={p._id} className="border-b border-stone-100 hover:bg-stone-50">
-                        <td className="py-3 px-2 text-stone-700 font-medium">{i + 1}</td>
-                        <td className="py-3 px-2 font-semibold text-stone-900">{formatCurrency(p.amount)}</td>
-                        <td className="py-3 px-2 text-stone-700">{p.security_deposit ? formatCurrency(p.security_deposit) : '-'}</td>
-                        <td className="py-3 px-2 text-stone-700">{p.brokerage ? formatCurrency(p.brokerage) : '-'}</td>
-                        <td className="py-3 px-2 text-stone-600 text-xs">{formatDateTime(p.payment_date)}</td>
-                        <td className="py-3 px-2"><span className="text-xs uppercase bg-stone-100 px-2 py-0.5 rounded-full">{p.payment_mode?.replace(/_/g, ' ')}</span></td>
-                        <td className="py-3 px-2 text-stone-600 text-xs">{p.utr_number || p.transaction_id || '-'}</td>
-                        <td className="py-3 px-2 text-stone-700">{p.processed_by?.full_name || '-'}</td>
-                        <td className="py-3 px-2 text-right">
-                          <button onClick={() => { setBillPayment(p); setBillView(true); }} className="text-xs font-semibold text-stone-900 underline hover:text-stone-700 cursor-pointer">View Bill</button>
-                        </td>
-                      </tr>
-                    ))}
+                    {payments.map((p, i) => {
+                      const isPaid = p.payment_status === 'paid' || p.status === 'completed';
+                      return (
+                        <tr key={p._id} className="border-b border-stone-100 hover:bg-stone-50">
+                          <td className="py-3 px-2 text-stone-700 font-medium">{i + 1}</td>
+                          <td className="py-3 px-2 text-stone-700">{p.payment_reason || p.reason || 'Payment'}</td>
+                          <td className="py-3 px-2 font-semibold text-stone-900">{formatCurrency(p.amount)}</td>
+                          <td className="py-3 px-2">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${isPaid ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'}`}>
+                              {isPaid ? 'Paid' : 'Due'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 text-stone-600 text-xs">{formatDateTime(p.payment_date)}</td>
+                          <td className="py-3 px-2">
+                            {isPaid ? (
+                              <span className="text-xs uppercase bg-stone-100 px-2 py-0.5 rounded-full">{p.payment_mode?.replace(/_/g, ' ') || '-'}</span>
+                            ) : '-'}
+                          </td>
+                          <td className="py-3 px-2 text-stone-600 text-xs">{p.reference_number || p.utr_number || '-'}</td>
+                          <td className="py-3 px-2 text-stone-700">{p.processed_by?.full_name || '-'}</td>
+                          <td className="py-3 px-2 text-right">
+                            <button onClick={() => fetchPaymentReceipt(p._id)} className="text-xs font-semibold text-stone-900 underline hover:text-stone-700 cursor-pointer">Receipt</button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

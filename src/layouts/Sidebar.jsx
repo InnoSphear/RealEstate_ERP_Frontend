@@ -12,7 +12,7 @@ import {
   HiOutlineMapPin, HiOutlineCalendar, HiOutlineFolder,
   HiOutlinePresentationChartBar, HiOutlineBuildingOffice2,
   HiOutlineScale, HiOutlineShieldCheck, HiOutlineArrowRightOnRectangle,
-  HiOutlineClock,
+  HiOutlineClock, HiOutlineDocumentText,
 } from 'react-icons/hi2';
 import { useState } from 'react';
 import logo from '../assets/logo.jpeg';
@@ -65,7 +65,7 @@ const menuGroups = [
       { path: '/interior-projects', label: 'Projects', icon: HiOutlineBuildingOffice2, roles: ['admin', 'manager', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
       { path: '/interior-payments', label: 'Payments', icon: HiOutlineCreditCard, roles: ['admin', 'manager', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
       { path: '/interior-invoices', label: 'Invoices', icon: HiOutlineReceiptPercent, roles: ['admin', 'manager', 'accounts', 'interior_manager'], permission: 'interior_projects' },
-      { path: '/estimates', label: 'Estimates', roles: ['admin', 'manager', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
+      { path: '/estimates', label: 'Estimates', icon: HiOutlineDocumentText, roles: ['admin', 'manager', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
     ],
   },
   {

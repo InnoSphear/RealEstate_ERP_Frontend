@@ -16,6 +16,7 @@ export default function Estimates() {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [printMode, setPrintMode] = useState(false);
   const [form, setForm] = useState({
     lead: '', project: '', full_name: '', mobile: '', email: '',
     title: '', instructions: '', delivery_terms: '',
@@ -92,6 +93,17 @@ export default function Estimates() {
 
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
 
+  const handlePrint = () => {
+    setPrintMode(true);
+    setTimeout(() => window.print(), 200);
+  };
+
+  useEffect(() => {
+    const handleAfterPrint = () => setPrintMode(false);
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, []);
+
   const statusColors = {
     draft: 'bg-stone-50 text-stone-700 ring-1 ring-stone-200',
     sent: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
@@ -100,8 +112,188 @@ export default function Estimates() {
     expired: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
   };
 
+  const renderEstimateContent = (est) => (
+    <div className="bg-white" style={{ fontFamily: 'Arial, sans-serif', maxWidth: '210mm', margin: '0 auto', padding: '20mm 15mm' }}>
+      <div className="flex items-start justify-between mb-6" style={{ borderBottom: '2px solid #1e293b', paddingBottom: '15px' }}>
+        <div className="flex items-center gap-4">
+          {est.company_logo && (
+            <img src={est.company_logo} alt="Company Logo" style={{ maxHeight: '70px', width: 'auto', objectFit: 'contain' }} />
+          )}
+          <div>
+            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{est.tenantData?.company_name || est.tenantData?.company_name || 'Company Name'}</h1>
+            {est.company_phone && (
+              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                <p style={{ margin: '2px 0' }}>+91 98991 46931 | 9891075835</p>
+                <p style={{ margin: '2px 0' }}>{est.company_phone}</p>
+              </div>
+            )}
+            {est.company_address && (
+              <p style={{ fontSize: '11px', color: '#64748b', marginTop: '2px', maxWidth: '300px' }}>{est.company_address}</p>
+            )}
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>ESTIMATE</h2>
+          <p style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>#{est.estimate_number}</p>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', fontSize: '13px' }}>
+        <div>
+          <p style={{ fontWeight: 'bold', color: '#1e293b', margin: '0 0 4px 0' }}>
+            {est.full_name || est.lead?.full_name || est.client?.full_name || 'N/A'}
+          </p>
+          {(est.mobile || est.lead?.mobile || est.client?.phone) && (
+            <p style={{ color: '#64748b', margin: '2px 0' }}>M: {est.mobile || est.lead?.mobile || est.client?.phone}</p>
+          )}
+          {(est.email || est.lead?.email || est.client?.email) && (
+            <p style={{ color: '#64748b', margin: '2px 0' }}>E: {est.email || est.lead?.email || est.client?.email}</p>
+          )}
+          {est.project && (
+            <p style={{ color: '#64748b', margin: '2px 0' }}>Project: {est.project.title}</p>
+          )}
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <p style={{ color: '#64748b', margin: '2px 0' }}>Date: <strong style={{ color: '#1e293b' }}>{formatDate(est.createdAt)}</strong></p>
+          {est.valid_until && (
+            <p style={{ color: '#64748b', margin: '2px 0' }}>Valid Until: <strong style={{ color: '#1e293b' }}>{formatDate(est.valid_until)}</strong></p>
+          )}
+          <p style={{ color: '#64748b', margin: '2px 0' }}>Status: <strong style={{ color: '#1e293b', textTransform: 'capitalize' }}>{est.status}</strong></p>
+        </div>
+      </div>
+
+      {est.instructions && (
+        <div style={{ marginBottom: '15px', padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+          <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px 0' }}>Scope / Instructions</p>
+          <p style={{ fontSize: '13px', color: '#334155', margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{est.instructions}</p>
+        </div>
+      )}
+
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '15px' }}>
+        <thead>
+          <tr style={{ background: '#f1f5f9' }}>
+            <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 'bold', color: '#475569', fontSize: '11px', textTransform: 'uppercase', borderBottom: '2px solid #1e293b' }}>#</th>
+            <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 'bold', color: '#475569', fontSize: '11px', textTransform: 'uppercase', borderBottom: '2px solid #1e293b' }}>Item</th>
+            <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 'bold', color: '#475569', fontSize: '11px', textTransform: 'uppercase', borderBottom: '2px solid #1e293b' }}>Qty</th>
+            <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 'bold', color: '#475569', fontSize: '11px', textTransform: 'uppercase', borderBottom: '2px solid #1e293b' }}>Rate</th>
+            <th style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 'bold', color: '#475569', fontSize: '11px', textTransform: 'uppercase', borderBottom: '2px solid #1e293b' }}>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {est.items?.map((item, idx) => (
+            <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+              <td style={{ padding: '8px', color: '#64748b' }}>{idx + 1}</td>
+              <td style={{ padding: '8px' }}>
+                <p style={{ fontWeight: '600', color: '#1e293b', margin: 0 }}>{item.item_name}</p>
+                {item.description && <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0 0 0' }}>{item.description}</p>}
+              </td>
+              <td style={{ padding: '8px', textAlign: 'right', color: '#334155' }}>{item.quantity} {item.unit}</td>
+              <td style={{ padding: '8px', textAlign: 'right', color: '#334155' }}>₹{(item.rate || 0).toLocaleString()}</td>
+              <td style={{ padding: '8px', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>₹{(item.amount || 0).toLocaleString()}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr style={{ background: '#f8fafc' }}>
+            <td colSpan={3} style={{ padding: '8px', textAlign: 'right', fontWeight: '600', color: '#475569', borderTop: '2px solid #e2e8f0' }}></td>
+            <td style={{ padding: '8px', textAlign: 'right', fontWeight: '600', color: '#475569', borderTop: '2px solid #e2e8f0' }}>Subtotal</td>
+            <td style={{ padding: '8px', textAlign: 'right', fontWeight: '700', color: '#1e293b', borderTop: '2px solid #e2e8f0' }}>₹{(est.subtotal || 0).toLocaleString()}</td>
+          </tr>
+          {est.tax_percent > 0 && (
+            <tr style={{ background: '#f8fafc' }}>
+              <td colSpan={3}></td>
+              <td style={{ padding: '8px', textAlign: 'right', color: '#475569' }}>Tax ({est.tax_percent}%)</td>
+              <td style={{ padding: '8px', textAlign: 'right', color: '#1e293b' }}>₹{(est.tax_amount || 0).toLocaleString()}</td>
+            </tr>
+          )}
+          {est.discount > 0 && (
+            <tr style={{ background: '#f8fafc' }}>
+              <td colSpan={3}></td>
+              <td style={{ padding: '8px', textAlign: 'right', color: '#475569' }}>Discount</td>
+              <td style={{ padding: '8px', textAlign: 'right', color: '#dc2626' }}>-₹{(est.discount || 0).toLocaleString()}</td>
+            </tr>
+          )}
+          <tr style={{ background: '#f1f5f9' }}>
+            <td colSpan={3}></td>
+            <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', fontSize: '13px', borderTop: '2px solid #1e293b' }}>Grand Total</td>
+            <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', fontSize: '14px', borderTop: '2px solid #1e293b' }}>₹{(est.grand_total || 0).toLocaleString()}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      {est.delivery_terms && (
+        <div className="terms-section" style={{ fontSize: '12px', color: '#475569', padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', marginBottom: '15px' }}>
+          <p style={{ fontWeight: 'bold', color: '#334155', margin: '0 0 4px 0' }}>Terms & Conditions:</p>
+          <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{est.delivery_terms}</p>
+        </div>
+      )}
+
+      {est.notes && (
+        <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '15px' }}>
+          <p style={{ fontWeight: '600', color: '#475569', margin: '0 0 2px 0' }}>Notes:</p>
+          <p style={{ margin: 0 }}>{est.notes}</p>
+        </div>
+      )}
+
+      <div className="signature-section" style={{ marginTop: '30px', paddingTop: '15px', borderTop: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <p style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px 0' }}>Client Signature</p>
+            <div style={{ width: '200px', height: '60px', border: '1px dashed #94a3b8', borderRadius: '4px', marginTop: '4px' }} />
+            <p style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>Sign above</p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 2px 0' }}>Created By</p>
+            <p style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b', margin: 0 }}>
+              {est.created_by_name || est.created_by?.full_name || est.processed_by?.full_name || 'N/A'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ textAlign: 'center', fontSize: '10px', color: '#94a3b8', marginTop: '20px', paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
+        <p style={{ margin: '2px 0' }}>This is a computer-generated estimate &bull; Valid without signature</p>
+      </div>
+    </div>
+  );
+
+  useEffect(() => {
+    if (!viewModalOpen && printMode) setPrintMode(false);
+  }, [viewModalOpen, printMode]);
+
   return (
     <div className="space-y-6">
+      <style>{`
+        #estimate-print { display: none; }
+        @media print {
+          @page { size: A4 portrait; margin: 5mm; }
+          body * { visibility: hidden; }
+          #estimate-print, #estimate-print * { visibility: visible; }
+          html, body { height: auto; overflow: visible; }
+          #estimate-print {
+            display: block !important;
+            position: static !important;
+            width: 100% !important; max-width: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          #estimate-print > div {
+            padding: 5mm 8mm !important;
+            max-width: none !important;
+            margin: 0 !important;
+          }
+          .no-print { display: none !important; }
+          table { page-break-inside: auto; width: 100% !important; }
+          tr { page-break-inside: avoid; page-break-after: auto; }
+          thead { display: table-header-group; }
+          tfoot { display: table-footer-group; }
+          #estimate-print .signature-section { page-break-inside: avoid; }
+          #estimate-print .terms-section { page-break-inside: avoid; }
+        }
+      `}</style>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-stone-900 tracking-tight">Estimates</h1>
@@ -248,120 +440,17 @@ export default function Estimates() {
       <Modal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} title="Estimate" size="2xl">
         {selected && (
           <div>
-            <style>{`
-              @media print {
-                body * { visibility: hidden; }
-                #estimate-print, #estimate-print * { visibility: visible; }
-                #estimate-print { position: absolute; left: 0; top: 0; width: 100%; }
-                .no-print { display: none !important; }
-              }
-            `}</style>
-            <div id="estimate-print" className="p-6 space-y-6">
-              <div className="text-center border-b border-stone-200 pb-4">
-                <h2 className="text-2xl font-bold text-stone-900">Shivam International</h2>
-                <p className="text-sm text-stone-500">Interior Work Estimate</p>
-                <p className="text-xs text-stone-400 mt-1">Estimate #{selected.estimate_number}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="font-semibold text-stone-900">{selected.full_name || selected.lead?.full_name || selected.client?.full_name || 'N/A'}</p>
-                  {(selected.mobile || selected.lead?.mobile || selected.client?.phone) && <p className="text-stone-500">{selected.mobile || selected.lead?.mobile || selected.client?.phone}</p>}
-                  {(selected.email || selected.lead?.email || selected.client?.email) && <p className="text-stone-500">{selected.email || selected.lead?.email || selected.client?.email}</p>}
-                  {selected.project && <p className="text-stone-500 mt-1">Project: {selected.project.title}</p>}
-                </div>
-                <div className="text-right">
-                  <p className="text-stone-500">Date: {formatDate(selected.createdAt)}</p>
-                  {selected.valid_until && <p className="text-stone-500">Valid Until: {formatDate(selected.valid_until)}</p>}
-                  <p className="text-stone-500 mt-1">Status: <span className="font-medium capitalize">{selected.status}</span></p>
-                </div>
-              </div>
-
-              {selected.instructions && (
-                <div className="p-4 rounded-xl bg-stone-50 border border-stone-200">
-                  <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Scope / Instructions</p>
-                  <p className="text-sm text-stone-700 whitespace-pre-wrap">{selected.instructions}</p>
-                </div>
-              )}
-
-              <table className="w-full text-sm border border-stone-200">
-                <thead>
-                  <tr className="bg-stone-50">
-                    <th className="px-3 py-2 text-left font-semibold text-stone-600 text-xs uppercase border-b border-stone-200">#</th>
-                    <th className="px-3 py-2 text-left font-semibold text-stone-600 text-xs uppercase border-b border-stone-200">Item</th>
-                    <th className="px-3 py-2 text-right font-semibold text-stone-600 text-xs uppercase border-b border-stone-200">Qty</th>
-                    <th className="px-3 py-2 text-right font-semibold text-stone-600 text-xs uppercase border-b border-stone-200">Rate</th>
-                    <th className="px-3 py-2 text-right font-semibold text-stone-600 text-xs uppercase border-b border-stone-200">Amount</th>
-                    <th className="px-3 py-2 text-left font-semibold text-stone-600 text-xs uppercase border-b border-stone-200">Delivery</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selected.items?.map((item, idx) => (
-                    <tr key={idx} className="border-b border-stone-100">
-                      <td className="px-3 py-2 text-stone-500">{idx + 1}</td>
-                      <td className="px-3 py-2">
-                        <p className="font-medium text-stone-900">{item.item_name}</p>
-                        {item.description && <p className="text-xs text-stone-500">{item.description}</p>}
-                      </td>
-                      <td className="px-3 py-2 text-right text-stone-700">{item.quantity} {item.unit}</td>
-                      <td className="px-3 py-2 text-right text-stone-700">₹{(item.rate || 0).toLocaleString()}</td>
-                      <td className="px-3 py-2 text-right font-medium text-stone-900">₹{(item.amount || 0).toLocaleString()}</td>
-                      <td className="px-3 py-2 text-stone-500">{item.delivery_time || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-stone-50">
-                    <td colSpan={4} className="px-3 py-2 text-right font-semibold text-stone-600">Subtotal</td>
-                    <td className="px-3 py-2 text-right font-semibold text-stone-900">₹{(selected.subtotal || 0).toLocaleString()}</td>
-                    <td></td>
-                  </tr>
-                  {selected.tax_percent > 0 && (
-                    <tr className="bg-stone-50">
-                      <td colSpan={4} className="px-3 py-2 text-right text-stone-600">Tax ({selected.tax_percent}%)</td>
-                      <td className="px-3 py-2 text-right text-stone-900">₹{(selected.tax_amount || 0).toLocaleString()}</td>
-                      <td></td>
-                    </tr>
-                  )}
-                  {selected.discount > 0 && (
-                    <tr className="bg-stone-50">
-                      <td colSpan={4} className="px-3 py-2 text-right text-stone-600">Discount</td>
-                      <td className="px-3 py-2 text-right text-red-600">-₹{(selected.discount || 0).toLocaleString()}</td>
-                      <td></td>
-                    </tr>
-                  )}
-                  <tr className="bg-stone-100 font-bold">
-                    <td colSpan={4} className="px-3 py-2 text-right text-stone-800">Grand Total</td>
-                    <td className="px-3 py-2 text-right text-stone-900">₹{(selected.grand_total || 0).toLocaleString()}</td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              </table>
-
-              {selected.delivery_terms && (
-                <div className="text-sm text-stone-600 p-3 bg-stone-50 rounded-lg">
-                  <p className="font-semibold text-stone-700 mb-1">Terms:</p>
-                  <p className="whitespace-pre-wrap">{selected.delivery_terms}</p>
-                </div>
-              )}
-
-              {selected.notes && (
-                <div className="text-sm text-stone-500">
-                  <p className="font-semibold text-stone-600">Notes:</p>
-                  <p>{selected.notes}</p>
-                </div>
-              )}
-
-              <div className="text-center text-xs text-stone-400 pt-2 border-t border-stone-100">
-                <p>This is a computer-generated estimate</p>
-              </div>
-
-              <div className="text-center no-print pt-4 flex gap-3 justify-center">
-                <button onClick={() => window.print()} className="px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10"><HiOutlinePrinter size={16} /> Print / PDF</button>
-              </div>
+            {renderEstimateContent(selected)}
+            <div className="no-print" style={{ textAlign: 'center', marginTop: '20px' }}>
+              <button onClick={handlePrint} style={{ padding: '10px 24px', borderRadius: '8px', fontSize: '14px', fontWeight: '600', border: 'none', background: '#1e293b', color: 'white', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                <HiOutlinePrinter size={16} /> Print / PDF
+              </button>
             </div>
           </div>
         )}
       </Modal>
+
+      {printMode && selected && <div id="estimate-print">{renderEstimateContent(selected)}</div>}
 
       <ConfirmDialog isOpen={confirmOpen} onClose={() => setConfirmOpen(false)} onConfirm={handleDelete} title="Delete Estimate" message="Are you sure?" />
     </div>

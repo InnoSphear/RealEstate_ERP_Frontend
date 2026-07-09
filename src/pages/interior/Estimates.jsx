@@ -113,14 +113,14 @@ export default function Estimates() {
   };
 
   const renderEstimateContent = (est) => (
-    <div className="bg-white" style={{ fontFamily: 'Arial, sans-serif', maxWidth: '210mm', margin: '0 auto', padding: '20mm 15mm' }}>
+    <div className="bg-white" style={{ fontFamily: 'Arial, sans-serif', maxWidth: '210mm', margin: '0 auto', padding: '5mm 8mm' }}>
       <div className="flex items-start justify-between mb-6" style={{ borderBottom: '2px solid #1e293b', paddingBottom: '15px' }}>
         <div className="flex items-center gap-4">
           {est.company_logo && (
             <img src={est.company_logo} alt="Company Logo" style={{ maxHeight: '70px', width: 'auto', objectFit: 'contain' }} />
           )}
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{est.tenantData?.company_name || est.tenantData?.company_name || 'Company Name'}</h1>
+            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Shivam International</h1>
             {est.company_phone && (
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
                 <p style={{ margin: '2px 0' }}>+91 98991 46931 | 9891075835</p>
@@ -193,33 +193,34 @@ export default function Estimates() {
             </tr>
           ))}
         </tbody>
-        <tfoot>
-          <tr style={{ background: '#f8fafc' }}>
-            <td colSpan={3} style={{ padding: '8px', textAlign: 'right', fontWeight: '600', color: '#475569', borderTop: '2px solid #e2e8f0' }}></td>
-            <td style={{ padding: '8px', textAlign: 'right', fontWeight: '600', color: '#475569', borderTop: '2px solid #e2e8f0' }}>Subtotal</td>
-            <td style={{ padding: '8px', textAlign: 'right', fontWeight: '700', color: '#1e293b', borderTop: '2px solid #e2e8f0' }}>₹{(est.subtotal || 0).toLocaleString()}</td>
-          </tr>
-          {est.tax_percent > 0 && (
-            <tr style={{ background: '#f8fafc' }}>
-              <td colSpan={3}></td>
-              <td style={{ padding: '8px', textAlign: 'right', color: '#475569' }}>Tax ({est.tax_percent}%)</td>
-              <td style={{ padding: '8px', textAlign: 'right', color: '#1e293b' }}>₹{(est.tax_amount || 0).toLocaleString()}</td>
-            </tr>
-          )}
-          {est.discount > 0 && (
-            <tr style={{ background: '#f8fafc' }}>
-              <td colSpan={3}></td>
-              <td style={{ padding: '8px', textAlign: 'right', color: '#475569' }}>Discount</td>
-              <td style={{ padding: '8px', textAlign: 'right', color: '#dc2626' }}>-₹{(est.discount || 0).toLocaleString()}</td>
-            </tr>
-          )}
-          <tr style={{ background: '#f1f5f9' }}>
-            <td colSpan={3}></td>
-            <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', fontSize: '13px', borderTop: '2px solid #1e293b' }}>Grand Total</td>
-            <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', fontSize: '14px', borderTop: '2px solid #1e293b' }}>₹{(est.grand_total || 0).toLocaleString()}</td>
-          </tr>
-        </tfoot>
       </table>
+
+      <div className="summary-section" style={{ width: '100%', fontSize: '12px', marginBottom: '15px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <tbody>
+            <tr style={{ background: '#f8fafc' }}>
+              <td style={{ padding: '8px', textAlign: 'right', fontWeight: '600', color: '#475569', borderTop: '2px solid #e2e8f0', width: '80%' }}>Subtotal</td>
+              <td style={{ padding: '8px', textAlign: 'right', fontWeight: '700', color: '#1e293b', borderTop: '2px solid #e2e8f0', width: '20%' }}>₹{(est.subtotal || 0).toLocaleString()}</td>
+            </tr>
+            {est.tax_percent > 0 && (
+              <tr style={{ background: '#f8fafc' }}>
+                <td style={{ padding: '8px', textAlign: 'right', color: '#475569' }}>Tax ({est.tax_percent}%)</td>
+                <td style={{ padding: '8px', textAlign: 'right', color: '#1e293b' }}>₹{(est.tax_amount || 0).toLocaleString()}</td>
+              </tr>
+            )}
+            {est.discount > 0 && (
+              <tr style={{ background: '#f8fafc' }}>
+                <td style={{ padding: '8px', textAlign: 'right', color: '#475569' }}>Discount</td>
+                <td style={{ padding: '8px', textAlign: 'right', color: '#dc2626' }}>-₹{(est.discount || 0).toLocaleString()}</td>
+              </tr>
+            )}
+            <tr style={{ background: '#f1f5f9' }}>
+              <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', fontSize: '13px', borderTop: '2px solid #1e293b' }}>Grand Total</td>
+              <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', fontSize: '14px', borderTop: '2px solid #1e293b' }}>₹{(est.grand_total || 0).toLocaleString()}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       {est.delivery_terms && (
         <div className="terms-section" style={{ fontSize: '12px', color: '#475569', padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', marginBottom: '15px' }}>
@@ -266,7 +267,7 @@ export default function Estimates() {
       <style>{`
         #estimate-print { display: none; }
         @media print {
-          @page { size: A4 portrait; margin: 5mm; }
+          @page { size: A4 portrait; margin: 3mm; }
           body * { visibility: hidden; }
           #estimate-print, #estimate-print * { visibility: visible; }
           html, body { height: auto; overflow: visible; }
@@ -281,7 +282,7 @@ export default function Estimates() {
             print-color-adjust: exact !important;
           }
           #estimate-print > div {
-            padding: 5mm 8mm !important;
+            padding: 2mm 5mm !important;
             max-width: none !important;
             margin: 0 !important;
           }
@@ -289,7 +290,7 @@ export default function Estimates() {
           table { page-break-inside: auto; width: 100% !important; }
           tr { page-break-inside: avoid; page-break-after: auto; }
           thead { display: table-header-group; }
-          tfoot { display: table-footer-group; }
+          #estimate-print .summary-section { page-break-inside: avoid; page-break-before: auto; }
           #estimate-print .signature-section { page-break-inside: avoid; }
           #estimate-print .terms-section { page-break-inside: avoid; }
         }

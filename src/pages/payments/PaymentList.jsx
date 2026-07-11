@@ -78,7 +78,7 @@ export default function PaymentList() {
   const [dateTo, setDateTo] = useState('');
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
-    client_id: '', invoice_id: '', amount: '', payment_reason: '', payment_status: 'paid',
+    client_id: '', invoice_id: '', amount: '', payment_reason: '', others_reason: '', payment_status: 'due',
     payment_date: new Date().toISOString().split('T')[0],
     payment_mode: 'cash', purchaser_name: '', paid_by: '', credited_to: '', remarks: '',
     utr_number: '', reference_number: '', transaction_id: '',
@@ -112,7 +112,7 @@ export default function PaymentList() {
   useEffect(() => { fetchData(); }, [filterStatus, filterMode, filterClient, dateFrom, dateTo]);
 
   const resetForm = () => setForm({
-    client_id: '', invoice_id: '', amount: '', payment_reason: '', payment_status: 'paid',
+    client_id: '', invoice_id: '', amount: '', payment_reason: '', others_reason: '', payment_status: 'due',
     payment_date: new Date().toISOString().split('T')[0],
     payment_mode: 'cash', purchaser_name: '', paid_by: '', credited_to: '', remarks: '',
     utr_number: '', reference_number: '', transaction_id: '',
@@ -134,13 +134,16 @@ export default function PaymentList() {
   const handleSave = async (e) => {
     e.preventDefault();
     try {
+      const effectiveReason = form.payment_reason === 'Others' && form.others_reason ? form.others_reason : form.payment_reason;
       const payload = {
         ...form,
+        payment_reason: effectiveReason || undefined,
         amount: Number(form.amount),
         client_id: form.client_id || undefined,
         utr_number: form.utr_number || undefined,
         purchaser_name: form.purchaser_name || undefined,
       };
+      delete payload.others_reason;
       if (form.payment_status === 'due') {
         payload.payment_mode = undefined;
         payload.paid_by = undefined;
@@ -232,6 +235,12 @@ export default function PaymentList() {
                 {paymentReasonsList.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
+            {form.payment_reason === 'Others' && (
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-semibold text-stone-700 mb-1.5">Specify Reason *</label>
+                <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.others_reason} onChange={(e) => setForm({ ...form, others_reason: e.target.value })} placeholder="Enter payment reason" required={form.payment_reason === 'Others'} />
+              </div>
+            )}
             <div>
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Invoice</label>
               <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.invoice_id} onChange={(e) => handleInvoiceChange(e.target.value)}>
@@ -253,8 +262,8 @@ export default function PaymentList() {
             <div>
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Status</label>
               <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.payment_status} onChange={(e) => setForm({ ...form, payment_status: e.target.value })}>
-                <option value="paid">Paid</option>
                 <option value="due">Due</option>
+                <option value="paid">Paid</option>
               </select>
             </div>
             <div>
@@ -284,13 +293,7 @@ export default function PaymentList() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-stone-700 mb-1.5">Credited To</label>
-                  <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.credited_to} onChange={(e) => setForm({ ...form, credited_to: e.target.value })}>
-                    <option value="">Select</option>
-                    <option value="Company Account">Company Account</option>
-                    <option value="Admin">Admin</option>
-                    <option value="Employee">Employee</option>
-                    <option value="Bank Account">Bank Account</option>
-                  </select>
+                  <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.credited_to} onChange={(e) => setForm({ ...form, credited_to: e.target.value })} placeholder="e.g. Company Account, Admin Name, Bank A/C" />
                 </div>
               </>
             )}

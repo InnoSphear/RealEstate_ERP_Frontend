@@ -113,14 +113,14 @@ export default function Estimates() {
   };
 
   const renderEstimateContent = (est) => (
-    <div className="bg-white" style={{ fontFamily: 'Arial, sans-serif', maxWidth: '210mm', margin: '0 auto', padding: '5mm 8mm' }}>
+    <div className="bg-white" style={{ fontFamily: 'Arial, sans-serif', maxWidth: '210mm', margin: '0 auto', padding: '0mm 8mm 5mm 8mm' }}>
       <div className="flex items-start justify-between mb-6" style={{ borderBottom: '2px solid #1e293b', paddingBottom: '15px' }}>
         <div className="flex items-center gap-4">
           {est.company_logo && (
             <img src={est.company_logo} alt="Company Logo" style={{ maxHeight: '70px', width: 'auto', objectFit: 'contain' }} />
           )}
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Shivam International</h1>
+            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Shivan International</h1>
             {est.company_phone && (
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
                 <p style={{ margin: '2px 0' }}>+91 98991 46931 | 9891075835</p>
@@ -267,7 +267,7 @@ export default function Estimates() {
       <style>{`
         #estimate-print { display: none; }
         @media print {
-          @page { size: A4 portrait; margin: 3mm; }
+          @page { size: A4 portrait; margin: 0mm 3mm 3mm 3mm; }
           body * { visibility: hidden; }
           #estimate-print, #estimate-print * { visibility: visible; }
           html, body { height: auto; overflow: visible; }

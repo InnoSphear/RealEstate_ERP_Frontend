@@ -45,7 +45,7 @@ export default function FollowUpList() {
   const [filters, setFilters] = useState({ status: '', assigned_to: '', date_from: '', date_to: '' });
 
   const initForm = {
-    lead_id: '', client_id: '', assigned_to: '', follow_up_date: '', follow_up_time: '', notes: '', status: 'pending',
+    lead_id: '', client_id: '', assigned_to: '', follow_up_date: '', follow_up_time: '', reason: '', notes: '', status: 'pending',
   };
   const [form, setForm] = useState(initForm);
 
@@ -72,6 +72,7 @@ export default function FollowUpList() {
   }, [filters, classification]);
 
   useEffect(() => {
+    API.post('/follow-ups/backfill-names').catch(() => {});
     Promise.all([
       API.get('/users').catch(() => ({ data: [] })),
       API.get('/leads').catch(() => ({ data: [] })),
@@ -102,6 +103,7 @@ export default function FollowUpList() {
       assigned_to: row.assigned_to?._id || row.assigned_to || '',
       follow_up_date: row.follow_up_date ? new Date(row.follow_up_date).toISOString().split('T')[0] : '',
       follow_up_time: row.follow_up_time || '',
+      reason: row.reason || '',
       notes: row.notes || '',
       status: row.status || 'pending',
     });
@@ -198,11 +200,22 @@ export default function FollowUpList() {
   const columns = [
     {
       header: 'Lead/Client',
-      render: (r) => (
-        <span className={`font-medium ${isToday(r.follow_up_date) ? 'text-amber-600' : isOverdue(r.follow_up_date, r.status) ? 'text-red-600' : 'text-stone-900'}`}>
-          {r.lead?.full_name || r.lead_id?.full_name || r.client?.full_name || r.client_id?.full_name || '-'}
-        </span>
-      ),
+      render: (r) => {
+        const name = r.lead?.full_name || r.client?.full_name;
+        const mobile = r.lead?.mobile || r.client?.mobile;
+        return (
+          <span className={`font-medium ${isToday(r.follow_up_date) ? 'text-amber-600' : isOverdue(r.follow_up_date, r.status) ? 'text-red-600' : 'text-stone-900'}`}>
+            {name ? (
+              <span>
+                {name}
+                {mobile && <span className="block text-xs text-stone-400 font-normal">{mobile}</span>}
+              </span>
+            ) : (
+              r.reason || '-'
+            )}
+          </span>
+        );
+      },
     },
     { header: 'Assigned To', render: (r) => r.assigned_to ? `${r.assigned_to.full_name}${r.assigned_to.email ? ` (${r.assigned_to.email})` : ''}` : '-' },
     {
@@ -365,6 +378,10 @@ export default function FollowUpList() {
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Follow-up Time</label>
               <input type="time" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={form.follow_up_time} onChange={(e) => setForm({ ...form, follow_up_time: e.target.value })} />
             </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-stone-700 mb-1.5">Reason / Subject</label>
+            <input type="text" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" placeholder="e.g. Property discussion, Payment follow-up" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
           </div>
           <div>
             <label className="block text-sm font-semibold text-stone-700 mb-1.5">Notes</label>

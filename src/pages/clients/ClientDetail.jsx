@@ -37,7 +37,7 @@ export default function ClientDetail() {
   const [followUpForm, setFollowUpForm] = useState({ follow_up_date: '', follow_up_time: '', notes: '', reason: '', assigned_to: '' });
   const [newNoteText, setNewNoteText] = useState('');
   const [paymentView, setPaymentView] = useState('new');
-  const [paymentForm, setPaymentForm] = useState({ payment_reason: '', amount: '', payment_status: 'paid', payment_mode: 'cash', reference_number: '', paid_by: '', credited_to: '', payment_date: new Date().toISOString().split('T')[0], remarks: '' });
+  const [paymentForm, setPaymentForm] = useState({ payment_reason: '', others_reason: '', amount: '', payment_status: 'due', payment_mode: 'cash', reference_number: '', paid_by: '', credited_to: '', payment_date: new Date().toISOString().split('T')[0], remarks: '' });
   const [billView, setBillView] = useState(false);
   const [billPayment, setBillPayment] = useState(null);
   const [billData, setBillData] = useState(null);
@@ -46,6 +46,8 @@ export default function ClientDetail() {
   const [receiptView, setReceiptView] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
   const [paymentReasonsList, setPaymentReasonsList] = useState([]);
+  const [editingPayment, setEditingPayment] = useState(null);
+  const [confirmDeletePayment, setConfirmDeletePayment] = useState(null);
 
   const fetchClient = () => {
     setLoading(true);
@@ -170,11 +172,12 @@ export default function ClientDetail() {
   const handleCreatePayment = async () => {
     if (!paymentForm.amount) return toast('Amount required', 'error');
     if (paymentForm.payment_status === 'paid' && !paymentForm.payment_mode) return toast('Payment mode required for paid payments', 'error');
+    const effectiveReason = paymentForm.payment_reason === 'Others' && paymentForm.others_reason ? paymentForm.others_reason : paymentForm.payment_reason;
     try {
       const payload = {
         client_id: id,
         amount: Number(paymentForm.amount),
-        payment_reason: paymentForm.payment_reason || undefined,
+        payment_reason: effectiveReason || undefined,
         payment_status: paymentForm.payment_status,
         payment_date: paymentForm.payment_date || undefined,
         remarks: paymentForm.remarks || undefined,
@@ -188,12 +191,57 @@ export default function ClientDetail() {
       }
       await API.post('/payments', payload);
       toast('Payment created');
-      setPaymentForm({ payment_reason: '', amount: '', payment_status: 'paid', payment_mode: 'cash', reference_number: '', paid_by: '', credited_to: '', payment_date: new Date().toISOString().split('T')[0], remarks: '' });
+      setPaymentForm({ payment_reason: '', others_reason: '', amount: '', payment_status: 'due', payment_mode: 'cash', reference_number: '', paid_by: '', credited_to: '', payment_date: new Date().toISOString().split('T')[0], remarks: '' });
       setPaymentView('history');
       const res = await API.get(`/payments/by-client/${id}`);
       setPayments(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       toast(err.response?.data?.message || 'Error creating payment', 'error');
+    }
+  };
+
+  const handleUpdatePayment = async () => {
+    if (!editingPayment) return;
+    const effectiveReason = editingPayment.payment_reason === 'Others' && editingPayment.others_reason ? editingPayment.others_reason : editingPayment.payment_reason;
+    try {
+      const payload = {
+        amount: Number(editingPayment.amount),
+        payment_reason: effectiveReason || undefined,
+        payment_status: editingPayment.payment_status,
+        payment_date: editingPayment.payment_date || undefined,
+        remarks: editingPayment.remarks || undefined,
+      };
+      if (editingPayment.payment_status === 'paid') {
+        payload.payment_mode = editingPayment.payment_mode || 'cash';
+        payload.reference_number = editingPayment.reference_number || undefined;
+        payload.paid_by = editingPayment.paid_by || undefined;
+        payload.credited_to = editingPayment.credited_to || undefined;
+        payload.purchaser_name = editingPayment.paid_by || undefined;
+      } else {
+        payload.payment_mode = undefined;
+        payload.paid_by = undefined;
+        payload.credited_to = undefined;
+        payload.reference_number = undefined;
+      }
+      await API.put(`/payments/${editingPayment._id}`, payload);
+      toast('Payment updated');
+      setEditingPayment(null);
+      const res = await API.get(`/payments/by-client/${id}`);
+      setPayments(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      toast(err.response?.data?.message || 'Error updating payment', 'error');
+    }
+  };
+
+  const handleDeletePayment = async (paymentId) => {
+    try {
+      await API.delete(`/payments/${paymentId}`);
+      toast('Payment deleted');
+      setConfirmDeletePayment(null);
+      const res = await API.get(`/payments/by-client/${id}`);
+      setPayments(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      toast(err.response?.data?.message || 'Error deleting payment', 'error');
     }
   };
 
@@ -630,7 +678,7 @@ export default function ClientDetail() {
                 {receiptData.tenant?.company_logo && (
                   <img src={receiptData.tenant.company_logo} alt="Company Logo" style={{ maxHeight: '60px', width: 'auto', objectFit: 'contain', marginBottom: '8px' }} />
                 )}
-                <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', margin: '4px 0' }}>{receiptData.tenant?.company_name || 'Company Name'}</h1>
+                <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', margin: '4px 0' }}>{receiptData.tenant?.company_name || 'Shivan International'}</h1>
                 {receiptData.tenant?.company_address && (
                   <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0' }}>{receiptData.tenant.company_address}</p>
                 )}
@@ -707,7 +755,7 @@ export default function ClientDetail() {
             </div>
             <div id="single-bill-print" className="bg-white" style={{ fontFamily: 'Arial, sans-serif', maxWidth: '210mm', margin: '0 auto', padding: '20mm 15mm' }}>
               <div style={{ textAlign: 'center', borderBottom: '2px solid #1e293b', paddingBottom: '15px', marginBottom: '20px' }}>
-                <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', margin: '4px 0' }}>{billPayment.tenantData?.company_name || billPayment._id ? 'Company Name' : 'Company Name'}</h1>
+                <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', margin: '4px 0' }}>{billPayment.tenantData?.company_name || 'Shivan International'}</h1>
                 <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0' }}>+91 98991 46931 | 9891075835</p>
                 <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b', marginTop: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>PAYMENT BILL</h2>
                 <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Bill #: {billPayment.payment_number || billPayment._id?.slice(-8)}</p>
@@ -737,7 +785,11 @@ export default function ClientDetail() {
                 </thead>
                 <tbody>
                   <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '10px 8px', color: '#334155' }}>{billPayment.payment_reason || billPayment.reason || 'Payment Amount'}</td>
+                    <td style={{ padding: '10px 8px', color: '#334155' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 10px', borderRadius: '10px', background: (billPayment.payment_status === 'paid' || billPayment.status === 'completed') ? '#dcfce7' : '#fef3c7', color: (billPayment.payment_status === 'paid' || billPayment.status === 'completed') ? '#166534' : '#92400e' }}>
+                        {billPayment.payment_reason || billPayment.reason || 'Payment Amount'}
+                      </span>
+                    </td>
                     <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>{(billPayment.amount || 0).toLocaleString()}</td>
                   </tr>
                 </tbody>
@@ -748,6 +800,12 @@ export default function ClientDetail() {
                   </tr>
                 </tfoot>
               </table>
+              <div style={{ fontSize: '12px', color: '#475569', borderTop: '1px solid #e2e8f0', paddingTop: '8px', marginBottom: '10px' }}>
+                <p style={{ margin: '4px 0' }}><strong>Status:</strong> {(billPayment.payment_status === 'paid' || billPayment.status === 'completed') ? 'Paid' : 'Due'}</p>
+                {billPayment.paid_by && <p style={{ margin: '4px 0' }}><strong>Paid By:</strong> {billPayment.paid_by}</p>}
+                {billPayment.credited_to && <p style={{ margin: '4px 0' }}><strong>Credited To:</strong> {billPayment.credited_to}</p>}
+                {billPayment.reference_number && <p style={{ margin: '4px 0' }}><strong>Reference No:</strong> {billPayment.reference_number}</p>}
+              </div>
               <p style={{ fontSize: '11px', color: '#64748b', margin: '4px 0' }}><strong>Received By:</strong> {billPayment.processed_by?.full_name || 'System'}</p>
               <div style={{ marginTop: '30px', paddingTop: '15px', borderTop: '1px solid #e2e8f0' }}>
                 <p style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px 0' }}>Authorized Signature</p>
@@ -761,12 +819,18 @@ export default function ClientDetail() {
         ) : paymentView === 'new' ? (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Reason</label>
-              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={paymentForm.payment_reason} onChange={(e) => setPaymentForm({ ...paymentForm, payment_reason: e.target.value })}>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Reason *</label>
+              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={paymentForm.payment_reason} onChange={(e) => setPaymentForm({ ...paymentForm, payment_reason: e.target.value })} required>
                 <option value="">Select reason</option>
                 {paymentReasonsList.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
+            {paymentForm.payment_reason === 'Others' && (
+              <div>
+                <label className="block text-sm font-semibold text-stone-700 mb-1.5">Specify Reason *</label>
+                <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={paymentForm.others_reason} onChange={(e) => setPaymentForm({ ...paymentForm, others_reason: e.target.value })} placeholder="Enter payment reason" required />
+              </div>
+            )}
             <div>
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Amount (₹) *</label>
               <input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={paymentForm.amount} onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })} required />
@@ -774,8 +838,8 @@ export default function ClientDetail() {
             <div>
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Status</label>
               <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={paymentForm.payment_status} onChange={(e) => setPaymentForm({ ...paymentForm, payment_status: e.target.value })}>
-                <option value="paid">Paid</option>
                 <option value="due">Due</option>
+                <option value="paid">Paid</option>
               </select>
             </div>
 
@@ -802,13 +866,7 @@ export default function ClientDetail() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-stone-700 mb-1.5">Credited To</label>
-                  <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={paymentForm.credited_to} onChange={(e) => setPaymentForm({ ...paymentForm, credited_to: e.target.value })}>
-                    <option value="">Select</option>
-                    <option value="Company Account">Company Account</option>
-                    <option value="Admin">Admin</option>
-                    <option value="Employee">Employee</option>
-                    <option value="Bank Account">Bank Account</option>
-                  </select>
+                  <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={paymentForm.credited_to} onChange={(e) => setPaymentForm({ ...paymentForm, credited_to: e.target.value })} placeholder="e.g. Company Account, Admin Name, Bank A/C" />
                 </div>
               </>
             )}
@@ -841,101 +899,150 @@ export default function ClientDetail() {
               <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-7 w-7 border-2 border-stone-900 border-t-transparent" /></div>
             ) : payments.length === 0 ? (
               <p className="text-sm text-stone-400 text-center py-8">No payments recorded for this client</p>
-            ) : (
-              <div id="complete-bill" className="bg-white" style={{ fontFamily: 'Arial, sans-serif', maxWidth: '210mm', margin: '0 auto', padding: '15mm' }}>
-                <div className="no-print" style={{ textAlign: 'right', marginBottom: '10px' }}>
-                  <button onClick={() => window.print()} style={{ padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', border: 'none', background: '#1e293b', color: 'white', cursor: 'pointer' }}>🖨 Print Bill</button>
-                </div>
-                <div style={{ textAlign: 'center', borderBottom: '2px solid #1e293b', paddingBottom: '15px', marginBottom: '20px' }}>
-                  {billData?.tenant?.company_logo && (
-                    <img src={billData.tenant.company_logo} alt="Logo" style={{ maxHeight: '60px', width: 'auto', objectFit: 'contain', marginBottom: '8px' }} />
-                  )}
-                  <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{billData?.tenant?.company_name || 'Company Name'}</h1>
-                  {billData?.tenant?.company_address && (
-                    <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0' }}>{billData.tenant.company_address}</p>
-                  )}
-                  <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0' }}>+91 98991 46931 | 9891075835</p>
-                  <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b', marginTop: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Complete Payment Statement</h2>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontSize: '13px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-                  <div>
-                    <p style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px 0' }}>Bill To</p>
-                    <p style={{ fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{client?.full_name || ''}</p>
-                    <p style={{ color: '#64748b', margin: '2px 0' }}>{client?.mobile || ''}</p>
-                    <p style={{ color: '#64748b', margin: '2px 0' }}>{client?.email || ''}</p>
+            ) : (() => {
+              const totalPaid = payments.filter(p => p.payment_status === 'paid' || p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0);
+              const totalDue = payments.filter(p => p.payment_status === 'due').reduce((s, p) => s + (p.amount || 0), 0);
+              const reasonGroups = {};
+              payments.forEach(p => {
+                const reason = p.payment_reason || p.reason || 'Other';
+                if (!reasonGroups[reason]) reasonGroups[reason] = { paid: 0, due: 0, payments: [] };
+                const isPaid = p.payment_status === 'paid' || p.status === 'completed';
+                if (isPaid) reasonGroups[reason].paid += (p.amount || 0);
+                else reasonGroups[reason].due += (p.amount || 0);
+                reasonGroups[reason].payments.push(p);
+              });
+              return (
+                <div id="complete-bill" className="bg-white" style={{ fontFamily: 'Arial, sans-serif', maxWidth: '210mm', margin: '0 auto', padding: '15mm' }}>
+                  <div className="no-print" style={{ textAlign: 'right', marginBottom: '10px' }}>
+                    <button onClick={() => window.print()} style={{ padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', border: 'none', background: '#1e293b', color: 'white', cursor: 'pointer' }}>Print Bill</button>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <p style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px 0' }}>Statement Date</p>
-                    <p style={{ fontWeight: '600', color: '#1e293b', margin: 0 }}>{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                  <div style={{ textAlign: 'center', borderBottom: '2px solid #1e293b', paddingBottom: '15px', marginBottom: '20px' }}>
+                    {billData?.tenant?.company_logo && (
+                      <img src={billData.tenant.company_logo} alt="Logo" style={{ maxHeight: '60px', width: 'auto', objectFit: 'contain', marginBottom: '8px' }} />
+                    )}
+                    <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{billData?.tenant?.company_name || 'Shivan International'}</h1>
+                    {billData?.tenant?.company_address && (
+                      <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0' }}>{billData.tenant.company_address}</p>
+                    )}
+                    <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0' }}>+91 98991 46931 | 9891075835</p>
+                    <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b', marginTop: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Complete Payment Statement</h2>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontSize: '13px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                    <div>
+                      <p style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px 0' }}>Bill To</p>
+                      <p style={{ fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{client?.full_name || ''}</p>
+                      <p style={{ color: '#64748b', margin: '2px 0' }}>{client?.mobile || ''}</p>
+                      <p style={{ color: '#64748b', margin: '2px 0' }}>{client?.email || ''}</p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <p style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px 0' }}>Statement Date</p>
+                      <p style={{ fontWeight: '600', color: '#1e293b', margin: 0 }}>{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                    </div>
+                  </div>
+
+                  {Object.keys(reasonGroups).length > 0 && (
+                    <div style={{ marginBottom: '15px' }}>
+                      <h3 style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 8px 0', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px' }}>Payment Summary by Category</h3>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '2px solid #e2e8f0', background: '#f8fafc' }}>
+                            <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Category</th>
+                            <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 'bold', color: '#166534', fontSize: '10px', textTransform: 'uppercase' }}>Paid</th>
+                            <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 'bold', color: '#92400e', fontSize: '10px', textTransform: 'uppercase' }}>Due</th>
+                            <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.entries(reasonGroups).map(([reason, group]) => (
+                            <tr key={reason} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '6px 8px', fontWeight: '600', color: '#334155' }}>{reason}</td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', color: group.paid > 0 ? '#166534' : '#94a3b8' }}>{group.paid > 0 ? `₹${group.paid.toLocaleString()}` : '-'}</td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', color: group.due > 0 ? '#92400e' : '#94a3b8' }}>{group.due > 0 ? `₹${group.due.toLocaleString()}` : '-'}</td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>₹{(group.paid + group.due).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '15px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #1e293b', background: '#f1f5f9' }}>
+                        <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>#</th>
+                        <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Date</th>
+                        <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Reason</th>
+                        <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Amount</th>
+                        <th style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Status</th>
+                        <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Mode</th>
+                        <th className="no-print" style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payments.map((p, i) => {
+                        const isPaid = p.payment_status === 'paid' || p.status === 'completed';
+                        return (
+                          <tr key={p._id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                            <td style={{ padding: '8px 6px', color: '#64748b' }}>{i + 1}</td>
+                            <td style={{ padding: '8px 6px', color: '#334155', fontSize: '11px' }}>{p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</td>
+                            <td style={{ padding: '8px 6px' }}>
+                              <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '10px', background: isPaid ? '#dcfce7' : '#fef3c7', color: isPaid ? '#166534' : '#92400e' }}>
+                                {p.payment_reason || p.reason || 'Payment'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '8px 6px', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>₹{(p.amount || 0).toLocaleString()}</td>
+                            <td style={{ padding: '8px 6px', textAlign: 'center' }}>
+                              <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: '600', background: isPaid ? '#dcfce7' : '#fef3c7', color: isPaid ? '#166534' : '#92400e' }}>
+                                {isPaid ? 'Paid' : 'Due'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '8px 6px', textAlign: 'right', color: '#64748b', fontSize: '11px', textTransform: 'capitalize' }}>{isPaid ? (p.payment_mode?.replace(/_/g, ' ') || '-') : '-'}</td>
+                            <td className="no-print" style={{ padding: '8px 6px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                              <button onClick={() => setEditingPayment({ ...p, others_reason: '', payment_status: p.payment_status || (p.status === 'pending' ? 'due' : 'paid') })} style={{ padding: '3px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', color: '#475569', cursor: 'pointer', marginRight: '4px' }}>Edit</button>
+                              <button onClick={() => setConfirmDeletePayment(p)} style={{ padding: '3px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '6px', border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', cursor: 'pointer' }}>Delete</button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ borderTop: '2px solid #1e293b', background: '#f8fafc' }}>
+                        <td colSpan={2} style={{ padding: '10px 6px' }}></td>
+                        <td style={{ padding: '10px 6px', fontWeight: 'bold', color: '#1e293b', fontSize: '13px' }}>Total</td>
+                        <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', fontSize: '13px' }}>₹{payments.reduce((s, p) => s + (p.amount || 0), 0).toLocaleString()}</td>
+                        <td colSpan={3}></td>
+                      </tr>
+                      <tr style={{ background: '#f0fdf4' }}>
+                        <td colSpan={2}></td>
+                        <td style={{ padding: '6px', fontWeight: '600', color: '#166534', fontSize: '12px' }}>Total Paid</td>
+                        <td style={{ padding: '6px', textAlign: 'right', fontWeight: '600', color: '#166534', fontSize: '12px' }}>₹{totalPaid.toLocaleString()}</td>
+                        <td colSpan={3}></td>
+                      </tr>
+                      <tr style={{ background: '#fef3c7' }}>
+                        <td colSpan={2}></td>
+                        <td style={{ padding: '6px', fontWeight: '600', color: '#92400e', fontSize: '12px' }}>Total Due</td>
+                        <td style={{ padding: '6px', textAlign: 'right', fontWeight: '600', color: '#92400e', fontSize: '12px' }}>₹{totalDue.toLocaleString()}</td>
+                        <td colSpan={3}></td>
+                      </tr>
+                      <tr style={{ borderTop: '2px solid #1e293b' }}>
+                        <td colSpan={2}></td>
+                        <td style={{ padding: '10px 6px', fontWeight: 'bold', color: '#1e293b', fontSize: '14px' }}>Balance Due</td>
+                        <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 'bold', color: totalDue > 0 ? '#dc2626' : '#1e293b', fontSize: '14px' }}>
+                          ₹{totalDue.toLocaleString()}
+                        </td>
+                        <td colSpan={3}></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                  {billData?.summary?.remarks && (
+                    <p style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>Remarks: {billData.summary.remarks}</p>
+                  )}
+                  <div style={{ textAlign: 'center', fontSize: '10px', color: '#94a3b8', marginTop: '20px', paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
+                    <p style={{ margin: '2px 0' }}>This is a computer-generated statement</p>
                   </div>
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '15px' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid #1e293b', background: '#f1f5f9' }}>
-                      <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>#</th>
-                      <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Date</th>
-                      <th style={{ padding: '8px 6px', textAlign: 'left', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Reason</th>
-                      <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Amount</th>
-                      <th style={{ padding: '8px 6px', textAlign: 'center', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Status</th>
-                      <th style={{ padding: '8px 6px', textAlign: 'right', fontWeight: 'bold', color: '#475569', fontSize: '10px', textTransform: 'uppercase' }}>Mode</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {payments.map((p, i) => {
-                      const isPaid = p.payment_status === 'paid' || p.status === 'completed';
-                      return (
-                        <tr key={p._id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                          <td style={{ padding: '8px 6px', color: '#64748b' }}>{i + 1}</td>
-                          <td style={{ padding: '8px 6px', color: '#334155', fontSize: '11px' }}>{p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</td>
-                          <td style={{ padding: '8px 6px', color: '#334155' }}>{p.payment_reason || p.reason || 'Payment'}</td>
-                          <td style={{ padding: '8px 6px', textAlign: 'right', fontWeight: '600', color: '#1e293b' }}>₹{(p.amount || 0).toLocaleString()}</td>
-                          <td style={{ padding: '8px 6px', textAlign: 'center' }}>
-                            <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: '600', background: isPaid ? '#dcfce7' : '#fef3c7', color: isPaid ? '#166534' : '#92400e' }}>
-                              {isPaid ? 'Paid' : 'Due'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '8px 6px', textAlign: 'right', color: '#64748b', fontSize: '11px', textTransform: 'capitalize' }}>{isPaid ? (p.payment_mode?.replace(/_/g, ' ') || '-') : '-'}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr style={{ borderTop: '2px solid #1e293b', background: '#f8fafc' }}>
-                      <td colSpan={2} style={{ padding: '10px 6px' }}></td>
-                      <td style={{ padding: '10px 6px', fontWeight: 'bold', color: '#1e293b', fontSize: '13px' }}>Total</td>
-                      <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', fontSize: '13px' }}>₹{payments.reduce((s, p) => s + (p.amount || 0), 0).toLocaleString()}</td>
-                      <td colSpan={2}></td>
-                    </tr>
-                    <tr style={{ background: '#f0fdf4' }}>
-                      <td colSpan={2}></td>
-                      <td style={{ padding: '6px', fontWeight: '600', color: '#166534', fontSize: '12px' }}>Total Paid</td>
-                      <td style={{ padding: '6px', textAlign: 'right', fontWeight: '600', color: '#166534', fontSize: '12px' }}>₹{payments.filter(p => p.payment_status === 'paid' || p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0).toLocaleString()}</td>
-                      <td colSpan={2}></td>
-                    </tr>
-                    <tr style={{ background: '#fef3c7' }}>
-                      <td colSpan={2}></td>
-                      <td style={{ padding: '6px', fontWeight: '600', color: '#92400e', fontSize: '12px' }}>Total Due</td>
-                      <td style={{ padding: '6px', textAlign: 'right', fontWeight: '600', color: '#92400e', fontSize: '12px' }}>₹{payments.filter(p => p.payment_status === 'due').reduce((s, p) => s + (p.amount || 0), 0).toLocaleString()}</td>
-                      <td colSpan={2}></td>
-                    </tr>
-                    <tr style={{ borderTop: '2px solid #1e293b' }}>
-                      <td colSpan={2}></td>
-                      <td style={{ padding: '10px 6px', fontWeight: 'bold', color: '#1e293b', fontSize: '14px' }}>Balance</td>
-                      <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 'bold', color: '#1e293b', fontSize: '14px' }}>
-                        ₹{(payments.filter(p => p.payment_status === 'due').reduce((s, p) => s + (p.amount || 0), 0)).toLocaleString()}
-                      </td>
-                      <td colSpan={2}></td>
-                    </tr>
-                  </tfoot>
-                </table>
-                {billData?.summary?.remarks && (
-                  <p style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>Remarks: {billData.summary.remarks}</p>
-                )}
-                <div style={{ textAlign: 'center', fontSize: '10px', color: '#94a3b8', marginTop: '20px', paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
-                  <p style={{ margin: '2px 0' }}>This is a computer-generated statement</p>
-                </div>
-              </div>
-            )}
+              );
+            })()}
             <div className="mt-4 pt-4 border-t border-stone-100 flex justify-end">
               <button type="button" onClick={() => setPaymentModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Close</button>
             </div>
@@ -1006,7 +1113,7 @@ export default function ClientDetail() {
                       <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Mode</th>
                       <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Ref No</th>
                       <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Received By</th>
-                      <th className="text-right py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Receipt</th>
+                      <th className="text-right py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1015,10 +1122,14 @@ export default function ClientDetail() {
                       return (
                         <tr key={p._id} className="border-b border-stone-100 hover:bg-stone-50">
                           <td className="py-3 px-2 text-stone-700 font-medium">{i + 1}</td>
-                          <td className="py-3 px-2 text-stone-700">{p.payment_reason || p.reason || 'Payment'}</td>
-                          <td className="py-3 px-2 font-semibold text-stone-900">{formatCurrency(p.amount)}</td>
                           <td className="py-3 px-2">
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${isPaid ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'}`}>
+                              {p.payment_reason || p.reason || 'Payment'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-2 font-semibold text-stone-900">{formatCurrency(p.amount)}</td>
+                          <td className="py-3 px-2">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${isPaid ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-red-50 text-red-700 ring-1 ring-red-200'}`}>
                               {isPaid ? 'Paid' : 'Due'}
                             </span>
                           </td>
@@ -1031,7 +1142,9 @@ export default function ClientDetail() {
                           <td className="py-3 px-2 text-stone-600 text-xs">{p.reference_number || p.utr_number || '-'}</td>
                           <td className="py-3 px-2 text-stone-700">{p.processed_by?.full_name || '-'}</td>
                           <td className="py-3 px-2 text-right">
-                            <button onClick={() => fetchPaymentReceipt(p._id)} className="text-xs font-semibold text-stone-900 underline hover:text-stone-700 cursor-pointer">Receipt</button>
+                            <button onClick={() => fetchPaymentReceipt(p._id)} className="text-xs font-semibold text-stone-900 underline hover:text-stone-700 cursor-pointer mr-2">Receipt</button>
+                            <button onClick={() => setEditingPayment({ ...p, others_reason: '', payment_status: p.payment_status || (p.status === 'pending' ? 'due' : 'paid') })} className="text-xs font-semibold text-blue-600 hover:text-blue-800 cursor-pointer mr-2">Edit</button>
+                            <button onClick={() => setConfirmDeletePayment(p)} className="text-xs font-semibold text-red-600 hover:text-red-800 cursor-pointer">Delete</button>
                           </td>
                         </tr>
                       );
@@ -1043,6 +1156,92 @@ export default function ClientDetail() {
             <div className="mt-4 pt-4 border-t border-stone-100 flex justify-between items-center">
               <p className="text-sm text-stone-500">Total: <span className="font-semibold text-stone-900">{formatCurrency(payments.reduce((s, p) => s + (p.amount || 0), 0))}</span></p>
               <button type="button" onClick={() => setPaymentModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Close</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal isOpen={!!editingPayment} onClose={() => setEditingPayment(null)} title="Edit Payment" size="lg">
+        {editingPayment && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Reason</label>
+              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={editingPayment.payment_reason || ''} onChange={(e) => setEditingPayment({ ...editingPayment, payment_reason: e.target.value })}>
+                <option value="">Select reason</option>
+                {paymentReasonsList.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+            {editingPayment.payment_reason === 'Others' && (
+              <div>
+                <label className="block text-sm font-semibold text-stone-700 mb-1.5">Specify Reason</label>
+                <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={editingPayment.others_reason || ''} onChange={(e) => setEditingPayment({ ...editingPayment, others_reason: e.target.value })} placeholder="Enter payment reason" />
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Amount (₹)</label>
+              <input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={editingPayment.amount || ''} onChange={(e) => setEditingPayment({ ...editingPayment, amount: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Status</label>
+              <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={editingPayment.payment_status || 'due'} onChange={(e) => setEditingPayment({ ...editingPayment, payment_status: e.target.value })}>
+                <option value="due">Due</option>
+                <option value="paid">Paid</option>
+              </select>
+            </div>
+            {editingPayment.payment_status === 'paid' && (
+              <>
+                <div>
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Payment Mode</label>
+                  <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={editingPayment.payment_mode || 'cash'} onChange={(e) => setEditingPayment({ ...editingPayment, payment_mode: e.target.value })}>
+                    <option value="cash">Cash</option>
+                    <option value="upi">UPI</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="card">Card</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Reference Number</label>
+                  <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={editingPayment.reference_number || ''} onChange={(e) => setEditingPayment({ ...editingPayment, reference_number: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Person Who Made Payment</label>
+                  <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={editingPayment.paid_by || ''} onChange={(e) => setEditingPayment({ ...editingPayment, paid_by: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-stone-700 mb-1.5">Credited To</label>
+                  <input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={editingPayment.credited_to || ''} onChange={(e) => setEditingPayment({ ...editingPayment, credited_to: e.target.value })} placeholder="e.g. Company Account, Admin Name, Bank A/C" />
+                </div>
+              </>
+            )}
+            <div>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Date</label>
+              <input type="date" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" value={editingPayment.payment_date ? new Date(editingPayment.payment_date).toISOString().split('T')[0] : ''} onChange={(e) => setEditingPayment({ ...editingPayment, payment_date: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Remarks</label>
+              <textarea className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors" rows={2} value={editingPayment.remarks || ''} onChange={(e) => setEditingPayment({ ...editingPayment, remarks: e.target.value })} />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button onClick={() => setEditingPayment(null)} className="px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
+              <button onClick={handleUpdatePayment} className="px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">Update Payment</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal isOpen={!!confirmDeletePayment} onClose={() => setConfirmDeletePayment(null)} title="Delete Payment" size="sm">
+        {confirmDeletePayment && (
+          <div className="space-y-4">
+            <p className="text-sm text-stone-600">Are you sure you want to delete this payment?</p>
+            <div className="p-3 rounded-xl bg-stone-50 border border-stone-100">
+              <p className="text-sm font-medium text-stone-900">{confirmDeletePayment.payment_reason || 'Payment'}</p>
+              <p className="text-sm text-stone-500 mt-1">{formatCurrency(confirmDeletePayment.amount)}</p>
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button onClick={() => setConfirmDeletePayment(null)} className="px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Cancel</button>
+              <button onClick={() => handleDeletePayment(confirmDeletePayment._id)} className="px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer border-0 bg-red-600 text-white hover:bg-red-700">Delete</button>
             </div>
           </div>
         )}

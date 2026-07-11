@@ -132,9 +132,9 @@ export default function InteriorPayments() {
             </div>
             <div ref={billRef} className="border border-stone-200 rounded-2xl p-8 bg-white">
               <div className="flex items-center gap-4 border-b border-stone-200 pb-6 mb-6">
-                <img src={logo} alt="Shivam International" className="w-16 h-16 rounded-xl object-cover" />
+                <img src={logo} alt="Shivan International" className="w-16 h-16 rounded-xl object-cover" />
                 <div>
-                  <h2 className="text-xl font-bold text-stone-900">Shivam International</h2>
+                  <h2 className="text-xl font-bold text-stone-900">Shivan International</h2>
                   <p className="text-xs text-stone-500">Real Estate & Interior Solutions</p>
                 </div>
                 <div className="ml-auto text-right">

@@ -118,7 +118,12 @@ export default function PropertyKeyList() {
 
   const columns = [
     { header: 'Key Number', accessor: 'key_number' },
-    { header: 'Property', render: (r) => r.property?.property_id || r.property?.location || (r.property?.name) || (typeof r.property === 'string' ? r.property : '-') },
+    { header: 'Property', render: (r) => {
+      const p = r.property;
+      if (!p) return '-';
+      const label = [p.tower, p.flat_number].filter(Boolean).join(' - ');
+      return label || p.society_name || p.location || p.property_id || '-';
+    }},
     { header: 'Key Holder', render: (r) => r.key_holder?.full_name || r.key_holder?.name || r.issued_to?.full_name || r.issued_to?.name || '-' },
     { header: 'Status', render: (r) => statusBadge(r.status) },
     { header: 'Issue Date', render: (r) => r.issue_date ? new Date(r.issue_date).toLocaleDateString() : '-' },
@@ -171,7 +176,7 @@ export default function PropertyKeyList() {
         </select>
         <select value={filters.property} onChange={(e) => setFilters({ ...filters, property: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none transition-colors appearance-none cursor-pointer min-w-[180px]">
           <option value="">All Properties</option>
-          {properties.map((p) => <option key={p._id} value={p._id}>{p.property_id || p.location || p.name || p._id}</option>)}
+          {properties.map((p) => <option key={p._id} value={p._id}>{[p.tower, p.flat_number].filter(Boolean).join(' - ') || p.society_name || p.location || p.property_id || p._id}</option>)}
         </select>
       </div>
 
@@ -182,7 +187,7 @@ export default function PropertyKeyList() {
           <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Property *</label>
             <select className={inputClass + " appearance-none cursor-pointer"} value={form.property} onChange={(e) => setForm({ ...form, property: e.target.value })} required>
               <option value="">Select property</option>
-              {properties.map((p) => <option key={p._id} value={p._id}>{p.property_id || p.location || p.name || p._id}</option>)}
+              {properties.map((p) => <option key={p._id} value={p._id}>{[p.tower, p.flat_number].filter(Boolean).join(' - ') || p.society_name || p.location || p.property_id || p._id}</option>)}
             </select>
           </div>
           <div><label className="block text-sm font-semibold text-stone-700 mb-1.5">Key Number *</label>

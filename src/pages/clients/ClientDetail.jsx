@@ -279,8 +279,10 @@ export default function ClientDetail() {
   const fetchDues = async () => {
     setDuesLoading(true);
     try {
-      const res = await API.get(`/client-dues/by-client/${id}`);
-      setDues(Array.isArray(res.data) ? res.data : []);
+      const res = await API.get(`/payments/by-client/${id}`);
+      const allPayments = Array.isArray(res.data) ? res.data : [];
+      const duePayments = allPayments.filter(p => p.payment_status === 'due' || p.status === 'pending');
+      setDues(duePayments);
     } catch {
       toast('Failed to load dues', 'error');
     } finally {
@@ -665,8 +667,8 @@ export default function ClientDetail() {
                 @page { size: A4; margin: 12mm; }
                 body * { visibility: hidden; }
                 #receipt-print, #receipt-print * { visibility: visible; }
-                #receipt-print { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
-                .no-print { display: none !important; }
+                #receipt-print { position: fixed; top: 0; left: 0; width: 100%; padding: 0; margin: 0; background: white; z-index: 99999; }
+                #receipt-print .no-print, .no-print { display: none !important; visibility: hidden !important; }
               }
             `}</style>
             <div className="flex gap-2 no-print">
@@ -678,7 +680,7 @@ export default function ClientDetail() {
                 {receiptData.tenant?.company_logo && (
                   <img src={receiptData.tenant.company_logo} alt="Company Logo" style={{ maxHeight: '60px', width: 'auto', objectFit: 'contain', marginBottom: '8px' }} />
                 )}
-                <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', margin: '4px 0' }}>{receiptData.tenant?.company_name || 'Shivan International'}</h1>
+                <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', margin: '4px 0' }}>Shivam International</h1>
                 {receiptData.tenant?.company_address && (
                   <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0' }}>{receiptData.tenant.company_address}</p>
                 )}
@@ -745,8 +747,8 @@ export default function ClientDetail() {
                 @page { size: A4; margin: 12mm; }
                 body * { visibility: hidden; }
                 #single-bill-print, #single-bill-print * { visibility: visible; }
-                #single-bill-print { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
-                .no-print { display: none !important; }
+                #single-bill-print { position: fixed; top: 0; left: 0; width: 100%; padding: 0; margin: 0; background: white; z-index: 99999; }
+                #single-bill-print .no-print, .no-print { display: none !important; visibility: hidden !important; }
               }
             `}</style>
             <div className="flex gap-2 no-print">
@@ -755,7 +757,7 @@ export default function ClientDetail() {
             </div>
             <div id="single-bill-print" className="bg-white" style={{ fontFamily: 'Arial, sans-serif', maxWidth: '210mm', margin: '0 auto', padding: '20mm 15mm' }}>
               <div style={{ textAlign: 'center', borderBottom: '2px solid #1e293b', paddingBottom: '15px', marginBottom: '20px' }}>
-                <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', margin: '4px 0' }}>{billPayment.tenantData?.company_name || 'Shivan International'}</h1>
+                <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', margin: '4px 0' }}>Shivam International</h1>
                 <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0' }}>+91 98991 46931 | 9891075835</p>
                 <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b', marginTop: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>PAYMENT BILL</h2>
                 <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Bill #: {billPayment.payment_number || billPayment._id?.slice(-8)}</p>
@@ -891,8 +893,10 @@ export default function ClientDetail() {
                 @page { size: A4; margin: 15mm; }
                 body * { visibility: hidden; }
                 #complete-bill, #complete-bill * { visibility: visible; }
-                #complete-bill { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; }
-                #complete-bill .no-print { display: none !important; }
+                #complete-bill { position: fixed; top: 0; left: 0; width: 100%; padding: 0; margin: 0; background: white; z-index: 99999; }
+                #complete-bill .no-print, .no-print { display: none !important; visibility: hidden !important; }
+                #complete-bill table { page-break-inside: avoid; }
+                #complete-bill tr { page-break-inside: avoid; }
               }
             `}</style>
             {paymentsLoading ? (
@@ -920,7 +924,7 @@ export default function ClientDetail() {
                     {billData?.tenant?.company_logo && (
                       <img src={billData.tenant.company_logo} alt="Logo" style={{ maxHeight: '60px', width: 'auto', objectFit: 'contain', marginBottom: '8px' }} />
                     )}
-                    <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{billData?.tenant?.company_name || 'Shivan International'}</h1>
+                    <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Shivam International</h1>
                     {billData?.tenant?.company_address && (
                       <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0' }}>{billData.tenant.company_address}</p>
                     )}
@@ -1043,7 +1047,7 @@ export default function ClientDetail() {
                 </div>
               );
             })()}
-            <div className="mt-4 pt-4 border-t border-stone-100 flex justify-end">
+            <div className="no-print mt-4 pt-4 border-t border-stone-100 flex justify-end">
               <button type="button" onClick={() => setPaymentModalOpen(false)} className="px-5 py-2.5 rounded-xl text-sm font-semibold inline-flex items-center gap-2 cursor-pointer bg-white text-stone-600 hover:bg-stone-50 border border-stone-200">Close</button>
             </div>
           </div>
@@ -1060,10 +1064,8 @@ export default function ClientDetail() {
                     <tr className="border-b border-stone-200">
                       <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">#</th>
                       <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Amount</th>
-                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Paid</th>
-                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Remaining</th>
                       <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Reason</th>
-                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Due Date</th>
+                      <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Payment Date</th>
                       <th className="text-left py-3 px-2 text-stone-500 font-semibold text-xs uppercase">Status</th>
                     </tr>
                   </thead>
@@ -1072,17 +1074,10 @@ export default function ClientDetail() {
                       <tr key={d._id} className="border-b border-stone-100 hover:bg-stone-50">
                         <td className="py-3 px-2 text-stone-700 font-medium">{i + 1}</td>
                         <td className="py-3 px-2 font-semibold text-stone-900">{formatCurrency(d.amount)}</td>
-                        <td className="py-3 px-2 text-stone-700">{d.paid_amount ? formatCurrency(d.paid_amount) : '-'}</td>
-                        <td className="py-3 px-2 text-stone-700">{d.remaining ? formatCurrency(d.remaining) : '-'}</td>
-                        <td className="py-3 px-2 text-stone-600">{d.reason || '-'}</td>
-                        <td className="py-3 px-2 text-stone-600 text-xs">{d.due_date ? new Date(d.due_date).toLocaleDateString('en-IN') : '-'}</td>
+                        <td className="py-3 px-2 text-stone-600">{d.payment_reason || d.reason || '-'}</td>
+                        <td className="py-3 px-2 text-stone-600 text-xs">{d.payment_date ? new Date(d.payment_date).toLocaleDateString('en-IN') : '-'}</td>
                         <td className="py-3 px-2">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                            d.status === 'paid' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' :
-                            d.status === 'partial' ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' :
-                            d.status === 'waived' ? 'bg-stone-50 text-stone-700 ring-1 ring-stone-200' :
-                            'bg-red-50 text-red-700 ring-1 ring-red-200'
-                          }`}>{d.status}</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 ring-1 ring-red-200">Due</span>
                         </td>
                       </tr>
                     ))}

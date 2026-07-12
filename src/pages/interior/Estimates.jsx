@@ -120,7 +120,7 @@ export default function Estimates() {
             <img src={est.company_logo} alt="Company Logo" style={{ maxHeight: '70px', width: 'auto', objectFit: 'contain' }} />
           )}
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Shivan International</h1>
+            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Shivam International</h1>
             {est.company_phone && (
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
                 <p style={{ margin: '2px 0' }}>+91 98991 46931 | 9891075835</p>

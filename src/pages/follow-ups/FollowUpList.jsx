@@ -78,15 +78,19 @@ export default function FollowUpList() {
       API.get('/leads').catch(() => ({ data: [] })),
       API.get('/clients').catch(() => ({ data: [] })),
     ]).then(([uRes, lRes, cRes]) => {
-      setUsers(uRes.data || []);
-      setLeads(lRes.data || []);
-      setClients(cRes.data || []);
+      const uData = uRes.data;
+      setUsers(Array.isArray(uData) ? uData : uData?.users || []);
+      const lData = lRes.data;
+      setLeads(Array.isArray(lData) ? lData : lData?.leads || []);
+      const cData = cRes.data;
+      setClients(Array.isArray(cData) ? cData : cData?.clients || []);
     });
   }, []);
 
   const handleTabChange = (key) => {
     setClassification(key);
     setSelectedIds([]);
+    setFilters({ status: '', assigned_to: '', date_from: '', date_to: '' });
   };
 
   const openCreate = () => {

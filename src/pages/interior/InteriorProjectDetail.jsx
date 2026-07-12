@@ -1116,13 +1116,15 @@ export default function InteriorProjectDetail() {
               @media print {
                 body * { visibility: hidden; }
                 #complete-bill, #complete-bill * { visibility: visible; }
-                #complete-bill { position: absolute; left: 0; top: 0; width: 100%; }
-                .no-print { display: none !important; }
+                #complete-bill { position: fixed; top: 0; left: 0; width: 100%; padding: 0; margin: 0; background: white; z-index: 99999; }
+                .no-print { display: none !important; visibility: hidden !important; }
+                #complete-bill table { page-break-inside: avoid; }
+                #complete-bill tr { page-break-inside: avoid; }
               }
             `}</style>
             <div className="p-6 space-y-6">
               <div className="text-center border-b border-stone-200 pb-4">
-                <h2 className="text-2xl font-bold text-stone-900">Shivan International</h2>
+                <h2 className="text-2xl font-bold text-stone-900">Shivam International</h2>
                 <p className="text-sm text-stone-500">Real Estate & Interior Solutions</p>
                 <p className="text-lg font-bold text-stone-800 mt-3 uppercase tracking-wider">Complete Payment Statement</p>
               </div>
@@ -1193,9 +1195,9 @@ export default function InteriorProjectDetail() {
             {[...(project.payments || [])].sort((a, b) => new Date(a.payment_date) - new Date(b.payment_date)).map((p, pidx) => (
               <div key={p._id || pidx} ref={pidx === 0 ? billRef : null} className="border border-stone-200 rounded-2xl p-8 bg-white mb-4">
                 <div className="flex items-center gap-4 border-b border-stone-200 pb-6 mb-6">
-                  <img src={logo} alt="Shivan International" className="w-16 h-16 rounded-xl object-cover" />
+                  <img src={logo} alt="Shivam International" className="w-16 h-16 rounded-xl object-cover" />
                   <div>
-                    <h2 className="text-xl font-bold text-stone-900">Shivan International</h2>
+                    <h2 className="text-xl font-bold text-stone-900">Shivam International</h2>
                     <p className="text-xs text-stone-500">Real Estate & Interior Solutions</p>
                   </div>
                   <div className="ml-auto text-right">

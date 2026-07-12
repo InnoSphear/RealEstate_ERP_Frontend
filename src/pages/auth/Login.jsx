@@ -43,7 +43,7 @@ export default function Login() {
           <div className="w-20 h-20 bg-stone-900 dark:bg-stone-800 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-stone-900/10 dark:shadow-black/30">
             <img src={logo} alt="Logo" className="w-12 h-12 object-contain" />
           </div>
-          <h1 className="text-3xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">Shivan International</h1>
+          <h1 className="text-3xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">Shivam International</h1>
           <p className="text-stone-500 dark:text-stone-400 mt-2 text-sm">Sign in to your management system</p>
         </div>
 

@@ -61,11 +61,11 @@ const menuGroups = [
   {
     label: 'Interior',
     items: [
-      { path: '/interior', label: 'Dashboard', icon: HiOutlineChartBar, roles: ['admin', 'manager', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
-      { path: '/interior-projects', label: 'Projects', icon: HiOutlineBuildingOffice2, roles: ['admin', 'manager', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
-      { path: '/interior-payments', label: 'Payments', icon: HiOutlineCreditCard, roles: ['admin', 'manager', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
-      { path: '/interior-invoices', label: 'Invoices', icon: HiOutlineReceiptPercent, roles: ['admin', 'manager', 'accounts', 'interior_manager'], permission: 'interior_projects' },
-      { path: '/estimates', label: 'Estimates', icon: HiOutlineDocumentText, roles: ['admin', 'manager', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
+      { path: '/interior', label: 'Dashboard', icon: HiOutlineChartBar, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'agent', 'receptionist', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
+      { path: '/interior-projects', label: 'Projects', icon: HiOutlineBuildingOffice2, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'agent', 'receptionist', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
+      { path: '/interior-payments', label: 'Payments', icon: HiOutlineCreditCard, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'agent', 'receptionist', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
+      { path: '/interior-invoices', label: 'Invoices', icon: HiOutlineReceiptPercent, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'agent', 'receptionist', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
+      { path: '/estimates', label: 'Estimates', icon: HiOutlineDocumentText, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'agent', 'receptionist', 'interior_manager', 'junior_interior_manager'], permission: 'interior_projects' },
     ],
   },
   {
@@ -87,7 +87,7 @@ const menuGroups = [
       { path: '/payments', label: 'Payments', icon: HiOutlineCreditCard, roles: ['admin', 'manager', 'accounts'], permission: 'payments' },
       { path: '/commissions', label: 'Commissions', icon: HiOutlineTag, roles: ['admin', 'manager', 'accounts'], permission: 'commissions' },
       { path: '/income', label: 'Income', icon: HiOutlineChartBar, roles: ['admin', 'manager', 'accounts'], permission: 'income' },
-      { path: '/expenses', label: 'Expenses', icon: HiOutlineCurrencyDollar, roles: ['admin', 'manager', 'accounts'], permission: 'expenses' },
+      { path: '/expenses', label: 'Expenses', icon: HiOutlineCurrencyDollar, roles: ['admin', 'manager', 'telecaller', 'sales_executive', 'accounts', 'agent', 'receptionist', 'interior_manager', 'junior_interior_manager'], permission: 'expenses' },
       { path: '/vendors', label: 'Vendors', icon: HiOutlineShoppingCart, roles: ['admin', 'manager', 'accounts'], permission: 'vendors' },
     ],
   },

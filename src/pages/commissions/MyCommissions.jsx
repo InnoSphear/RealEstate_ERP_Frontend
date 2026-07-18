@@ -53,14 +53,14 @@ export default function MyCommissions() {
   const openRequest = async () => {
     resetForm();
     try {
-      const [cRes, pRes, iRes] = await Promise.all([
+      const [cRes, pRes, iRes] = await Promise.allSettled([
         API.get('/clients'),
         API.get('/properties'),
         API.get('/interior-projects'),
       ]);
-      setClients(Array.isArray(cRes.data) ? cRes.data : []);
-      setProperties(Array.isArray(pRes.data) ? pRes.data : []);
-      setInteriorProjects(Array.isArray(iRes.data) ? iRes.data : []);
+      setClients(cRes.status === 'fulfilled' && Array.isArray(cRes.value.data) ? cRes.value.data : []);
+      setProperties(pRes.status === 'fulfilled' && Array.isArray(pRes.value.data) ? pRes.value.data : []);
+      setInteriorProjects(iRes.status === 'fulfilled' && Array.isArray(iRes.value.data) ? iRes.value.data : []);
     } catch { toast('Failed to load clients/properties', 'error'); }
     setRequestModal(true);
   };

@@ -51,19 +51,19 @@ export default function CommissionList() {
       if (filterEmployee) params.append('employee', filterEmployee);
       if (filterType) params.append('commission_type', filterType);
       const qs = params.toString();
-      const [dRes, eRes, cRes, pRes, iRes] = await Promise.all([
+      const [dRes, eRes, cRes, pRes, iRes] = await Promise.allSettled([
         API.get(`/commissions${qs ? `?${qs}` : ''}`),
         API.get('/employees'),
         API.get('/clients?scope=all'),
         API.get('/properties?scope=all'),
         API.get('/interior-projects'),
       ]);
-      const commissions = Array.isArray(dRes.data) ? dRes.data : [];
+      const commissions = dRes.status === 'fulfilled' && Array.isArray(dRes.value.data) ? dRes.value.data : [];
       setData(commissions);
-      setEmployees(Array.isArray(eRes.data) ? eRes.data : []);
-      setClients(Array.isArray(cRes.data) ? cRes.data : []);
-      setProperties(Array.isArray(pRes.data) ? pRes.data : []);
-      setInteriorProjects(Array.isArray(iRes.data) ? iRes.data : []);
+      setEmployees(eRes.status === 'fulfilled' && Array.isArray(eRes.value.data) ? eRes.value.data : []);
+      setClients(cRes.status === 'fulfilled' && Array.isArray(cRes.value.data) ? cRes.value.data : []);
+      setProperties(pRes.status === 'fulfilled' && Array.isArray(pRes.value.data) ? pRes.value.data : []);
+      setInteriorProjects(iRes.status === 'fulfilled' && Array.isArray(iRes.value.data) ? iRes.value.data : []);
       const summaryMap = {};
       commissions.forEach((c) => {
         const name = c.employee?.full_name || 'Unknown';

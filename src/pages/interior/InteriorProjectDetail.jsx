@@ -37,7 +37,7 @@ export default function InteriorProjectDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { hasRole } = useAuth();
-  const canViewProfit = hasRole('admin', 'manager');
+  const canViewProfit = hasRole('admin', 'manager', 'accounts', 'telecaller', 'sales_executive', 'receptionist', 'agent', 'interior_manager', 'junior_interior_manager');
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');

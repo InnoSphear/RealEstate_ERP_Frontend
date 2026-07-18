@@ -22,6 +22,7 @@ export default function ExpenseList() {
   const [selected, setSelected] = useState(null);
   const [filterStatus, setFilterStatus] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [form, setForm] = useState({
@@ -35,6 +36,7 @@ export default function ExpenseList() {
       const params = new URLSearchParams();
       if (filterStatus) params.append('status', filterStatus);
       if (filterCategory) params.append('category', filterCategory);
+      if (searchTerm) params.append('search', searchTerm);
       if (dateFrom) params.append('date_from', dateFrom);
       if (dateTo) params.append('date_to', dateTo);
       const qs = params.toString();
@@ -43,7 +45,7 @@ export default function ExpenseList() {
     } catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
-  useEffect(() => { fetchData(); }, [filterStatus, filterCategory, dateFrom, dateTo]);
+  useEffect(() => { fetchData(); }, [filterStatus, filterCategory, searchTerm, dateFrom, dateTo]);
 
   const resetForm = () => setForm({
     category: '', amount: '', date: new Date().toISOString().split('T')[0],
@@ -93,6 +95,8 @@ export default function ExpenseList() {
     { header: 'Vendor', accessor: 'vendor', render: (r) => r.vendor || '-' },
     { header: 'Status', render: (r) => <span className={statusColors[r.status]}>{r.status}</span> },
     { header: 'Mode', render: (r) => <span className="bg-stone-50 text-stone-700 ring-1 ring-stone-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize">{r.payment_mode?.replace(/_/g, ' ')}</span> },
+    { header: 'Created By', render: (r) => r.paid_by?.full_name || '-' },
+    { header: 'Created At', render: (r) => r.createdAt ? new Date(r.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-' },
   ];
 
   return (
@@ -102,6 +106,7 @@ export default function ExpenseList() {
         <button onClick={openCreate} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-0 bg-stone-900 text-white hover:bg-stone-800 shadow-lg shadow-stone-900/10">+ Add Expense</button>
       </div>
       <div className="flex flex-wrap gap-3">
+        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search expenses..." className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors w-64" />
         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
           <option value="">All Statuses</option>
           {statuses.map((s) => <option key={s} value={s}>{s}</option>)}

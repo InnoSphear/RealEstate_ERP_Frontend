@@ -352,7 +352,7 @@ export default function CommissionList() {
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Property</label>
               <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.property_id} onChange={(e) => setForm({ ...form, property_id: e.target.value })}>
                 <option value="">Select property</option>
-                {properties.map((p) => <option key={p._id} value={p._id}>{p.property_id} - {p.location}</option>)}
+                {properties.map((p) => <option key={p._id} value={p._id}>{p.property_id} - Flat {p.flat_number || '-'}, {p.tower || '-'}</option>)}
               </select>
             </div>
             {form.source === 'interior' && (

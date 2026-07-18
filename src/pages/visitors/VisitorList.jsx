@@ -15,6 +15,7 @@ export default function VisitorList() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [filterType, setFilterType] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [form, setForm] = useState({
@@ -27,6 +28,7 @@ export default function VisitorList() {
     try {
       const params = new URLSearchParams();
       if (filterType) params.append('type', filterType);
+      if (searchTerm) params.append('search', searchTerm);
       if (dateFrom) params.append('date_from', dateFrom);
       if (dateTo) params.append('date_to', dateTo);
       const qs = params.toString();
@@ -41,7 +43,7 @@ export default function VisitorList() {
     } catch { toast('Failed to load', 'error'); }
     finally { setLoading(false); }
   };
-  useEffect(() => { fetchData(); }, [filterType, dateFrom, dateTo]);
+  useEffect(() => { fetchData(); }, [filterType, searchTerm, dateFrom, dateTo]);
 
   const resetForm = () => setForm({
     visitor_name: '', mobile: '', email: '', purpose: 'property_viewing',
@@ -95,6 +97,7 @@ export default function VisitorList() {
       </div>
 
       <div className="flex flex-wrap gap-3">
+        <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search visitors..." className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors w-64" />
         <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
           <option value="">All Types</option>
           {visitorTypes.map((t) => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
@@ -173,7 +176,7 @@ export default function VisitorList() {
               <label className="block text-sm font-semibold text-stone-700 mb-1.5">Interested Property</label>
               <select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer" value={form.interested_property} onChange={(e) => setForm({ ...form, interested_property: e.target.value })}>
                 <option value="">Select property</option>
-                {properties.map((p) => <option key={p._id} value={p._id}>{p.title || p.location}</option>)}
+                {properties.map((p) => <option key={p._id} value={p._id}>{p.property_id} - Flat {p.flat_number || '-'}, {p.tower || '-'}</option>)}
               </select>
             </div>
             <div>

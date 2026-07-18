@@ -28,7 +28,7 @@ export default function ClientList() {
   const [selected, setSelected] = useState(null);
 
   const [properties, setProperties] = useState([]);
-  const [filters, setFilters] = useState({ status: '', source: '', assigned_to: '', requirement_type: '', date_from: '', date_to: '' });
+  const [filters, setFilters] = useState({ status: '', source: '', assigned_to: '', requirement_type: '', date_from: '', date_to: '', search: '' });
 
   const initForm = {
     full_name: '', email: '', mobile: '', alternate_mobile: '', address: '', city: '', state: '', pincode: '',
@@ -177,6 +177,7 @@ export default function ClientList() {
       </div>
 
       <div className="flex flex-wrap gap-3">
+        <input type="text" value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} placeholder="Search by name, phone, email..." className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors w-64" />
         <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
           <option value="">All Status</option>
           {statuses.map((s) => <option key={s} value={s}>{s}</option>)}

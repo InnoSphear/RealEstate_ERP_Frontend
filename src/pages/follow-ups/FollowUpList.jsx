@@ -42,7 +42,7 @@ export default function FollowUpList() {
   const [classification, setClassification] = useState('');
   const [counts, setCounts] = useState({ total: 0, due: 0, overdue: 0, completed: 0, pending: 0 });
 
-  const [filters, setFilters] = useState({ status: '', assigned_to: '', date_from: '', date_to: '' });
+  const [filters, setFilters] = useState({ status: '', assigned_to: '', date_from: '', date_to: '', search: '' });
 
   const initForm = {
     lead_id: '', client_id: '', assigned_to: '', follow_up_date: '', follow_up_time: '', reason: '', notes: '', status: 'pending',
@@ -307,6 +307,7 @@ export default function FollowUpList() {
       </div>
 
       <div className="flex flex-wrap gap-3">
+        <input type="text" value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} placeholder="Search follow-ups..." className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors w-64" />
         <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} className="px-3 py-2 rounded-xl bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer">
           <option value="">All Status</option>
           {followUpStatuses.map((s) => <option key={s} value={s}>{s}</option>)}

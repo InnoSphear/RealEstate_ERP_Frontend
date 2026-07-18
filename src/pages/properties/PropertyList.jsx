@@ -56,7 +56,7 @@ export default function PropertyList() {
   const [form, setForm] = useState(emptyForm());
   const [images, setImages] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [filters, setFilters] = useState({ property_type: '', unit_type: '', project_name: '', size_category: '', listing_type: '', availability: '', status: '', city: '', society_name: '', tower: '', built_up_area_min: '', built_up_area_max: '', price_min: '', price_max: '', created_by_employee: '', date_from: '', date_to: '' });
+  const [filters, setFilters] = useState({ property_type: '', unit_type: '', project_name: '', listing_type: '', availability: '', status: '', city: '', society_name: '', tower: '', price_min: '', price_max: '', created_by_employee: '', date_from: '', date_to: '' });
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
@@ -157,6 +157,7 @@ export default function PropertyList() {
       if (r.plot_area) return `${r.plot_area} sqft`;
       return '-';
     }},
+    { header: 'Furnishing', render: (r) => r.furnishing_status ? <span className="bg-stone-50 text-stone-700 ring-1 ring-stone-200 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize">{r.furnishing_status.replace(/_/g, ' ')}</span> : '-' },
     { header: 'Listing', render: (r) => r.listing_type?.charAt(0).toUpperCase() + r.listing_type?.slice(1) || '-' },
     { header: 'Created By', render: (r) => r.created_by?.full_name || '-' },
     { header: 'Price / Rent', render: (r) => {
@@ -183,7 +184,7 @@ export default function PropertyList() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <input type="text" placeholder="Search by ID, owner, location..." value={search} onChange={(e) => setSearch(e.target.value)} className="px-3.5 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors min-w-[220px] dark:text-white dark:placeholder-stone-400" />
+        <input type="text" placeholder="Search by ID, owner, flat, tower, city, project..." value={search} onChange={(e) => setSearch(e.target.value)} className="px-3.5 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors min-w-[220px] dark:text-white dark:placeholder-stone-400" />
         <select value={filters.property_type} onChange={(e) => setFilters({ ...filters, property_type: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors dark:text-white">
           <option value="">All Types</option>
           {propertyTypes.map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
@@ -196,10 +197,6 @@ export default function PropertyList() {
           <option value="">All Projects</option>
           {projectNames.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
-        <select value={filters.size_category} onChange={(e) => setFilters({ ...filters, size_category: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors dark:text-white">
-          <option value="">All Sizes</option>
-          {sizeCategories.map((t) => <option key={t} value={t}>{t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</option>)}
-        </select>
         <select value={filters.listing_type} onChange={(e) => setFilters({ ...filters, listing_type: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors dark:text-white">
           <option value="">All Listings</option>
           {listingTypes.map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
@@ -211,8 +208,6 @@ export default function PropertyList() {
         <input type="text" placeholder="Society" value={filters.society_name} onChange={(e) => setFilters({ ...filters, society_name: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-32 dark:text-white dark:placeholder-stone-400" />
         <input type="text" placeholder="Tower" value={filters.tower} onChange={(e) => setFilters({ ...filters, tower: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
         <input type="text" placeholder="City" value={filters.city} onChange={(e) => setFilters({ ...filters, city: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
-        <input type="number" placeholder="Built-up Min" value={filters.built_up_area_min} onChange={(e) => setFilters({ ...filters, built_up_area_min: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
-        <input type="number" placeholder="Built-up Max" value={filters.built_up_area_max} onChange={(e) => setFilters({ ...filters, built_up_area_max: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
         <input type="number" placeholder="Min Price" value={filters.price_min} onChange={(e) => setFilters({ ...filters, price_min: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
         <input type="number" placeholder="Max Price" value={filters.price_max} onChange={(e) => setFilters({ ...filters, price_max: e.target.value })} className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none transition-colors w-28 dark:text-white dark:placeholder-stone-400" />
         {isAdmin && (
@@ -335,10 +330,10 @@ export default function PropertyList() {
             <h4 className="text-sm font-semibold text-stone-700 dark:text-stone-300 mb-3 pb-2 border-b border-stone-100 dark:border-stone-700">Listing & Pricing</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Listing Type *</label><select className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors appearance-none cursor-pointer dark:text-white" value={form.listing_type} onChange={(e) => setForm({ ...form, listing_type: e.target.value })} required>{listingTypes.map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}</select></div>
-              <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Sale Price (₹)</label><input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" value={form.price_sale} onChange={(e) => setForm({ ...form, price_sale: e.target.value })} /></div>
-              <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Rent Amount (₹/mo)</label><input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" value={form.rent_amount} onChange={(e) => setForm({ ...form, rent_amount: e.target.value })} /></div>
-              <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Rent Deposit (₹)</label><input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" value={form.rent_deposit} onChange={(e) => setForm({ ...form, rent_deposit: e.target.value })} /></div>
-              <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Maintenance Amount (₹)</label><input type="number" className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" value={form.maintenance_amount} onChange={(e) => setForm({ ...form, maintenance_amount: e.target.value })} /></div>
+              <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Sale Price (₹)</label><input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" value={form.price_sale} onChange={(e) => setForm({ ...form, price_sale: e.target.value })} /></div>
+              <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Rent Amount (₹/mo)</label><input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" value={form.rent_amount} onChange={(e) => setForm({ ...form, rent_amount: e.target.value })} /></div>
+              <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Rent Deposit (₹)</label><input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" value={form.rent_deposit} onChange={(e) => setForm({ ...form, rent_deposit: e.target.value })} /></div>
+              <div><label className="block text-sm font-semibold text-stone-700 dark:text-stone-300 mb-1.5">Maintenance Amount (₹)</label><input className="w-full px-3 py-2.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/10 focus:border-stone-900 transition-colors dark:text-white dark:placeholder-stone-400" value={form.maintenance_amount} onChange={(e) => setForm({ ...form, maintenance_amount: e.target.value })} /></div>
             </div>
           </div>
 

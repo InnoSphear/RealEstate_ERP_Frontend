@@ -4,6 +4,7 @@ import { HiOutlineArrowLeft, HiOutlinePencilSquare, HiOutlineDocumentArrowUp, Hi
 import API from '../../api/axios';
 import Modal from '../../components/Modal';
 import { toast } from '../../components/Toast';
+import { useAuth } from '../../contexts/AuthContext';
 
 const formatCurrency = (n) => n ? `₹${Number(n).toLocaleString()}` : '-';
 const formatDateTime = (d) => d ? new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
@@ -19,6 +20,8 @@ const tabs = ['Overview', 'Timeline', 'Properties', 'Documents'];
 export default function ClientDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  const canEditPayments = hasRole('admin', 'manager');
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Overview');
@@ -1002,8 +1005,12 @@ export default function ClientDetail() {
                             </td>
                             <td style={{ padding: '8px 6px', textAlign: 'right', color: '#64748b', fontSize: '11px', textTransform: 'capitalize' }}>{isPaid ? (p.payment_mode?.replace(/_/g, ' ') || '-') : '-'}</td>
                             <td className="no-print" style={{ padding: '8px 6px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                              <button onClick={() => setEditingPayment({ ...p, others_reason: '', payment_status: p.payment_status || (p.status === 'pending' ? 'due' : 'paid') })} style={{ padding: '3px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', color: '#475569', cursor: 'pointer', marginRight: '4px' }}>Edit</button>
-                              <button onClick={() => setConfirmDeletePayment(p)} style={{ padding: '3px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '6px', border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', cursor: 'pointer' }}>Delete</button>
+                              {canEditPayments && (
+                                <>
+                                  <button onClick={() => setEditingPayment({ ...p, others_reason: '', payment_status: p.payment_status || (p.status === 'pending' ? 'due' : 'paid') })} style={{ padding: '3px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', color: '#475569', cursor: 'pointer', marginRight: '4px' }}>Edit</button>
+                                  <button onClick={() => setConfirmDeletePayment(p)} style={{ padding: '3px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '6px', border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', cursor: 'pointer' }}>Delete</button>
+                                </>
+                              )}
                             </td>
                           </tr>
                         );
@@ -1138,8 +1145,12 @@ export default function ClientDetail() {
                           <td className="py-3 px-2 text-stone-700">{p.processed_by?.full_name || '-'}</td>
                           <td className="py-3 px-2 text-right">
                             <button onClick={() => fetchPaymentReceipt(p._id)} className="text-xs font-semibold text-stone-900 underline hover:text-stone-700 cursor-pointer mr-2">Receipt</button>
-                            <button onClick={() => setEditingPayment({ ...p, others_reason: '', payment_status: p.payment_status || (p.status === 'pending' ? 'due' : 'paid') })} className="text-xs font-semibold text-blue-600 hover:text-blue-800 cursor-pointer mr-2">Edit</button>
-                            <button onClick={() => setConfirmDeletePayment(p)} className="text-xs font-semibold text-red-600 hover:text-red-800 cursor-pointer">Delete</button>
+                            {canEditPayments && (
+                              <>
+                                <button onClick={() => setEditingPayment({ ...p, others_reason: '', payment_status: p.payment_status || (p.status === 'pending' ? 'due' : 'paid') })} className="text-xs font-semibold text-blue-600 hover:text-blue-800 cursor-pointer mr-2">Edit</button>
+                                <button onClick={() => setConfirmDeletePayment(p)} className="text-xs font-semibold text-red-600 hover:text-red-800 cursor-pointer">Delete</button>
+                              </>
+                            )}
                           </td>
                         </tr>
                       );

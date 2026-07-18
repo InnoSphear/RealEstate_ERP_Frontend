@@ -69,7 +69,7 @@ export default function InteriorDashboard() {
           <HiOutlineShoppingCart size={20} className="text-blue-600 mb-2" />
           <p className="text-xs font-semibold uppercase tracking-wider text-blue-700/70">Total Cost</p>
           <p className="text-2xl font-bold text-blue-900 mt-1">{formatCurrency(totalCost)}</p>
-          <p className="text-xs text-blue-600/60 mt-0.5">Material: {formatCurrency(summary.total_material)} | Other: {formatCurrency(summary.total_other_cost)}</p>
+          <p className="text-xs text-blue-600/60 mt-0.5">Material: {formatCurrency(summary.total_material)} | Other: {formatCurrency(summary.total_other_cost)} | Expenses: {formatCurrency(summary.total_direct_expenses || 0)}</p>
         </div>
         {canViewProfit && (
           <div className={`p-5 rounded-2xl bg-gradient-to-br border ${totalProfitLoss >= 0 ? 'from-emerald-50 to-emerald-100/50 border-emerald-200' : 'from-red-50 to-red-100/50 border-red-200'}`}>
@@ -106,6 +106,7 @@ export default function InteriorDashboard() {
                 <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Contract</th>
                 <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Material</th>
                 <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Other Cost</th>
+                <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Expenses</th>
                 <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Total Cost</th>
                 <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Received</th>
                 <th className="px-4 py-3 text-right font-semibold text-stone-500 text-xs uppercase tracking-wider">Balance</th>
@@ -114,7 +115,7 @@ export default function InteriorDashboard() {
             </thead>
             <tbody>
               {projects.map((p) => {
-                const totalCost = (p.material_cost || 0) + (p.other_cost || 0);
+                const totalCost = (p.material_cost || 0) + (p.other_cost || 0) + (p.direct_expenses || []).reduce((s, e) => s + (e.cost || 0), 0);
                 const balance = (p.contract_amount || 0) - (p.received_amount || 0);
                 const profitLoss = (p.contract_amount || 0) - totalCost;
                 return (
@@ -125,6 +126,7 @@ export default function InteriorDashboard() {
                     <td className="px-4 py-3 text-right font-medium text-stone-900">{formatCurrency(p.contract_amount)}</td>
                     <td className="px-4 py-3 text-right text-stone-700">{formatCurrency(p.material_cost)}</td>
                     <td className="px-4 py-3 text-right text-stone-700">{formatCurrency(p.other_cost)}</td>
+                    <td className="px-4 py-3 text-right text-stone-700">{formatCurrency((p.direct_expenses || []).reduce((s, e) => s + (e.cost || 0), 0))}</td>
                     <td className="px-4 py-3 text-right text-blue-700 font-medium">{formatCurrency(totalCost)}</td>
                     <td className="px-4 py-3 text-right text-stone-700">{formatCurrency(p.received_amount)}</td>
                     <td className={`px-4 py-3 text-right font-medium ${balance > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>{formatCurrency(balance)}</td>
@@ -133,7 +135,7 @@ export default function InteriorDashboard() {
                 );
               })}
               {projects.length === 0 && (
-                <tr><td colSpan={canViewProfit ? 10 : 9} className="px-4 py-10 text-center text-stone-400">No interior projects found</td></tr>
+                    <tr><td colSpan={canViewProfit ? 11 : 10} className="px-4 py-10 text-center text-stone-400">No interior projects found</td></tr>
               )}
             </tbody>
           </table>
@@ -154,6 +156,12 @@ export default function InteriorDashboard() {
               <div className="flex justify-between text-sm"><span className="text-stone-600">Labour / Other</span><span className="font-semibold text-stone-900">{formatCurrency(summary.total_other_cost)}</span></div>
               <div className="mt-1 h-2 bg-stone-100 rounded-full overflow-hidden">
                 <div className="h-full rounded-full bg-amber-500" style={{ width: `${totalCost > 0 ? ((summary.total_other_cost || 0) / totalCost) * 100 : 0}%` }} />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm"><span className="text-stone-600">Direct Expenses</span><span className="font-semibold text-stone-900">{formatCurrency(summary.total_direct_expenses || 0)}</span></div>
+              <div className="mt-1 h-2 bg-stone-100 rounded-full overflow-hidden">
+                <div className="h-full rounded-full bg-red-500" style={{ width: `${totalCost > 0 ? ((summary.total_direct_expenses || 0) / totalCost) * 100 : 0}%` }} />
               </div>
             </div>
             <div className="pt-2 border-t border-stone-100 flex justify-between text-sm font-semibold"><span className="text-stone-800">Total Cost</span><span className="text-blue-800">{formatCurrency(totalCost)}</span></div>

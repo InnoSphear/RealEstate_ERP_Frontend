@@ -54,8 +54,8 @@ export default function MyCommissions() {
     resetForm();
     try {
       const [cRes, pRes, iRes] = await Promise.all([
-        API.get('/clients'),
-        API.get('/properties'),
+        API.get('/clients?scope=all'),
+        API.get('/properties?scope=all'),
         API.get('/interior-projects'),
       ]);
       setClients(Array.isArray(cRes.data) ? cRes.data : []);

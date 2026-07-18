@@ -54,8 +54,8 @@ export default function CommissionList() {
       const [dRes, eRes, cRes, pRes, iRes] = await Promise.all([
         API.get(`/commissions${qs ? `?${qs}` : ''}`),
         API.get('/employees'),
-        API.get('/clients'),
-        API.get('/properties'),
+        API.get('/clients?scope=all'),
+        API.get('/properties?scope=all'),
         API.get('/interior-projects'),
       ]);
       const commissions = Array.isArray(dRes.data) ? dRes.data : [];
